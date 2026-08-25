@@ -19,7 +19,22 @@ cd rewards-farmer
 # Edit the included nouns.txt file to add or replace words as needed
 ```
 
-You should also have an Ollama account created (for the LLM), the `ollama` tool installed, and you should have signed in to the Ollama CLI via the command line using `ollama signin`. This project will use a minimal amount of Ollama cloud usage using `gemma4:cloud`. If you wish to use a different model, please change the `model` parameter in the `get_ollama_response` function in `src/llm_utils.py`.
+You should also configure an LLM provider through a `.env` file in the project root. The script now talks to either OpenRouter or a local OpenAI-compatible LLM endpoint depending on `LLM_PROVIDER`.
+
+Example `.env` values:
+
+```env
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_key_here
+OPENROUTER_MODEL=openai/gpt-4o-mini
+
+# Or use a local endpoint instead
+# LLM_PROVIDER=local
+# LOCAL_LLM_BASE_URL=http://localhost:11434/v1
+# LOCAL_LLM_MODEL=gemma3:4b
+```
+
+For OpenRouter, the code uses the OpenAI-compatible chat completions API at `https://openrouter.ai/api/v1/chat/completions`. For local models, the endpoint must also be OpenAI-compatible.
 
 You must also provide an image for the script to upload to complete the visual search task. Currently, this image is named `keypress_times.png` and is located in the root directory of the project (yes, I used a random image from my keyboard analysis to do this). You may provide an image of your own, just ensure that the absolute path of the image is placed in the `VISUAL_SEARCH_IMAGE_PATH` constant at the top of `rewards_tasks.py`.
 
@@ -27,12 +42,14 @@ Activate the virtual environment & install dependencies (you may have to use `py
 You must have Python 3.14+ and Poetry installed.
 
 Windows (PowerShell)
+
 ```sh
 poetry install
 iex (poetry env activate)
 ```
 
-*nix (Bash)
+\*nix (Bash)
+
 ```sh
 poetry install
 eval $(poetry env activate)
