@@ -21,7 +21,22 @@ class ElementSelectionUtils:
 		return self.resolve("/html/body/div[2]/div[2]/div/main/section[1]/div/div[2]/div/div/button[3]")
 
 	def get_open_visual_search_sidebar(self):
-		return self.resolve("/html/body/div[2]/div[2]/div/main/section[1]/div/div[2]/div/div/button[5]")
+		# Original brittle selector:
+		# return self.resolve("/html/body/div[2]/div[2]/div/main/section[1]/div/div[2]/div/div/button[5]")
+
+		buttons = self.driver.find_elements(By.TAG_NAME, "button")
+		for button in buttons:
+			text = (button.text or "").strip().lower()
+			if "visual" in text or "image" in text or "search" in text:
+				return button
+
+		# Fallback: find a button with a link-like action using data-testid or aria-label if available
+		for button in buttons:
+			label = (button.get_attribute("aria-label") or "").strip().lower()
+			if "visual" in label or "image" in label or "search" in label:
+				return button
+
+		raise Exception("Visual search sidebar button not found")
 
 	def get_sidebar_section(self):
 		sections = self.driver.find_elements(By.TAG_NAME, "section")
