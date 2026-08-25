@@ -93,6 +93,19 @@ def get_llm_response(messages: list[dict[str, str]]) -> str:
 
 	return content
 
+
+def get_nonempty_ollama_response(messages: list[dict[str, str]]) -> str:
+	"""Retry a bounded number of times instead of spinning forever on empties."""
+	for attempt in range(MAX_EMPTY_RETRIES):
+		response = get_ollama_response(messages)
+
+		if response and response.strip():
+			return response
+
+		print(f"[WARNING] Empty LLM response, retry {attempt + 1}/{MAX_EMPTY_RETRIES}")
+
+	raise RuntimeError(f"LLM returned nothing usable after {MAX_EMPTY_RETRIES} attempts")
+
 def get_search_query_from_task_description(task_description: str) -> str:
 	# compat
 	if "lyrics of your favorite song" in task_description.lower(): return "sweet caroline lyrics"
