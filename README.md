@@ -44,6 +44,8 @@ The profile directory in `src/constants.py` is set to `Default`. If this signs y
 
 Run main.py (`python src/main.py`, it must be run from the root directory so the relative paths work out), wait for the page to launch, and then CTRL-C to quit the application immediately. Sign in to the created profile with your Microsoft account on both Bing and `rewards.bing.com`.
 
+EU Users: you may have to accept a consent banner once on `rewards.bing.com` and on the Bing search page, `bing.com`. Once you consent, your choice will be saved for future runs using the same profile, so you will not need to interact with the banner during automated runs.
+
 Close all webdriver browser instances. Run `main.py` again; the automation should start working.
 
 Please open up a GitHub issue if you run into any difficulties.

@@ -95,7 +95,7 @@ class RewardsTaskUtils:
 
 			# search bar should be auto-focused
 
-			self.keyboard.send_keys(query+Keys.ENTER)
+			self.keyboard.send_keys(f"{query} -noai{Keys.ENTER}")
 
 			time.sleep(random.uniform(2, 3))
 
@@ -174,7 +174,7 @@ class RewardsTaskUtils:
 				llm_utils.get_random_noun(), num_queries=searches_needed
 			)
 		):
-			self.keyboard.send_keys(query+Keys.ENTER)
+			self.keyboard.send_keys(f"{query} -noai{Keys.ENTER}")
 
 			time.sleep(random.uniform(0.5, 1))
 

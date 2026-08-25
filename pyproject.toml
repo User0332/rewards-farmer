@@ -3,7 +3,7 @@ name = "bing-rewards-bot"
 version = "0.1.0"
 description = "Script to farm MS Rewards points on desktop"
 authors = [
-    {name = "Carl Furtado",email = "carlzfurtado@gmail.com"}
+    {name = "Carl Furtado",email = "user0332@duck.com"}
 ]
 license = "MIT"
 requires-python = ">=3.14"
