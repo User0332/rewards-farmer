@@ -27,16 +27,16 @@ class ElementSelectionUtils:
 		buttons = self.driver.find_elements(By.TAG_NAME, "button")
 		for button in buttons:
 			text = (button.text or "").strip().lower()
-			if "visual" in text or "image" in text or "search" in text:
+			if "visual" in text or ("image" in text and "search" in text):
 				return button
 
-		# Fallback: find a button with a link-like action using data-testid or aria-label if available
+		# Fallback: try aria-label
 		for button in buttons:
 			label = (button.get_attribute("aria-label") or "").strip().lower()
-			if "visual" in label or "image" in label or "search" in label:
+			if "visual" in label or ("image" in label and "search" in label):
 				return button
 
-		raise Exception("Visual search sidebar button not found")
+		raise NoSuchElementException("Visual search sidebar button not found")
 
 	def get_sidebar_section(self):
 		sections = self.driver.find_elements(By.TAG_NAME, "section")
