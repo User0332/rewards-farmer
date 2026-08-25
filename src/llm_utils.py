@@ -46,6 +46,15 @@ USER_PROMPT_FOR_SEARCH_QUERY_CONTINUATION = """Generate the next search query.""
 
 def get_ollama_response(messages: list[dict[str, str]], model: str=DEFAULT_OLLAMA_MODEL) -> str:
 	response = ollama.chat(
+# Without an explicit timeout a stalled or cold ollama backend blocks the whole
+# run forever, which is fatal for an unattended scheduled run.
+_CLIENT = ollama.Client(timeout=180)
+
+MAX_EMPTY_RETRIES = 5
+
+
+def get_ollama_response(messages: list[dict[str, str]], model: str="gemma4:cloud") -> str:
+	response = _CLIENT.chat(
 		model=model,
 		messages=messages
 	)
@@ -123,6 +132,19 @@ def get_ai_response(
 	except (KeyError, IndexError, TypeError):
 		raise RuntimeError(f"Unexpected Gemini response format: {body}")
 
+
+def get_nonempty_ollama_response(messages: list[dict[str, str]]) -> str:
+	"""Retry a bounded number of times instead of spinning forever on empties."""
+	for attempt in range(MAX_EMPTY_RETRIES):
+		response = get_ollama_response(messages)
+
+		if response and response.strip():
+			return response
+
+		print(f"[WARNING] Empty LLM response, retry {attempt + 1}/{MAX_EMPTY_RETRIES}")
+
+	raise RuntimeError(f"LLM returned nothing usable after {MAX_EMPTY_RETRIES} attempts")
+
 def get_search_query_from_task_description(task_description: str) -> str:
 	# compat
 	if "lyrics of your favorite song" in task_description.lower(): return "sweet caroline lyrics"
@@ -139,6 +161,7 @@ def get_search_query_from_task_description(task_description: str) -> str:
 	]
 
 	while not (response := get_ai_response(messages)): pass # ensure non-empty response
+	response = get_nonempty_ollama_response(messages)
 
 	return response.lower()
 
@@ -156,6 +179,7 @@ def get_related_search_queries(seed_word: str, num_queries: int=20) -> Generator
 
 	for _ in range(num_queries):
 		while not (response := get_ai_response(messages)): pass # ensure non-empty response
+		response = get_nonempty_ollama_response(messages)
 
 		yield response.lower()
 

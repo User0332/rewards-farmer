@@ -154,14 +154,57 @@ class RewardsTaskUtils:
 		for i in range(scroll_times):
 			ActionChains(self.driver).scroll_by_amount(0, -100).perform() # scroll back to top of page
 
-	def complete_required_searches(self):
+	def complete_required_searches(self, max_rounds: int = 6):
+		# Points per search are not fixed. Some markets award 3 rather than 5,
+		# the daily maximum itself changes (observed 15, 30 and 60 on the same
+		# account within one day, with the counter resetting), and daily set and
+		# card searches count towards the same quota. A single up front division
+		# therefore leaves points on the table and still reports success.
+		# Measure, search, measure again.
+		points_earned, max_pts = self.read_search_points()
+
+		print(f"[INFO] Search points before: {points_earned}/{max_pts}")
+
+		for round_number in range(1, max_rounds + 1):
+			if points_earned >= max_pts:
+				break
+
+			# Assume the lower known rate so a round never overshoots by much.
+			searches = max(1, (max_pts - points_earned) // 3)
+
+			self.run_search_batch(searches)
+
+			previous = points_earned
+			points_earned, max_pts = self.read_search_points()
+
+			print(f"[INFO] Round {round_number}: {searches} searches -> {points_earned}/{max_pts}")
+
+			if points_earned <= previous:
+				print("[WARNING] Round produced no points, stopping instead of searching pointlessly.")
+				break
+
+		if points_earned < max_pts:
+			print(f"[WARNING] Search quota not filled: {points_earned}/{max_pts}")
+		else:
+			print(f"Search quota complete: {points_earned}/{max_pts}")
+
+	def read_search_points(self):
+		"""Open the points breakdown, read the Bing search row, close it again."""
 		self.switch_to_earn_page()
 		self.wait_for_then_click(self.elements.get_points_breakdown_button)
-		self.wait_for_element(self.elements.get_close_button_on_points_breakdown) # make sure sidebar loads
+
+		close_btn = self.wait_for_element(self.elements.get_close_button_on_points_breakdown)
 
 		points_earned, max_pts = self.elements.get_points_earned_from_searches_on_points_breakdown()
-		searches_needed = (max_pts - points_earned) // 5
 
+		try:
+			self.move_to_and_click(close_btn)
+		except Exception:
+			pass
+
+		return points_earned, max_pts
+
+	def run_search_batch(self, count: int):
 		self.driver.get("https://www.bing.com/")
 		self.tab_utils.ensure_focus()
 
@@ -171,7 +214,7 @@ class RewardsTaskUtils:
 
 		for i, query in enumerate(
 			llm_utils.get_related_search_queries(
-				llm_utils.get_random_noun(), num_queries=searches_needed
+				llm_utils.get_random_noun(), num_queries=count
 			)
 		):
 			self.keyboard.send_keys(f"{query} -noai{Keys.ENTER}")
@@ -185,18 +228,6 @@ class RewardsTaskUtils:
 
 		self.driver.get("https://rewards.bing.com/")
 		self.tab_utils.ensure_focus()
-
-		self.switch_to_earn_page()
-
-		self.wait_for_then_click(self.elements.get_points_breakdown_button)
-
-		close_btn = self.wait_for_element(self.elements.get_close_button_on_points_breakdown)
-
-		points_earned, max_pts = self.elements.get_points_earned_from_searches_on_points_breakdown()
-
-		self.move_to_and_click(close_btn)
-
-		print(f"Points earned from {searches_needed} searches: {points_earned}/{max_pts}")
 
 	def claim_bonus_points(self):
 		self.switch_to_dashboard()
