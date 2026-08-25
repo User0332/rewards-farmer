@@ -5,7 +5,6 @@ from selenium import webdriver
 from constants import USER_DATA_DIR, PROFILE_NAME
 
 options = webdriver.EdgeOptions()
-options.binary_location = r"C:\Program Files (x86)\Microsoft\EdgeCore\151.0.4129.107\msedge.exe"
 
 options.add_experimental_option("excludeSwitches", ["enable-automation"])
 options.add_experimental_option('useAutomationExtension', False)
