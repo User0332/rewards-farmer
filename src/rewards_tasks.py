@@ -8,14 +8,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, NoSuchElementException
 import tab_utils
 import llm_utils
 import mouse_trajectory
 import mimic_typing
 import element_selectors
 
-VISUAL_SEARCH_IMAGE_PATH = os.path.abspath("keypress_times.png")
+VISUAL_SEARCH_IMAGE_PATH = os.path.abspath("visual_search.jpg")
 
 class RewardsTaskUtils:
 	def __init__(self, driver: webdriver.Edge):
@@ -82,7 +82,14 @@ class RewardsTaskUtils:
 	def complete_explore_on_bing_tasks(self):
 		self.switch_to_earn_page()
 
-		explore_on_bing_links = self.wait_for_element(self.elements.get_explore_on_bing_elements)
+		explore_on_bing_links = self.elements.get_explore_on_bing_elements()
+
+		if not explore_on_bing_links:
+			# Raise rather than return, so complete_all_tasks reports this as
+			# [SKIP]. Returning quietly made it print [OK] for a task that never
+			# ran, which is exactly the kind of false success a scheduled run
+			# must not produce.
+			raise NoSuchElementException("no Explore on Bing section in this UI variant")
 
 		for card in explore_on_bing_links:
 			desc = self.elements.extract_card_descriptions(card)
@@ -240,9 +247,29 @@ class RewardsTaskUtils:
 			print("[WARNING] Could not find the 'Claim Bonus Points' button. There are likely no bonus points to claim at this time.")
 
 	def complete_all_tasks(self):
-		self.complete_bing_daily_set()
-		self.complete_explore_on_bing_tasks()
-		self.complete_visual_search()
-		self.complete_misc_cards()
-		self.complete_required_searches()
-		self.claim_bonus_points()
+		# Each task is run independently. The Rewards UI differs by market and
+		# changes between deploys, so a task the current variant does not ship
+		# must not take the remaining ones down with it.
+		steps = (
+			("Bing daily set", self.complete_bing_daily_set),
+			("Explore on Bing", self.complete_explore_on_bing_tasks),
+			("Visual search", self.complete_visual_search),
+			("Misc cards", self.complete_misc_cards),
+			("Required searches", self.complete_required_searches),
+			("Bonus points", self.claim_bonus_points),
+		)
+
+		for name, step in steps:
+			try:
+				step()
+				print(f"[OK] {name}")
+			except (NoSuchElementException, TimeoutException) as exc:
+				print(f"[SKIP] {name}: not available in this UI variant ({type(exc).__name__})")
+			except Exception as exc:
+				print(f"[FAIL] {name}: {type(exc).__name__}: {exc}")
+
+			# Leave a clean tab state behind for the next task.
+			try:
+				self.tab_utils.close_all_other_tabs()
+			except Exception:
+				pass
