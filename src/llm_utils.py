@@ -1,12 +1,13 @@
 from typing import Generator
 import random
 import json
+import os
 import ollama
 from urllib import request, parse
 from urllib.error import HTTPError
 
 
-GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite"
 DEFAULT_OLLAMA_MODEL = "gemma4:cloud"
 
@@ -68,8 +69,8 @@ def get_ai_response(
 
 	resolved_api_key = api_key or GEMINI_API_KEY
 
-	if not resolved_api_key or resolved_api_key == "ADD_GEMINI_API_KEY_HERE":
-		raise ValueError("Set GEMINI_API_KEY in llm_utils.py or pass api_key explicitly")
+	if not resolved_api_key:
+		raise ValueError("Set GEMINI_API_KEY in your .env or environment, or pass api_key explicitly")
 
 	system_parts = []
 	contents = []
