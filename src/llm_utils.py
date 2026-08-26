@@ -1,6 +1,10 @@
 from typing import Generator
+import os
 import random
-import ollama
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DEFAULT_SYSTEM_PROMPT_FOR_SEARCH_QUEST = (
 	"You are a helpful assistant tasked with creating a search query based on a directive. "
@@ -31,20 +35,63 @@ DEFAULT_USER_PROMPT_FOR_SEARCH_POINTS_WITHOUT_DESC = """Generate the first searc
 
 USER_PROMPT_FOR_SEARCH_QUERY_CONTINUATION = """Generate the next search query."""
 
-# Without an explicit timeout a stalled or cold ollama backend blocks the whole
-# run forever, which is fatal for an unattended scheduled run.
-_CLIENT = ollama.Client(timeout=180)
+DEFAULT_LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
 
-MAX_EMPTY_RETRIES = 5
+def _get_llm_base_url() -> str:
+	if DEFAULT_LLM_PROVIDER in {"openrouter", "open-router"}:
+		return os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip().rstrip("/")
 
+	return os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:11434/v1").strip().rstrip("/")
 
-def get_ollama_response(messages: list[dict[str, str]], model: str="gemma4:cloud") -> str:
-	response = _CLIENT.chat(
-		model=model,
-		messages=messages
+def _get_llm_model() -> str:
+	if DEFAULT_LLM_PROVIDER in {"openrouter", "open-router"}:
+		return os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini").strip()
+
+	return os.getenv("LOCAL_LLM_MODEL", "gemma3:4b").strip()
+
+def _get_llm_headers() -> dict[str, str]:
+	headers = {
+		"Content-Type": "application/json",
+	}
+
+	if DEFAULT_LLM_PROVIDER in {"openrouter", "open-router"}:
+		api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+		if not api_key:
+			raise RuntimeError("OPENROUTER_API_KEY is required when LLM_PROVIDER=openrouter")
+
+		headers["Authorization"] = f"Bearer {api_key}"
+		referer = os.getenv("OPENROUTER_HTTP_REFERER", "").strip()
+		title = os.getenv("OPENROUTER_TITLE", "").strip()
+
+		if referer:
+			headers["HTTP-Referer"] = referer
+		if title:
+			headers["X-Title"] = title
+		return headers
+
+	api_key = os.getenv("LOCAL_LLM_API_KEY", "").strip()
+	if api_key:
+		headers["Authorization"] = f"Bearer {api_key}"
+
+	return headers
+
+def get_llm_response(messages: list[dict[str, str]]) -> str:
+	response = requests.post(
+		f"{_get_llm_base_url()}/chat/completions",
+		headers=_get_llm_headers(),
+		json={
+			"model": _get_llm_model(),
+			"messages": messages,
+		},
+		timeout=float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "60")),
 	)
+	response.raise_for_status()
 
-	return response.message.content
+	content = response.json()["choices"][0]["message"]["content"]
+	if not isinstance(content, str):
+		raise RuntimeError(f"Unexpected LLM response content type: {type(content)!r}")
+
+	return content
 
 
 def get_nonempty_ollama_response(messages: list[dict[str, str]]) -> str:
@@ -74,7 +121,7 @@ def get_search_query_from_task_description(task_description: str) -> str:
 		}
 	]
 
-	response = get_nonempty_ollama_response(messages)
+	while not (response := get_llm_response(messages)): pass
 
 	return response.lower()
 
@@ -91,7 +138,7 @@ def get_related_search_queries(seed_word: str, num_queries: int=20) -> Generator
 	]
 
 	for _ in range(num_queries):
-		response = get_nonempty_ollama_response(messages)
+		while not (response := get_llm_response(messages)): pass
 
 		yield response.lower()
 
