@@ -21,7 +21,11 @@ cd rewards-farmer
 
 You should also have an Ollama account created (for the LLM), the `ollama` tool installed, and you should have signed in to the Ollama CLI via the command line using `ollama signin`. This project will use a minimal amount of Ollama cloud usage using `gemma4:cloud`. If you wish to use a different model, please change the `model` parameter in the `get_ollama_response` function in `src/llm_utils.py`.
 
-You must also provide an image for the script to upload to complete the visual search task. Currently, this image is named `keypress_times.png` and is located in the root directory of the project (yes, I used a random image from my keyboard analysis to do this). You may provide an image of your own, just ensure that the absolute path of the image is placed in the `VISUAL_SEARCH_IMAGE_PATH` constant at the top of `rewards_tasks.py`.
+You must also provide an image for the script to upload to complete the visual search task. No image ships with the repository, so put any image you like in the project root and name it **`visual_search.jpg`**. Any ordinary photo works; the task only requires that something is uploaded.
+
+If you would rather keep it elsewhere or under another name, change the `VISUAL_SEARCH_IMAGE_PATH` constant at the top of `src/rewards_tasks.py`.
+
+Without that file the visual search task fails with `InvalidArgumentException: File not found`.
 
 Activate the virtual environment & install dependencies (you may have to use `python -m poetry` instead of `poetry`).
 You must have Python 3.12+ and Poetry installed.
