@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 import time
@@ -16,6 +17,8 @@ import mimic_typing
 import element_selectors
 
 VISUAL_SEARCH_IMAGE_PATH = os.path.abspath("visual_search.jpg")
+
+logger = logging.getLogger(__name__)
 
 class RewardsTaskUtils:
 	def __init__(self, driver: webdriver.Edge):
@@ -113,7 +116,10 @@ class RewardsTaskUtils:
 
 		for card in explore_on_bing_links:
 			if not self.elements.card_is_complete(card):
-				print(f"[WARNING] Explore on Bing Card [desc={self.elements.extract_card_descriptions(card)!r}] is not complete after searching. Please check manually.")
+				logger.warning(
+					"Explore on Bing Card [desc=%r] is not complete after searching. Please check manually.",
+					self.elements.extract_card_descriptions(card)
+				)
 
 	def complete_visual_search(self):
 		self.switch_to_earn_page()
@@ -154,7 +160,10 @@ class RewardsTaskUtils:
 
 		for card in misc_cards:
 			if not self.elements.card_is_complete(card) and self.elements.get_card_point_value(card) > 0:
-				print(f"[WARNING] Misc Card [desc={self.elements.extract_card_descriptions(card)!r}] is not complete after clicking. Please check manually.")
+				logger.warning(
+					"Misc Card [desc=%r] is not complete after clicking. Please check manually.",
+					self.elements.extract_card_descriptions(card)
+				)
 
 		self.tab_utils.close_all_other_tabs()
 
@@ -170,7 +179,7 @@ class RewardsTaskUtils:
 		# Measure, search, measure again.
 		points_earned, max_pts = self.read_search_points()
 
-		print(f"[INFO] Search points before: {points_earned}/{max_pts}")
+		logger.info("Search points before: %s/%s", points_earned, max_pts)
 
 		for round_number in range(1, max_rounds + 1):
 			if points_earned >= max_pts:
@@ -184,16 +193,19 @@ class RewardsTaskUtils:
 			previous = points_earned
 			points_earned, max_pts = self.read_search_points()
 
-			print(f"[INFO] Round {round_number}: {searches} searches -> {points_earned}/{max_pts}")
+			logger.info(
+				"Round %s: %s searches -> %s/%s",
+				round_number, searches, points_earned, max_pts
+			)
 
 			if points_earned <= previous:
-				print("[WARNING] Round produced no points, stopping instead of searching pointlessly.")
+				logger.warning("Round produced no points, stopping instead of searching pointlessly.")
 				break
 
 		if points_earned < max_pts:
-			print(f"[WARNING] Search quota not filled: {points_earned}/{max_pts}")
+			logger.warning("Search quota not filled: %s/%s", points_earned, max_pts)
 		else:
-			print(f"Search quota complete: {points_earned}/{max_pts}")
+			logger.info("Search quota complete: %s/%s", points_earned, max_pts)
 
 	def read_search_points(self):
 		"""Open the points breakdown, read the Bing search row, close it again."""
@@ -230,7 +242,10 @@ class RewardsTaskUtils:
 
 			try: self.wait_for_then_click(self.elements.get_clear_bing_search_query_button)
 			except StaleElementReferenceException:
-				print(f"[WARNING] StaleElementReferenceException when trying to click the clear button for query {i+1}. Trying again...")
+				logger.warning(
+					"StaleElementReferenceException when trying to click the clear button for query %s. Trying again...",
+					i + 1
+				)
 				self.wait_for_then_click(self.elements.get_clear_bing_search_query_button)
 
 		self.driver.get("https://rewards.bing.com/")
@@ -244,7 +259,7 @@ class RewardsTaskUtils:
 		try:
 			self.wait_for_then_click(self.elements.get_claim_bonus_points_button)
 		except TimeoutException:
-			print("[WARNING] Could not find the 'Claim Bonus Points' button. There are likely no bonus points to claim at this time.")
+			logger.warning("Could not find the 'Claim Bonus Points' button. There are likely no bonus points to claim at this time.")
 
 	def complete_all_tasks(self):
 		# Each task is run independently. The Rewards UI differs by market and
@@ -260,13 +275,21 @@ class RewardsTaskUtils:
 		)
 
 		for name, step in steps:
+			# The tags stay in the message rather than being folded into the
+			# level, they are the per-task outcome summary and reading a run
+			# means scanning for them.
 			try:
 				step()
-				print(f"[OK] {name}")
+				logger.info("[OK] %s", name)
 			except (NoSuchElementException, TimeoutException) as exc:
-				print(f"[SKIP] {name}: not available in this UI variant ({type(exc).__name__})")
+				logger.warning("[SKIP] %s: not available in this UI variant (%s)", name, type(exc).__name__)
 			except Exception as exc:
-				print(f"[FAIL] {name}: {type(exc).__name__}: {exc}")
+				# Traceback only on debug, so a normal run keeps one line per task
+				# but a bug report can carry the full stack.
+				logger.error(
+					"[FAIL] %s: %s: %s", name, type(exc).__name__, exc,
+					exc_info=logger.isEnabledFor(logging.DEBUG)
+				)
 
 			# Leave a clean tab state behind for the next task.
 			try:

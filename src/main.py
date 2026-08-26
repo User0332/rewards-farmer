@@ -1,8 +1,11 @@
+import log_utils
 import rewards_tasks
 import mouse_trajectory
 import mimic_typing
 from selenium import webdriver
 from constants import USER_DATA_DIR, PROFILE_NAME
+
+log_utils.setup_logging()
 
 options = webdriver.EdgeOptions()
 

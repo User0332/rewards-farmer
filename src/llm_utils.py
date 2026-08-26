@@ -1,6 +1,9 @@
 from typing import Generator
+import logging
 import random
 import ollama
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_SYSTEM_PROMPT_FOR_SEARCH_QUEST = (
 	"You are a helpful assistant tasked with creating a search query based on a directive. "
@@ -55,7 +58,7 @@ def get_nonempty_ollama_response(messages: list[dict[str, str]]) -> str:
 		if response and response.strip():
 			return response
 
-		print(f"[WARNING] Empty LLM response, retry {attempt + 1}/{MAX_EMPTY_RETRIES}")
+		logger.warning("Empty LLM response, retry %s/%s", attempt + 1, MAX_EMPTY_RETRIES)
 
 	raise RuntimeError(f"LLM returned nothing usable after {MAX_EMPTY_RETRIES} attempts")
 

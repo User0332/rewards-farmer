@@ -1,5 +1,6 @@
 *.png
 *.txt
+*.log
 !nouns.txt
 Todo.md
 data-dir/
