@@ -16,8 +16,13 @@ closed, which makes every later run look like the profile is open elsewhere.
 """
 
 import os
+import shutil
+import signal
 import socket
+import subprocess
 import sys
+import tempfile
+import time
 import unittest
 import urllib.request
 
@@ -28,9 +33,25 @@ import signin
 from constants import USER_DATA_DIR
 
 
+SIGNIN_SCRIPT = os.path.join(os.path.dirname(__file__), "..", "src", "signin.py")
+
+
 def container_address() -> str:
 	"""This container's address on the docker network, not loopback."""
 	return socket.gethostbyname(socket.gethostname())
+
+
+def wait_for(predicate, timeout=60):
+	"""Poll until true, or give up. Returns whether it came true."""
+	deadline = time.monotonic() + timeout
+
+	while time.monotonic() < deadline:
+		if predicate():
+			return True
+
+		time.sleep(0.2)
+
+	return False
 
 
 class EnvironmentTestCase(unittest.TestCase):
@@ -124,6 +145,152 @@ class TestDisplayStack(unittest.TestCase):
 			# vnc.html, and a bare URL 404ing reads as a broken feature.
 			self.assertEqual(response.status, 200)
 			self.assertIn(b"noVNC", body)
+
+
+@unittest.skipUnless(
+	os.environ.get("REWARDS_BROWSER_TESTS"),
+	"starts Edge on a virtual display; run in the container with "
+	"REWARDS_BROWSER_TESTS=1",
+)
+class TestCleanShutdown(EnvironmentTestCase):
+	"""Stopping the container must not poison the profile.
+
+	Chromium writes SingletonLock as a symlink naming the machine and process
+	that hold the profile, and removes it on a clean exit. A browser that is
+	killed leaves it behind, and every later run - container or not - reads that
+	as the profile being open somewhere else and refuses to start, with an error
+	that says nothing about a stale lock.
+
+	So this is the regression test for a failure this feature is in a position
+	to cause, on the path a user takes every time they press Ctrl-C.
+	"""
+
+	def setUp(self):
+		super().setUp()
+
+		os.environ[accounts.ENV_VAR] = "shutdown_probe"
+		self.account = signin.account_to_sign_in()
+		self.addCleanup(shutil.rmtree, self.account.user_data_dir, ignore_errors=True)
+
+	def lock_path(self) -> str:
+		return os.path.join(self.account.user_data_dir, "SingletonLock")
+
+	def lock_exists(self) -> bool:
+		# lexists, not exists: the lock is a symlink to "<host>-<pid>", which
+		# does not resolve to anything. exists() follows it and reports False
+		# for a lock that is very much present, which would make this test pass
+		# without testing anything.
+		return os.path.lexists(self.lock_path())
+
+	def test_sigterm_closes_the_browser_and_leaves_no_lock(self):
+		process = subprocess.Popen(
+			[sys.executable, SIGNIN_SCRIPT],
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+			env=dict(os.environ),
+		)
+		self.addCleanup(self._make_sure_it_is_gone, process)
+
+		self.assertTrue(
+			wait_for(self.lock_exists), "the browser never took the profile lock"
+		)
+
+		process.send_signal(signal.SIGTERM)
+
+		# Exiting 0 is half the claim: a process that died on the signal would
+		# report -15 and would not have run its shutdown at all.
+		self.assertEqual(process.wait(timeout=60), 0)
+		self.assertFalse(
+			self.lock_exists(),
+			"SingletonLock survived shutdown; every later run will read this "
+			"profile as open elsewhere",
+		)
+
+	def test_the_profile_can_be_opened_again_afterwards(self):
+		"""The guarantee is a usable profile, not an absent file.
+
+		Asserting only that the lock is gone would still pass if shutdown left
+		the profile unopenable some other way, which is the thing a user
+		actually runs into.
+		"""
+		for attempt in ("first", "second"):
+			process = subprocess.Popen(
+				[sys.executable, SIGNIN_SCRIPT],
+				stdout=subprocess.DEVNULL,
+				stderr=subprocess.DEVNULL,
+				env=dict(os.environ),
+			)
+			self.addCleanup(self._make_sure_it_is_gone, process)
+
+			self.assertTrue(
+				wait_for(self.lock_exists),
+				f"the {attempt} run never opened the profile",
+			)
+
+			process.send_signal(signal.SIGTERM)
+
+			# 1 is the exit code for a browser that refused the profile, which
+			# is exactly what a stale lock from the first run would produce.
+			self.assertEqual(process.wait(timeout=60), 0, f"{attempt} run")
+
+	def _make_sure_it_is_gone(self, process):
+		if process.poll() is None:
+			process.kill()
+			process.wait(timeout=30)
+
+
+class TestLockOwnership(unittest.TestCase):
+	"""A lock this run did not take is not this run's to remove.
+
+	The whole reason the lock is honoured is that a profile open on another
+	machine must not be opened twice. Clearing it indiscriminately on shutdown
+	would trade one failure for a worse one.
+	"""
+
+	def setUp(self):
+		self.directory = tempfile.mkdtemp()
+		self.addCleanup(shutil.rmtree, self.directory, ignore_errors=True)
+
+		self.account = accounts.Account(
+			name="probe", user_data_dir=self.directory, profile_name="Default"
+		)
+		self.lock = os.path.join(self.directory, "SingletonLock")
+
+	def write_lock(self, owner):
+		try:
+			os.symlink(owner, self.lock)
+		except (OSError, NotImplementedError) as exc:
+			# Windows refuses symlinks without developer mode or elevation.
+			self.skipTest(f"cannot create a symlink here: {exc}")
+
+	def test_a_lock_from_another_machine_is_left_alone(self):
+		self.write_lock("some-other-host-4321")
+
+		# Says so as well as doing so: a lock left in place without a word looks
+		# identical to one that was never noticed.
+		with self.assertLogs(signin.logger, level="WARNING") as logged:
+			signin._release_profile_lock(self.account, browser_pid=4321)
+
+		self.assertTrue(os.path.lexists(self.lock))
+		self.assertIn("some-other-host-4321", "\n".join(logged.output))
+
+	def test_a_lock_from_another_process_here_is_left_alone(self):
+		self.write_lock(f"{socket.gethostname()}-999999")
+
+		with self.assertLogs(signin.logger, level="WARNING"):
+			signin._release_profile_lock(self.account, browser_pid=4321)
+
+		self.assertTrue(os.path.lexists(self.lock))
+
+	def test_our_own_lock_is_removed(self):
+		self.write_lock(f"{socket.gethostname()}-4321")
+
+		signin._release_profile_lock(self.account, browser_pid=4321)
+
+		self.assertFalse(os.path.lexists(self.lock))
+
+	def test_no_lock_at_all_is_not_an_error(self):
+		signin._release_profile_lock(self.account, browser_pid=4321)
 
 
 if __name__ == "__main__":

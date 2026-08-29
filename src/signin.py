@@ -18,6 +18,7 @@ Sign-in itself stays manual. Nothing here reads, stores or types a credential.
 import contextlib
 import logging
 import os
+import signal
 import socket
 import subprocess
 import sys
@@ -215,6 +216,66 @@ def _report_profile_refused(account: accounts.Account) -> None:
 	logger.error("       one process per user data directory.")
 
 
+def _release_profile_lock(account: accounts.Account, browser_pid: int) -> None:
+	"""Remove the profile lock our own browser left behind.
+
+	Chromium removes SingletonLock when it is quit from inside the browser and
+	leaves it when it exits on a signal, which is the path docker stop and
+	Ctrl-C both take. Measured, not assumed: Edge takes the SIGTERM and exits in
+	under a second, and the lock is still there afterwards.
+
+	Left behind, it names this container, so every later run reads the profile
+	as open on another machine and refuses to start - the failure the README
+	warns about, except caused by the tool meant to make signing in easy.
+
+	The lock is a symlink to "<host>-<pid>". Removing it only when it names this
+	host and the process we started means a lock genuinely held by another
+	machine, which is what the check exists to respect, is never touched.
+	"""
+	lock = os.path.join(account.user_data_dir, "SingletonLock")
+
+	try:
+		owner = os.readlink(lock)
+	except OSError:
+		# Gone already, which is what a window closed from inside looks like.
+		return
+
+	ours = f"{socket.gethostname()}-{browser_pid}"
+
+	if owner != ours:
+		logger.warning(
+			"leaving the profile lock in place: it names %r, not this run (%r)",
+			owner, ours
+		)
+
+		return
+
+	os.unlink(lock)
+	logger.debug("released the profile lock left behind by pid %s", browser_pid)
+
+
+class StopRequest:
+	"""Set when the container is asked to stop.
+
+	The default disposition for SIGTERM ends the process where it stands, so no
+	shutdown runs and the browser is orphaned holding the profile lock. Catching
+	it turns "docker stop" and Ctrl-C into the same orderly close a user gets by
+	shutting the window.
+	"""
+
+	def __init__(self):
+		self.requested = False
+
+	def install(self) -> "StopRequest":
+		for received in (signal.SIGTERM, signal.SIGINT):
+			signal.signal(received, self._request)
+
+		return self
+
+	def _request(self, signum, frame) -> None:
+		self.requested = True
+
+
 def main() -> int:
 	log_utils.setup_logging()
 
@@ -245,13 +306,23 @@ def main() -> int:
 		logger.info("Sign in there, then close the Edge window on that screen.")
 		logger.info("Closing the window ends this container; nothing else needs doing.")
 
-		while browser.poll() is None:
-			time.sleep(0.5)
+		stop = StopRequest().install()
 
-		if time.monotonic() - started < FAST_EXIT_SECONDS:
-			_report_profile_refused(account)
+		try:
+			while browser.poll() is None and not stop.requested:
+				time.sleep(0.5)
 
-			return 1
+			if browser.poll() is not None and time.monotonic() - started < FAST_EXIT_SECONDS:
+				_report_profile_refused(account)
+
+				return 1
+		finally:
+			# Stop the browser first, then clear the lock it leaves behind on
+			# any exit that is not a window close. Order matters: reading the
+			# lock's owner is only meaningful once the process naming it is
+			# known to be gone.
+			_terminate(browser, "Edge")
+			_release_profile_lock(account, browser.pid)
 
 	logger.info("%s: browser closed, sign-in saved to the profile.", account.name)
 
