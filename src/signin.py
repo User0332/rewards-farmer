@@ -20,11 +20,20 @@ import logging
 import os
 import socket
 import subprocess
+import sys
 import time
 
 import accounts
+import log_utils
 
 logger = logging.getLogger(__name__)
+
+SIGNIN_URL = "https://rewards.bing.com"
+
+# Edge exits about this fast when it refuses to open the profile at all, which
+# is a different failure from a user closing the window and deserves a
+# different message.
+FAST_EXIT_SECONDS = 3
 
 DISPLAY = ":99"
 
@@ -44,6 +53,31 @@ NOVNC_ROOT = "/usr/share/novnc"
 
 STARTUP_TIMEOUT = 20
 SHUTDOWN_TIMEOUT = 10
+
+
+def account_to_sign_in() -> accounts.Account:
+	"""The single profile this invocation signs in.
+
+	One browser window, so one account. Several names is a user error rather
+	than a reason to guess at which was meant, and the message names them so the
+	reader can see what to run instead.
+
+	Resolution goes through accounts.configured() rather than reimplementing the
+	name rules here. Two implementations drift, and the one that drifts is the
+	one nobody is reading when a name resolves onto the wrong directory.
+	"""
+	configured = accounts.configured()
+
+	if len(configured) > 1:
+		names = ", ".join(account.name for account in configured)
+
+		raise ValueError(
+			f"sign in one account at a time; {accounts.ENV_VAR} names {names}. "
+			f"Run this once per name, starting with "
+			f"{accounts.ENV_VAR}={configured[0].name}"
+		)
+
+	return configured[0]
 
 
 def is_listening(host: str, port: int, timeout: float = 1.0) -> bool:
@@ -153,26 +187,76 @@ def display_stack():
 			_terminate(process, name)
 
 
-def account_to_sign_in() -> accounts.Account:
-	"""The single profile this invocation signs in.
+def browser_command(account: accounts.Account) -> list[str]:
+	"""Edge, headful, on the virtual display, opened at the sign-in page."""
+	return [
+		"microsoft-edge",
+		f"--user-data-dir={account.user_data_dir}",
+		f"--profile-directory={account.profile_name}",
+		# A container runs as root on a filesystem the sandbox cannot use, and
+		# Chromium wants more shared memory than the default 64MB.
+		"--no-sandbox",
+		"--disable-dev-shm-usage",
+		"--window-size=1920,1080",
+		SIGNIN_URL,
+	]
 
-	One browser window, so one account. Several names is a user error rather
-	than a reason to guess at which was meant, and the message names them so the
-	reader can see what to run instead.
 
-	Resolution goes through accounts.configured() rather than reimplementing the
-	name rules here. Two implementations drift, and the one that drifts is the
-	one nobody is reading when a name resolves onto the wrong directory.
+def _report_profile_refused(account: accounts.Account) -> None:
+	"""The message for a browser that exited instead of opening.
+
+	Without this the user is left watching an empty screen in the browser tab,
+	with the reason on a log line they have no cause to read.
 	"""
-	configured = accounts.configured()
+	logger.error("[FAIL] %s: Edge exited instead of opening the profile.", account.name)
+	logger.error("       profile directory: %s", account.user_data_dir)
+	logger.error("       The usual cause is that this profile is already open,")
+	logger.error("       including in a run left over from earlier. Chromium allows")
+	logger.error("       one process per user data directory.")
 
-	if len(configured) > 1:
-		names = ", ".join(account.name for account in configured)
 
-		raise ValueError(
-			f"sign in one account at a time; {accounts.ENV_VAR} names {names}. "
-			f"Run this once per name, starting with "
-			f"{accounts.ENV_VAR}={configured[0].name}"
+def main() -> int:
+	log_utils.setup_logging()
+
+	try:
+		account = account_to_sign_in()
+	except ValueError as exc:
+		logger.error("[FAIL] %s", exc)
+
+		return 2
+
+	with display_stack():
+		browser = subprocess.Popen(
+			browser_command(account),
+			# There is no dbus in a container, so Edge writes about twenty
+			# ERROR lines about failing to reach it before it has drawn
+			# anything. None of them mean the browser is unwell, and left in
+			# they bury the one line the user has to act on.
+			stdout=subprocess.DEVNULL,
+			stderr=subprocess.DEVNULL,
+			env={**os.environ, "DISPLAY": DISPLAY},
 		)
+		started = time.monotonic()
 
-	return configured[0]
+		logger.info("Signing in to the %s profile at %s", account.name, account.user_data_dir)
+		logger.info("")
+		logger.info("    Open http://localhost:%s in a browser on this machine.", BRIDGE_PORT)
+		logger.info("")
+		logger.info("Sign in there, then close the Edge window on that screen.")
+		logger.info("Closing the window ends this container; nothing else needs doing.")
+
+		while browser.poll() is None:
+			time.sleep(0.5)
+
+		if time.monotonic() - started < FAST_EXIT_SECONDS:
+			_report_profile_refused(account)
+
+			return 1
+
+	logger.info("%s: browser closed, sign-in saved to the profile.", account.name)
+
+	return 0
+
+
+if __name__ == "__main__":
+	sys.exit(main())
