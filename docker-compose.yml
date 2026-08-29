@@ -1,7 +1,9 @@
-# docker compose run --rm rewards-farmer
+# Sign a profile in once, then run against it:
 #
-# Sign-in has to happen once by hand before this is useful: the profile in
-# data-dir starts logged out. See the Docker section of the README.
+#   docker compose run --rm --service-ports signin
+#   docker compose run --rm rewards-farmer
+#
+# See the Docker section of the README.
 
 services:
   rewards-farmer:
@@ -32,3 +34,34 @@ services:
       # `python src/random_image_for_visual_search.py`; a path that does not
       # exist yet is mounted as an empty directory rather than a file.
       - ./visual_search.jpg:/app/visual_search.jpg:ro
+
+  # One off, before the first run. Opens the Rewards sign-in in a browser
+  # inside the container and puts that browser on your screen as a web page,
+  # so the profile is written by the same Edge that will later read it.
+  #
+  #   docker compose run --rm --service-ports signin
+  #   REWARDS_ACCOUNTS=personal docker compose run --rm --service-ports signin
+  #
+  # --service-ports is not optional: `run` publishes nothing without it, and
+  # the page then never loads, which reads as a broken feature rather than a
+  # missing flag.
+  #
+  # This exists because Chromium takes its cookie key from the operating
+  # system. Signed in on a Windows or macOS host that key is wrapped with
+  # DPAPI or the login Keychain, and the container can unwrap neither, so the
+  # profile arrives looking healthy and behaving as though it were logged out.
+  signin:
+    build: .
+    image: rewards-farmer
+    shm_size: 1gb
+    command: ["python", "src/signin.py"]
+    environment:
+      # One name. Signing in is one browser window, so one account at a time.
+      REWARDS_ACCOUNTS: ${REWARDS_ACCOUNTS:-}
+    ports:
+      # 127.0.0.1 is the security boundary, not decoration: for as long as this
+      # is up the port shows a live Microsoft sign-in page. Publishing it on
+      # 0.0.0.0 would offer that to the whole network.
+      - "127.0.0.1:6080:6080"
+    volumes:
+      - ./data-dir:/app/data-dir

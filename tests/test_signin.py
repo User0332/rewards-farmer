@@ -239,6 +239,35 @@ class TestCleanShutdown(EnvironmentTestCase):
 			process.wait(timeout=30)
 
 
+class TestPublishedPort(unittest.TestCase):
+	"""The compose file is where the exposure is actually decided.
+
+	websockify binds every interface inside the container because docker
+	forwards a published port to the container's address, so nothing in the
+	Python constrains this. Dropping the 127.0.0.1 prefix would put a live
+	Microsoft sign-in on every interface of the host, and would look like
+	tidying up.
+	"""
+
+	def test_the_bridge_is_published_to_loopback_only(self):
+		compose = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml")
+
+		with open(compose, encoding="utf-8") as handle:
+			entries = [
+				line.strip().lstrip("- ").strip('"')
+				for line in handle
+				if line.strip().startswith("-") and f":{signin.BRIDGE_PORT}" in line
+			]
+
+		self.assertTrue(entries, "nothing publishes the noVNC port at all")
+
+		for entry in entries:
+			self.assertTrue(
+				entry.startswith("127.0.0.1:"),
+				f"{entry!r} publishes the sign-in screen beyond loopback",
+			)
+
+
 class TestLockOwnership(unittest.TestCase):
 	"""A lock this run did not take is not this run's to remove.
 
