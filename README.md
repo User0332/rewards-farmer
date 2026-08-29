@@ -93,25 +93,38 @@ docker compose run --rm rewards-farmer
 
 The container defaults to `QUERY_SOURCE=trends`, so it needs no Ollama account and no model. Set `QUERY_SOURCE=llm` and `OLLAMA_HOST` to a reachable address to use a model instead.
 
-**Sign in first.** The profile in `data-dir` starts logged out and the container has no display to sign in with, so do it once on the host with a normal Edge window and let the volume carry it in:
-
-```
-msedge --user-data-dir="<repo>\data-dir" --profile-directory=Default https://rewards.bing.com
-```
-
-Close every window of that profile afterwards, and close them normally rather than killing the browser. Chromium allows one process per profile directory, so a window left open on the host stops the container from starting. A profile whose browser was killed is worse: it keeps a `SingletonLock` naming the machine that wrote it, the container reads that as the profile being open somewhere else, and it exits during startup with the same error a genuinely open window produces.
-
-**This does not work from a Windows host.** Chromium encrypts cookie values with a key held by the operating system, and on Windows that key is wrapped with DPAPI and tied to the Windows account that wrote it. The Linux container has no DPAPI, so it cannot unwrap the key and every cookie in the profile is unreadable to it. The volume carries the file in and the browser then ignores its contents: a profile signed in on the host reported 73 cookies on disk, of which Edge in the container could read 19 — the ones it had just set itself — while `.MSA.Auth` and `ANON`, the cookies the sign-in actually rests on, came back absent. The container starts, looks healthy and behaves as though it were logged out.
-
-Sign-in has to happen wherever the container will read it, so on a Windows host run the bot directly instead:
+**Sign in first.** The profile in `data-dir` starts logged out. Sign in from inside the container, which opens the Rewards page in a browser there and puts that browser on your screen as a web page:
 
 ```sh
-python src/main.py
+docker compose run --rm --service-ports signin
 ```
 
-**A Linux host does work.** With no keyring running Chromium falls back to a fixed key, which is the case both on a plain Linux host and inside the image, so the volume carries a working sign-in straight in. Measured: a profile signed in on the host opened in the container already on `rewards.bing.com/dashboard` and earned from it.
+Open <http://localhost:6080>, sign in, then close the Edge window on that screen. The container exits on its own and the profile is ready. Nothing is installed on the host: any browser will do, on Windows, macOS or Linux.
 
-macOS is expected to fail the way Windows does, since it wraps the key with the login Keychain and the container cannot reach that either, but that case was not tested.
+`--service-ports` is not optional. `docker compose run` publishes no ports without it, and the page then never loads.
+
+One account at a time, since it is one browser window:
+
+```sh
+REWARDS_ACCOUNTS=personal docker compose run --rm --service-ports signin
+```
+
+The port is published on `127.0.0.1` only, so it is not reachable from the network. While the service is up it is showing a live Microsoft sign-in page.
+
+<details>
+<summary>Why sign-in has to happen inside the container</summary>
+
+Chromium encrypts cookie values with a key it gets from the operating system, and the container has to be able to unwrap that key to read the profile.
+
+On **Linux** with no keyring running it falls back to a fixed key, which is true both on a plain Linux host and inside the image, so a profile signed in on such a host does carry straight in.
+
+On **Windows** the key is wrapped with DPAPI and tied to the Windows account that wrote it, and the container has no DPAPI. A profile signed in with a normal Windows Edge window reported 73 cookies on disk, of which Edge in the container could read 19 — the ones it had just set itself — while `.MSA.Auth` and `ANON`, the ones the sign-in actually rests on, came back absent. The container starts, looks healthy and behaves as though it were logged out. **macOS** wraps the key with the login Keychain, which the container cannot reach either.
+
+Signing in through the container sidesteps all of this: the profile is written by the same Edge that later reads it, so the two never disagree about the key.
+
+</details>
+
+You can still sign in with a host browser if you prefer, and on a Linux host it works. Close every window of that profile afterwards, and close them rather than killing them: Chromium allows one process per profile directory, and a browser that was killed leaves a `SingletonLock` naming the machine that wrote it, which the container reads as the profile being open somewhere else.
 
 **Provide the visual search image on the host too.** `visual_search.jpg` is not in the repository and is not built into the image, so create it once in the project root and the compose file mounts it in:
 
@@ -121,9 +134,12 @@ python src/random_image_for_visual_search.py
 
 Without it every other task still runs; only the visual search one fails.
 
-Multiple accounts work the same way in the container:
+Multiple accounts work the same way in the container. Sign each profile in once, one at a time, then run them together:
 
 ```sh
+REWARDS_ACCOUNTS=personal docker compose run --rm --service-ports signin
+REWARDS_ACCOUNTS=spare    docker compose run --rm --service-ports signin
+
 REWARDS_ACCOUNTS=personal,spare docker compose run --rm rewards-farmer
 ```
 
