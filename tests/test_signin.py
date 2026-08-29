@@ -252,6 +252,12 @@ class TestPublishedPort(unittest.TestCase):
 	def test_the_bridge_is_published_to_loopback_only(self):
 		compose = os.path.join(os.path.dirname(__file__), "..", "docker-compose.yml")
 
+		if not os.path.exists(compose):
+			# The image carries src/ and nouns.txt and no compose file, so this
+			# runs from a checkout. Skipping rather than passing: a test that
+			# quietly finds nothing to check is worse than one that says so.
+			self.skipTest("no docker-compose.yml here; run this from a checkout")
+
 		with open(compose, encoding="utf-8") as handle:
 			entries = [
 				line.strip().lstrip("- ").strip('"')
