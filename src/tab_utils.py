@@ -1,5 +1,5 @@
 import logging
-from selenium.common.exceptions import WebDriverException, JavascriptException
+from selenium.common.exceptions import WebDriverException, JavascriptException, NoSuchWindowException
 from selenium import webdriver
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ document.dispatchEvent(new Event('visibilitychange'));
 					# not close is a real problem.
 					logger.debug("Closed tab with handle %s and URL %s.", handle, tab_url)
 
-				except WebDriverException:
+				except (WebDriverException, NoSuchWindowException):
 					logger.warning("Could not close tab with handle %s and URL %s.", handle, tab_url)
 					self.problematic_tabs.add(handle)
 					pass
