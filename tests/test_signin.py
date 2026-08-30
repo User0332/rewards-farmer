@@ -104,6 +104,32 @@ class TestAccountSelection(EnvironmentTestCase):
 			signin.account_to_sign_in()
 
 
+class TestBrowserCommand(EnvironmentTestCase):
+	"""What the browser is told to do decides what the user first sees.
+
+	Cheap to assert here and expensive to notice otherwise: the failure is a
+	browser that came up perfectly well on the wrong thing, which reads as the
+	sign-in working right up until nobody can find where to type.
+	"""
+
+	def test_the_first_run_dialog_is_skipped(self):
+		"""Every sign-in is a new profile, and a new profile opens on the terms
+		dialog rather than the page it was handed. Without these switches the
+		first thing on the noVNC screen is a modal about terms of service with
+		no Rewards page behind it. A run never meets this, because msedgedriver
+		passes the same two switches itself, so only this path needs them.
+		"""
+		command = signin.browser_command(signin.account_to_sign_in())
+
+		self.assertIn("--no-first-run", command)
+		self.assertIn("--no-default-browser-check", command)
+
+	def test_it_opens_the_sign_in_page(self):
+		command = signin.browser_command(signin.account_to_sign_in())
+
+		self.assertEqual(command[-1], signin.SIGNIN_URL)
+
+
 @unittest.skipUnless(
 	os.environ.get("REWARDS_BROWSER_TESTS"),
 	"needs Xvfb, x11vnc and websockify; run in the container with "

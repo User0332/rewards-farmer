@@ -198,6 +198,13 @@ def browser_command(account: accounts.Account) -> list[str]:
 		# Chromium wants more shared memory than the default 64MB.
 		"--no-sandbox",
 		"--disable-dev-shm-usage",
+		# The profile here is always a new one, which is the point, and a new
+		# profile otherwise opens on the first-run terms dialog with the Rewards
+		# page nowhere behind it: the user is told to sign in and is shown a
+		# modal about terms of service instead. A run never meets this because
+		# msedgedriver passes both switches itself.
+		"--no-first-run",
+		"--no-default-browser-check",
 		"--window-size=1920,1080",
 		SIGNIN_URL,
 	]
