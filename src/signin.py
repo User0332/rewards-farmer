@@ -324,6 +324,22 @@ def main() -> int:
 			_terminate(browser, "Edge")
 			_release_profile_lock(account, browser.pid)
 
+	if stop.requested:
+		# Measured, and worth the noise. Chromium writes the session to disk on
+		# its own shutdown and skips that on the fast exit a signal produces, so
+		# a sign-in completed here is simply gone. Reporting success would be a
+		# lie, and a quiet one: the profile looks fine and fails at the next run.
+		logger.warning("%s: stopped before the browser was closed.", account.name)
+		logger.warning("       A sign-in completed just now was probably NOT saved:")
+		logger.warning("       the browser writes it on its own shutdown, which a")
+		logger.warning("       signal skips. Run this again and close the Edge window")
+		logger.warning("       on the noVNC screen instead of interrupting here.")
+
+		# Still zero: stopping when asked is not a failure, and the exit code
+		# already means "the profile was refused" elsewhere. The warning is the
+		# channel for this, not the status.
+		return 0
+
 	logger.info("%s: browser closed, sign-in saved to the profile.", account.name)
 
 	return 0

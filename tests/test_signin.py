@@ -206,6 +206,60 @@ class TestCleanShutdown(EnvironmentTestCase):
 			"profile as open elsewhere",
 		)
 
+	def test_being_stopped_says_the_sign_in_was_probably_lost(self):
+		"""Silence here cost a working sign-in and four probes chasing it.
+
+		Chromium writes the session on its own shutdown and skips that on the
+		fast exit a signal produces, so a sign-in finished just before a Ctrl-C
+		is gone. The profile looks fine and fails at the next run, which is the
+		worst shape a failure can take.
+		"""
+		process = subprocess.Popen(
+			[sys.executable, SIGNIN_SCRIPT],
+			stdout=subprocess.PIPE,
+			stderr=subprocess.STDOUT,
+			text=True,
+			env=dict(os.environ),
+		)
+		self.addCleanup(self._make_sure_it_is_gone, process)
+
+		self.assertTrue(wait_for(self.lock_exists), "the browser never started")
+
+		process.send_signal(signal.SIGTERM)
+		output, _ = process.communicate(timeout=60)
+
+		self.assertIn("NOT saved", output)
+		self.assertNotIn("sign-in saved to the profile", output)
+
+	def test_a_browser_that_exits_on_its_own_does_not_warn(self):
+		"""The warning has to distinguish, or it is noise on every normal run.
+
+		The browser ending by itself is what closing the window looks like from
+		here, so ending it externally exercises that branch.
+		"""
+		process = subprocess.Popen(
+			[sys.executable, SIGNIN_SCRIPT],
+			stdout=subprocess.PIPE,
+			stderr=subprocess.STDOUT,
+			text=True,
+			env=dict(os.environ),
+		)
+		self.addCleanup(self._make_sure_it_is_gone, process)
+
+		self.assertTrue(wait_for(self.lock_exists), "the browser never started")
+
+		# Past the fast-exit window first. A browser that ends inside it has
+		# refused the profile rather than been closed, which is a different
+		# branch with a different message, and killing it too early tests that
+		# one instead of this one.
+		time.sleep(signin.FAST_EXIT_SECONDS + 1)
+		subprocess.run(["pkill", "-f", "msedge"], check=False)
+
+		output, _ = process.communicate(timeout=60)
+
+		self.assertIn("sign-in saved to the profile", output)
+		self.assertNotIn("NOT saved", output)
+
 	def test_the_profile_can_be_opened_again_afterwards(self):
 		"""The guarantee is a usable profile, not an absent file.
 
