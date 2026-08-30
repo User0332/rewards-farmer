@@ -99,7 +99,7 @@ The container defaults to `QUERY_SOURCE=trends`, so it needs no Ollama account a
 docker compose run --rm --service-ports signin
 ```
 
-Open <http://localhost:6080>, sign in, then close the Edge window on that screen. The container exits on its own and the profile is ready. Nothing is installed on the host: any browser will do, on Windows, macOS or Linux.
+Open <http://localhost:6080>, sign in, then close the Edge window on that screen. The container exits on its own and the profile is ready. Nothing is installed on the host, and the host operating system stops mattering, because the profile is written inside the container rather than on the host. The screen is an ordinary web page, so whatever browser you already have will do.
 
 `--service-ports` is not optional. `docker compose run` publishes no ports without it, and the page then never loads.
 
@@ -110,6 +110,8 @@ REWARDS_ACCOUNTS=personal docker compose run --rm --service-ports signin
 ```
 
 The port is published on `127.0.0.1` only, so it is not reachable from the network. While the service is up it is showing a live Microsoft sign-in page.
+
+Signing in signs the browser in, not just the website, so Edge may sync bookmarks and autofill into the profile it just created. `data-dir` is a bot profile living in the project directory rather than your everyday browser profile, and it is gitignored, but it is worth knowing what ends up there.
 
 <details>
 <summary>Why sign-in has to happen inside the container</summary>
