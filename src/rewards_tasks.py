@@ -1,4 +1,5 @@
 import os
+import math
 import random
 import time
 from typing import Callable
@@ -6,15 +7,26 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, NoSuchElementException
+from constants import POINTS_PER_SEARCH, CUSTOM_SEARCH_COUNT, VISUAL_SEARCH_IMAGES_DIR
 import tab_utils
 import llm_utils
 import mouse_trajectory
 import mimic_typing
 import element_selectors
 
-VISUAL_SEARCH_IMAGE_PATH = os.path.abspath("visual_search.jpg")
+def get_random_visual_search_image(directory: str = VISUAL_SEARCH_IMAGES_DIR) -> str | None:
+	valid_extensions = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+	if not os.path.exists(directory):
+		return None
+	images = [
+		os.path.join(directory, f)
+		for f in os.listdir(directory)
+		if os.path.splitext(f)[1].lower() in valid_extensions and os.path.isfile(os.path.join(directory, f))
+	]
+	return os.path.abspath(random.choice(images)) if images else None
 
 class RewardsTaskUtils:
 	def __init__(self, driver: webdriver.Edge):
@@ -47,7 +59,11 @@ class RewardsTaskUtils:
 		self.move_to_and_click(self.elements.get_earn_tab())
 
 	def switch_to_dashboard(self):
-		self.move_to_and_click(self.elements.get_dashboard_tab())
+		dashboard_tab = self.elements.get_dashboard_tab()
+		self.move_to_and_click(dashboard_tab)
+		time.sleep(random.uniform(0.15, 0.25))
+		self.mouse.human_like_click()
+		time.sleep(random.uniform(0.5, 1.0))
 
 	def move_to_and_click(self, elem: WebElement):
 		self.mouse.move_to_element(elem)
@@ -132,22 +148,32 @@ class RewardsTaskUtils:
 	def complete_visual_search(self):
 		self.switch_to_earn_page()
 
-		self.wait_for_then_click(self.elements.get_open_visual_search_sidebar)
+		image_path = get_random_visual_search_image()
+		if not image_path:
+			print(f"[INFO] No valid visual search images (.png/.jpg/.webp) found in '{VISUAL_SEARCH_IMAGES_DIR}'. Skipping visual search...")
+			return
 
-		self.wait_for_then_click(self.elements.get_search_now_link_from_visual_search_sidebar)
+		print(f"[INFO] Selected random image for visual search: {os.path.basename(image_path)}")
 
-		self.tab_utils.switch_to_other_tab()
+		try:
+			self.wait_for_then_click(self.elements.get_open_visual_search_sidebar, timeout=5)
+			self.wait_for_then_click(self.elements.get_search_now_link_from_visual_search_sidebar, timeout=5)
 
-		self.wait_for_then_click(self.elements.get_visual_search_button)
+			self.tab_utils.switch_to_other_tab()
 
-		file_input = self.wait_for_element(self.elements.get_visual_search_file_input)
+			self.wait_for_then_click(self.elements.get_visual_search_button, timeout=5)
 
-		file_input.send_keys(VISUAL_SEARCH_IMAGE_PATH)
+			file_input = self.wait_for_element(self.elements.get_visual_search_file_input, timeout=5)
 
-		time.sleep(random.uniform(3, 5))
+			file_input.send_keys(image_path)
 
-		self.tab_utils.switch_to_other_tab()
-		self.tab_utils.close_all_other_tabs()
+			time.sleep(random.uniform(3, 5))
+
+			self.tab_utils.switch_to_other_tab()
+			self.tab_utils.close_all_other_tabs()
+		except (TimeoutException, Exception) as e:
+			print(f"[INFO] Visual search task skipped: {e}")
+			self.tab_utils.close_all_other_tabs()
 
 	def complete_misc_cards(self):
 		self.switch_to_earn_page()
@@ -171,6 +197,11 @@ class RewardsTaskUtils:
 		self.mouse.wheel_scroll_to_top()
 
 	def complete_required_searches(self, max_rounds: int = 6):
+		if CUSTOM_SEARCH_COUNT is not None:
+			print(f"[INFO] Performing custom search count: {CUSTOM_SEARCH_COUNT} search(es)...")
+			self.run_search_batch(CUSTOM_SEARCH_COUNT)
+			return
+
 		# Points per search are not fixed. Some markets award 3 rather than 5,
 		# the daily maximum itself changes (observed 15, 30 and 60 on the same
 		# account within one day, with the counter resetting), and daily set and
@@ -186,7 +217,8 @@ class RewardsTaskUtils:
 				break
 
 			# Assume the lower known rate so a round never overshoots by much.
-			searches = max(1, (max_pts - points_earned) // 3)
+			rate = POINTS_PER_SEARCH if POINTS_PER_SEARCH else 3
+			searches = max(1, (max_pts - points_earned) // rate)
 
 			self.run_search_batch(searches)
 
@@ -257,14 +289,13 @@ class RewardsTaskUtils:
 		self.tab_utils.ensure_focus()
 
 	def claim_bonus_points(self):
-		self.switch_to_dashboard()
-
-		self.wait_for_then_click(self.elements.get_bonus_button_on_dashboard)
-
 		try:
-			self.wait_for_then_click(self.elements.get_claim_bonus_points_button)
-		except TimeoutException:
-			print("[WARNING] Could not find the 'Claim Bonus Points' button. There are likely no bonus points to claim at this time.")
+			self.switch_to_dashboard()
+			self.wait_for_then_click(self.elements.get_bonus_button_on_dashboard, timeout=5)
+			self.wait_for_then_click(self.elements.get_claim_bonus_points_button, timeout=5)
+			print("[INFO] Successfully claimed bonus points!")
+		except (TimeoutException, Exception):
+			print("[INFO] No bonus points ready to claim at this time.")
 
 	def complete_all_tasks(self):
 		# Each task is run independently. The Rewards UI differs by market and
