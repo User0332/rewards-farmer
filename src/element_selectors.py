@@ -131,6 +131,23 @@ class ElementSelectionUtils:
 			except StaleElementReferenceException:
 				continue
 
+	def get_open_visual_search_sidebar(self):
+		# Original brittle selector:
+		# return self.resolve("/html/body/div[2]/div[2]/div/main/section[1]/div/div[2]/div/div/button[5]")
+
+		buttons = self.driver.find_elements(By.TAG_NAME, "button")
+		for button in buttons:
+			text = (button.text or "").strip().lower()
+			if "visual" in text or ("image" in text and "search" in text):
+				return button
+
+		# Fallback: try aria-label
+		for button in buttons:
+			label = (button.get_attribute("aria-label") or "").strip().lower()
+			if "visual" in label or ("image" in label and "search" in label):
+				return button
+
+		raise NoSuchElementException("Visual search sidebar button not found")
 		raise NoSuchElementException("sidebar section not found")
 
 	# ------------------------------------------------------------------
