@@ -16,25 +16,13 @@ variant does not ship. FAILED is what needs fixing.
 import sys
 import time
 
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 import element_selectors
+from browser_lifecycle import BrowserManager
 from constants import USER_DATA_DIR, PROFILE_NAME
 
-RENDER_TIMEOUT = 60
-
-
-def build_driver():
-	options = webdriver.EdgeOptions()
-
-	options.add_experimental_option("excludeSwitches", ["enable-automation"])
-	options.add_experimental_option("useAutomationExtension", False)
-	options.add_argument("--disable-blink-features=AutomationControlled")
-	options.add_argument(f"--user-data-dir={USER_DATA_DIR}")
-	options.add_argument(f"--profile-directory={PROFILE_NAME}")
-
-	return webdriver.Edge(options=options)
+RENDER_TIMEOUT = 45
 
 
 def wait_until(predicate, timeout=RENDER_TIMEOUT):
@@ -47,7 +35,7 @@ def wait_until(predicate, timeout=RENDER_TIMEOUT):
 		except Exception:
 			pass
 
-		time.sleep(2)
+		time.sleep(1.5)
 
 	return False
 
@@ -119,20 +107,24 @@ def describe_environment(driver, report):
 
 
 def main():
-	driver = build_driver()
-	elements = element_selectors.ElementSelectionUtils(driver)
 	report = Report()
 
-	try:
+	with BrowserManager(user_data_dir=USER_DATA_DIR, profile_name=PROFILE_NAME) as driver:
+		elements = element_selectors.ElementSelectionUtils(driver)
+
 		driver.get("https://rewards.bing.com/earn")
+		element_selectors.dismiss_cookie_and_consent_banners(driver)
 
 		rendered = wait_until(lambda: elements.get_points_breakdown_button() is not None)
 
 		if not rendered:
+			# Retry dismissal once more if blocking
+			element_selectors.dismiss_cookie_and_consent_banners(driver)
+			rendered = wait_until(lambda: elements.get_points_breakdown_button() is not None, 15)
+
+		if not rendered:
 			print("The earn page never finished rendering.")
-			print("In the EU the cookie consent banner blocks it until answered, and it")
-			print("cannot be dismissed reliably from selenium. Open the profile in a")
-			print("normal Edge window, answer the banner once, then run this again.")
+			print("Please verify the network connection or answer any interactive prompt once.")
 			return 2
 
 		describe_environment(driver, report)
@@ -180,17 +172,11 @@ def main():
 
 		print("\n## points breakdown")
 		driver.get("https://rewards.bing.com/earn")
+		element_selectors.dismiss_cookie_and_consent_banners(driver)
 		wait_until(lambda: elements.get_points_breakdown_button() is not None)
 		driver.execute_script("arguments[0].click();", elements.get_points_breakdown_button())
 		wait_until(lambda: elements.get_sidebar_section() is not None, 30)
 
-		# The section exists before it has content: the panel renders a
-		# "Loading..." placeholder inside it first, and that satisfies the
-		# presence check above immediately. Waiting only for the section leaves
-		# the two selectors below reading an empty panel, so they report FAILED
-		# for markup that is fine, on a page that is merely slow. Wait for the
-		# content itself. A selector that really is broken still reports FAILED,
-		# it just costs the timeout first.
 		wait_until(
 			lambda: elements.get_points_earned_from_searches_on_points_breakdown() is not None,
 			30,
@@ -205,11 +191,13 @@ def main():
 
 		print("\n## bonus")
 		driver.get("https://rewards.bing.com/dashboard")
+		element_selectors.dismiss_cookie_and_consent_banners(driver)
 		wait_until(lambda: elements.get_bonus_button_on_dashboard() is not None, 30)
 		report.check("get_bonus_button_on_dashboard", elements.get_bonus_button_on_dashboard, optional=True)
 
 		print("\n## bing")
 		driver.get("https://www.bing.com/")
+		element_selectors.dismiss_cookie_and_consent_banners(driver)
 		wait_until(lambda: bool(driver.find_elements(By.TAG_NAME, "textarea")), 30)
 		report.check("get_bing_search_bar", elements.get_bing_search_bar)
 
@@ -221,8 +209,6 @@ def main():
 			print("\nEvery selector that this variant ships resolved.")
 
 		return 1 if failures else 0
-	finally:
-		driver.quit()
 
 
 if __name__ == "__main__":

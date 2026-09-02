@@ -217,98 +217,118 @@ def choose_target_in_element(x: int, y: int, height: int, width: int) -> Point:
 	)
 
 class MouseUtils:
-	def __init__(self, driver: webdriver.Edge):
+	def __init__(self, driver: webdriver.Edge, debug_cursor: bool = False):
 		self.driver = driver
-		self.fallback_init_pos = (0, 0) # default fallback position if mouse position is not initialized
+		self.debug_cursor = debug_cursor
+		self.fallback_init_pos = (200, 200) # realistic default position
 		self.reinitialize()
 
 	def reinitialize(self):
 		self.init_driver_with_mouse_tracking()
-		self.init_driver_with_cursor_visualization()
+		if self.debug_cursor:
+			self.init_driver_with_cursor_visualization()
 
 	def init_driver_with_mouse_tracking(self):
 		initial_pos = self.fallback_init_pos
 
 		js_tracker = f"""
-	window.cursorX = {int(initial_pos[0])};
-	window.cursorY = {int(initial_pos[1])};
+	window._trackedCursorX = {int(initial_pos[0])};
+	window._trackedCursorY = {int(initial_pos[1])};
 	document.addEventListener('mousemove', function(event) {{
-		console.log('Mouse moved to: ' + event.clientX + ', ' + event.clientY);
-		window.cursorX = event.clientX;
-		window.cursorY = event.clientY;
-	}});
+		window._trackedCursorX = event.clientX;
+		window._trackedCursorY = event.clientY;
+	}}, {{ passive: true }});
 	"""
-		self.driver.execute_script(js_tracker)
+		try:
+			self.driver.execute_script(js_tracker)
+		except Exception:
+			pass
 
 	def init_driver_with_cursor_visualization(self):
-		cursor_script = """
-	var visualCursor = document.createElement('div');
-	visualCursor.id = 'selenium-visual-cursor';
-	visualCursor.style.position = 'fixed';
-	visualCursor.style.zIndex = '99999';
-	visualCursor.style.width = '15px';
-	visualCursor.style.height = '15px';
-	visualCursor.style.background = 'red';
-	visualCursor.style.borderRadius = '50%';
-	visualCursor.style.border = '2px solid white';
-	visualCursor.style.pointerEvents = 'none'; // Prevents blocking element clicks
-	visualCursor.style.top = '0px';
-	visualCursor.style.left = '0px';
-	visualCursor.style.transition = 'all 0.3s ease;'; // Optional: adds smooth sliding visual
-	document.body.appendChild(visualCursor);
+		if not self.debug_cursor:
+			return
 
-	window.moveVisualCursor = function(x, y) {
-		var cursor = document.getElementById('selenium-visual-cursor');
-		cursor.style.left = x + 'px';
-		cursor.style.top = y + 'px';
-	};
+		cursor_script = """
+	if (!document.getElementById('debug-visual-cursor')) {
+		var visualCursor = document.createElement('div');
+		visualCursor.id = 'debug-visual-cursor';
+		visualCursor.style.position = 'fixed';
+		visualCursor.style.zIndex = '99999';
+		visualCursor.style.width = '12px';
+		visualCursor.style.height = '12px';
+		visualCursor.style.background = 'rgba(230, 50, 50, 0.85)';
+		visualCursor.style.borderRadius = '50%';
+		visualCursor.style.border = '2px solid white';
+		visualCursor.style.pointerEvents = 'none';
+		visualCursor.style.top = '0px';
+		visualCursor.style.left = '0px';
+		visualCursor.style.transition = 'all 0.05s ease';
+		document.body.appendChild(visualCursor);
+
+		window.moveVisualCursor = function(x, y) {
+			var cursor = document.getElementById('debug-visual-cursor');
+			if (cursor) {
+				cursor.style.left = x + 'px';
+				cursor.style.top = y + 'px';
+			}
+		};
+	}
 	"""
-		self.driver.execute_script(cursor_script)
+		try:
+			self.driver.execute_script(cursor_script)
+		except Exception:
+			pass
 
 	def get_current_mouse_position(self) -> Point:
-		pos: dict[str, int] = self.driver.execute_script("return { x: window.cursorX, y: window.cursorY };")
+		try:
+			pos = self.driver.execute_script("return { x: window._trackedCursorX, y: window._trackedCursorY };")
+			if pos and pos.get('x') is not None and pos.get('y') is not None:
+				x, y = int(pos['x']), int(pos['y'])
+				self.fallback_init_pos = (x, y)
+				return (x, y)
+		except Exception:
+			pass
 
-		x, y = pos['x'], pos['y']
+		return self.fallback_init_pos
 
-		if (x, y) == (None, None):
-			self.reinitialize()
-			return self.get_current_mouse_position()
-
-		self.fallback_init_pos = (x, y)
-
-		return (x, y)
-
-	def move_mouse(self, move_time: float, path_function: Callable[[float], Point], visualize: bool=True):
+	def move_mouse(self, move_time: float, path_function: Callable[[float], Point], visualize: bool = False):
 		start_time = time.monotonic()
 		end_time = start_time + move_time
 
 		# The distorted bezier path can overshoot the window edge, which the
 		# driver rejects, so keep every sampled point inside the viewport.
-		viewport = self.driver.execute_script(
-			"return [window.innerWidth, window.innerHeight];"
-		)
-		max_x, max_y = int(viewport[0]) - 2, int(viewport[1]) - 2
+		try:
+			viewport = self.driver.execute_script("return [window.innerWidth, window.innerHeight];")
+			max_x = max(10, int(viewport[0]) - 4) if viewport else 1360
+			max_y = max(10, int(viewport[1]) - 4) if viewport else 760
+		except Exception:
+			max_x, max_y = 1360, 760
 
 		while (current_time := time.monotonic()) < end_time:
 			t = current_time - start_time
 			point = path_function(t)
 
 			point = (
-				min(max(0, point[0]), max_x),
-				min(max(0, point[1]), max_y)
+				min(max(2, int(point[0])), max_x),
+				min(max(2, int(point[1])), max_y)
 			)
 
-			actions = ActionBuilder(self.driver, duration=0)
-			actions.pointer_action.move_to_location(point[0], point[1])
-			actions.perform()
+			try:
+				actions = ActionBuilder(self.driver, duration=0)
+				actions.pointer_action.move_to_location(point[0], point[1])
+				actions.perform()
+				self.fallback_init_pos = point
+			except Exception:
+				pass
 
-			self.fallback_init_pos = point
-
-			if visualize:
-				try: self.driver.execute_script(f"window.moveVisualCursor({point[0]}, {point[1]});")
-				except JavascriptException: # some uninitialization has happened, reinitialize the cursor visualization
+			if visualize and self.debug_cursor:
+				try:
+					self.driver.execute_script(f"if (window.moveVisualCursor) window.moveVisualCursor({point[0]}, {point[1]});")
+				except JavascriptException:
 					self.reinitialize()
-					self.driver.execute_script(f"window.moveVisualCursor({point[0]}, {point[1]});")
+
+			# 60 Hz tick-rate (16ms) to prevent overwhelming WebDriver with HTTP requests
+			time.sleep(0.016)
 
 
 	def wheel_scroll_element_into_view(self, element: WebElement, max_wheel_events: int = 60):
@@ -362,7 +382,39 @@ class MouseUtils:
 
 			time.sleep(random.uniform(0.04, 0.12))
 
-	def move_to_element(self, element: WebElement, visualize: bool=True):
+	def realistic_browse_scroll(self, min_scrolls: int = 2, max_scrolls: int = 4):
+		"""Simulate authentic human browsing scroll behavior on a page.
+
+		Performs natural variable-distance scrolls, interspersed with reading pauses,
+		occasional minor back-scrolls (reading review), and natural deceleration.
+		"""
+		num_scrolls = random.randint(min_scrolls, max_scrolls)
+
+		for i in range(num_scrolls):
+			distance = random.randint(180, 420)
+			steps = random.randint(3, 6)
+
+			for step_idx in range(steps):
+				sub_step = int((distance / steps) * random.uniform(0.7, 1.3))
+				try:
+					ActionChains(self.driver).scroll_by_amount(0, sub_step).perform()
+				except Exception:
+					pass
+				time.sleep(random.uniform(0.02, 0.05))
+
+			# Human reading pause after scroll chunk
+			time.sleep(random.uniform(0.6, 1.8))
+
+			# 25% chance of minor upward correction (re-reading behavior)
+			if random.random() < 0.25:
+				back_distance = random.randint(50, 140)
+				try:
+					ActionChains(self.driver).scroll_by_amount(0, -back_distance).perform()
+				except Exception:
+					pass
+				time.sleep(random.uniform(0.4, 1.0))
+
+	def move_to_element(self, element: WebElement, visualize: bool = False):
 		# The pointer is moved to viewport coordinates, so an element below the
 		# fold yields a target outside the window and the driver rejects the move
 		# with MoveTargetOutOfBoundsException. Bring it into view first, but only

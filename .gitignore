@@ -5,3 +5,7 @@
 Todo.md
 data-dir/
 __pycache__/
+*.pyc
+points_history.json
+points_summary.txt
+src/.bak-*/

@@ -35,15 +35,22 @@ class Trial:
 
 
 def get_screen_size() -> Tuple[int, int]:
-	user32 = ctypes.windll.user32
-	width = user32.GetSystemMetrics(0)
-	height = user32.GetSystemMetrics(1)
-	return width, height
+	if hasattr(ctypes, "windll"):
+		user32 = ctypes.windll.user32
+		return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+	try:
+		root = tk.Tk()
+		root.withdraw()
+		w, h = root.winfo_screenwidth(), root.winfo_screenheight()
+		root.destroy()
+		return w, h
+	except Exception:
+		return 1920, 1080
 
 
 def set_cursor_position(x: int, y: int) -> None:
-	user32 = ctypes.windll.user32
-	user32.SetCursorPos(int(x), int(y))
+	if hasattr(ctypes, "windll"):
+		ctypes.windll.user32.SetCursorPos(int(x), int(y))
 
 
 def point_in_rectangle(px: float, py: float, x: float, y: float, w: float, h: float) -> bool:
