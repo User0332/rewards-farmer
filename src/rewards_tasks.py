@@ -32,6 +32,17 @@ class RewardsTaskUtils:
 		self.mouse = mouse_trajectory.MouseUtils(driver)
 		self.keyboard = mimic_typing.KeyboardUtils(driver)
 		self.elements = element_selectors.ElementSelectionUtils(driver)
+		self.verify_signed_in_state()
+
+	def verify_signed_in_state(self):
+		try:
+			time.sleep(2)
+			url = self.driver.current_url.lower()
+			if "login.live.com" in url or "account.microsoft.com" in url or "signup" in url:
+				print("\n[WARNING] Microsoft Rewards is NOT signed in on rewards.bing.com for this profile!")
+				print("[WARNING] Please sign in once on rewards.bing.com in this Edge profile window.\n")
+		except Exception:
+			pass
 
 	def find_element(self, xpath: str):
 		return self.driver.find_element(By.XPATH, xpath)
@@ -53,13 +64,26 @@ class RewardsTaskUtils:
 	def switch_to_dashboard(self):
 		self.move_to_and_click(self.elements.get_dashboard_tab())
 
-	def move_to_and_click(self, elem: WebElement):
-		self.mouse.move_to_element(elem)
-		self.mouse.human_like_click()
+	def move_to_and_click(self, elem_or_getter: WebElement | Callable[[], WebElement], retries: int = 3):
+		for attempt in range(retries):
+			try:
+				if callable(elem_or_getter):
+					target_elem = elem_or_getter()
+				else:
+					target_elem = elem_or_getter
+
+				self.mouse.move_to_element(target_elem)
+				self.mouse.human_like_click()
+				return
+			except StaleElementReferenceException as exc:
+				if attempt == retries - 1:
+					raise exc
+				print(f"[WARNING] StaleElementReferenceException during click attempt {attempt + 1}/{retries}, retrying...")
+				time.sleep(0.5)
 
 	def wait_for_then_click(self, element_getter: Callable[[], WebElement], timeout: int = 10):
 		elem = self.wait_for_element(element_getter, timeout)
-		self.move_to_and_click(elem)
+		self.move_to_and_click(element_getter if callable(element_getter) else elem)
 
 	def complete_bing_daily_set(self, expected_activities: int = 3):
 		self.switch_to_earn_page()
@@ -86,19 +110,24 @@ class RewardsTaskUtils:
 				len(daily_set_links), expected_activities
 			)
 
-		# Re-read the panel per index: clicking an activity can re-render it and
+		main_tab = self.driver.current_window_handle
+
+		# Re-read the panel per index immediately before interaction: clicking an activity can re-render it and
 		# stale the captured references.
 		for index in range(len(daily_set_links)):
-			activities = self.elements.get_daily_set_elements()
+			def get_activity_elem(idx=index):
+				return self.elements.get_daily_set_element_by_index(idx)
 
-			if index >= len(activities):
-				break
+			try:
+				self.move_to_and_click(get_activity_elem)
+			except Exception as exc:
+				print(f"[WARNING] Failed to click daily set activity {index + 1}: {exc}")
+				continue
 
-			self.move_to_and_click(activities[index])
 			time.sleep(random.uniform(2, 3))
-			self.driver.switch_to.window(self.driver.current_window_handle) # refocus on the main tab
+			self.tab_utils.close_all_other_tabs(exceptions=[main_tab])
 
-		self.tab_utils.close_all_other_tabs()
+		self.tab_utils.close_all_other_tabs(exceptions=[main_tab])
 
 	def complete_explore_on_bing_tasks(self):
 		self.switch_to_earn_page()
@@ -142,6 +171,11 @@ class RewardsTaskUtils:
 	def complete_visual_search(self):
 		self.switch_to_earn_page()
 
+		if not os.path.exists(VISUAL_SEARCH_IMAGE_PATH):
+			print("[INFO] visual_search.jpg not found. Generating visual search image...")
+			import random_image_for_visual_search
+			random_image_for_visual_search.get_random_image()
+
 		self.wait_for_then_click(self.elements.get_open_visual_search_sidebar)
 
 		self.wait_for_then_click(self.elements.get_search_now_link_from_visual_search_sidebar)
@@ -161,25 +195,35 @@ class RewardsTaskUtils:
 
 	def complete_misc_cards(self):
 		self.switch_to_earn_page()
+		main_tab = self.driver.current_window_handle
 
 		misc_cards: list[WebElement] = self.wait_for_element(self.elements.get_all_misc_cards)
 
-		for card in misc_cards:
-			self.mouse.wheel_scroll_element_into_view(card)
+		for index in range(len(misc_cards)):
+			cards = self.elements.get_all_misc_cards()
+			if index >= len(cards):
+				break
+			card = cards[index]
 
-			if not self.elements.card_is_complete(card) and self.elements.get_card_point_value(card) > 0:
-				self.move_to_and_click(card)
-				time.sleep(random.uniform(1, 2))
-				self.driver.switch_to.window(self.driver.current_window_handle)
+			try:
+				self.mouse.wheel_scroll_element_into_view(card)
 
-		for card in misc_cards:
+				if not self.elements.card_is_complete(card) and self.elements.get_card_point_value(card) > 0:
+					self.move_to_and_click(card)
+					time.sleep(random.uniform(1, 2))
+					self.tab_utils.close_all_other_tabs(exceptions=[main_tab])
+			except Exception as exc:
+				print(f"[WARNING] Misc Card [{index}] interaction failed: {exc}")
+				continue
+
+		for card in self.elements.get_all_misc_cards():
 			if not self.elements.card_is_complete(card) and self.elements.get_card_point_value(card) > 0:
 				logger.warning(
 					"Misc Card [desc=%r] is not complete after clicking. Please check manually.",
 					self.elements.extract_card_descriptions(card)
 				)
 
-		self.tab_utils.close_all_other_tabs()
+		self.tab_utils.close_all_other_tabs(exceptions=[main_tab])
 
 		self.mouse.wheel_scroll_to_top()
 

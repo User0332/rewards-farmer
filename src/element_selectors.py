@@ -122,11 +122,20 @@ class ElementSelectionUtils:
 		return self.driver.find_element(By.CSS_SELECTOR, '[id$="-tab-/dashboard"]')
 
 	def get_sidebar_section(self):
-		for section in self.driver.find_elements(By.TAG_NAME, "section"):
+		sections = self.driver.find_elements(By.TAG_NAME, "section")
+		for section in sections:
 			try:
-				# get_dom_attribute returns None for sections without an id,
-				# so normalise before comparing.
-				if (section.get_dom_attribute("id") or "").startswith("react-aria"):
+				sec_id = section.get_dom_attribute("id") or ""
+				if sec_id.startswith("react-aria") and section.is_displayed():
+					if section.find_elements(By.TAG_NAME, "a") or section.find_elements(By.TAG_NAME, "button"):
+						return section
+			except StaleElementReferenceException:
+				continue
+
+		for section in sections:
+			try:
+				sec_id = section.get_dom_attribute("id") or ""
+				if sec_id.startswith("react-aria"):
 					return section
 			except StaleElementReferenceException:
 				continue
@@ -214,6 +223,12 @@ class ElementSelectionUtils:
 			marker in href
 			for marker in ("bing.com/search", "bing.com/rewards", "rewards.bing.com/")
 		)
+
+	def get_daily_set_element_by_index(self, index: int):
+		elements = self.get_daily_set_elements()
+		if index < len(elements):
+			return elements[index]
+		raise NoSuchElementException(f"daily set element at index {index} not found")
 
 	# ------------------------------------------------------------------
 	# explore on bing (absent in en-US, present in some other markets)

@@ -1,3 +1,4 @@
+import re
 from typing import Generator
 import logging
 import random
@@ -41,13 +42,19 @@ _CLIENT = ollama.Client(timeout=180)
 MAX_EMPTY_RETRIES = 5
 
 
-def get_ollama_response(messages: list[dict[str, str]], model: str="gemma4:cloud") -> str:
-	response = _CLIENT.chat(
-		model=model,
-		messages=messages
-	)
+class OllamaOfflineException(Exception):
+	pass
 
-	return response.message.content
+
+def get_ollama_response(messages: list[dict[str, str]], model: str="gemma4:cloud") -> str:
+	try:
+		response = _CLIENT.chat(
+			model=model,
+			messages=messages
+		)
+		return response.message.content
+	except Exception as exc:
+		raise OllamaOfflineException(f"Ollama service error: {exc}") from exc
 
 
 def get_nonempty_ollama_response(messages: list[dict[str, str]]) -> str:
@@ -61,6 +68,7 @@ def get_nonempty_ollama_response(messages: list[dict[str, str]]) -> str:
 		logger.warning("Empty LLM response, retry %s/%s", attempt + 1, MAX_EMPTY_RETRIES)
 
 	raise RuntimeError(f"LLM returned nothing usable after {MAX_EMPTY_RETRIES} attempts")
+
 
 def get_search_query_from_task_description(task_description: str) -> str:
 	# compat
@@ -77,9 +85,15 @@ def get_search_query_from_task_description(task_description: str) -> str:
 		}
 	]
 
-	response = get_nonempty_ollama_response(messages)
+	try:
+		response = get_nonempty_ollama_response(messages)
+		return response.lower()
+	except Exception as exc:
+		print(f"[WARNING] Ollama is offline or unavailable ({exc}). Using fallback search query generator.")
+		words = [w for w in re.sub(r"[^\w\s]", "", task_description).split() if len(w) > 3 and w.lower() not in {"search", "bing", "find", "about", "with", "from", "that", "this"}]
+		fallback_query = " ".join(words[:4]) if words else f"{get_random_noun()} search"
+		return fallback_query.lower()
 
-	return response.lower()
 
 def get_related_search_queries(seed_word: str, num_queries: int=20) -> Generator[str, None, None]:
 	messages = [
@@ -93,25 +107,38 @@ def get_related_search_queries(seed_word: str, num_queries: int=20) -> Generator
 		}
 	]
 
+	use_fallback = False
+
 	for _ in range(num_queries):
-		response = get_nonempty_ollama_response(messages)
+		if not use_fallback:
+			try:
+				response = get_nonempty_ollama_response(messages)
+				yield response.lower()
 
-		yield response.lower()
+				messages.append({
+					"role": "assistant",
+					"content": response
+				})
 
-		messages.append({
-			"role": "assistant",
-			"content": response
-		})
+				messages.append({
+					"role": "user",
+					"content": USER_PROMPT_FOR_SEARCH_QUERY_CONTINUATION
+				})
+				continue
+			except Exception as exc:
+				print(f"[WARNING] Ollama is offline or unavailable ({exc}). Using built-in generator for remaining queries.")
+				use_fallback = True
 
-		messages.append({
-			"role": "user",
-			"content": USER_PROMPT_FOR_SEARCH_QUERY_CONTINUATION
-		})
+		noun1 = get_random_noun()
+		noun2 = get_random_noun()
+		yield f"{seed_word} {noun1} {noun2}".lower()
+
 
 NOUNS = [
 	noun.strip().lower() for noun in open("nouns.txt", "r").read().splitlines()
 	if len(noun.strip()) >= 3
 ]
+
 
 def get_random_noun() -> str:
 	return random.choice(NOUNS)
