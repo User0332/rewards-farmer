@@ -6,6 +6,20 @@ from selenium.common.exceptions import NoSuchElementException, StaleElementRefer
 from selenium import webdriver
 
 
+class ElementNotReady(NoSuchElementException):
+	"""The element is in the page but not usable yet.
+
+	A section this market does not ship and a section that has not finished
+	hydrating both reach the caller as NoSuchElementException, which is why a
+	run could report "not available in this UI variant" for something that was
+	on screen. They need different messages and different next steps, so the
+	second case gets its own type.
+
+	Subclassed rather than separate, so every existing `except
+	NoSuchElementException` keeps catching it.
+	"""
+
+
 class Labels:
 	"""Visible labels the selectors match on.
 
@@ -45,7 +59,9 @@ class ElementSelectionUtils:
 	   pick the copy that is visible and actually has content.
 
 	Anything the current variant does not ship raises NoSuchElementException so
-	the caller can skip that task instead of aborting the whole run.
+	the caller can skip that task instead of aborting the whole run. Something
+	that is present but not usable yet raises ElementNotReady instead, because
+	skipping it is the wrong answer and so is the message that goes with it.
 	"""
 
 	def __init__(self, driver: webdriver.Edge):
@@ -66,6 +82,11 @@ class ElementSelectionUtils:
 		their `.text` is empty, so returning one produces silent no-ops further
 		up. Raising instead lets the caller's WebDriverWait retry while the page
 		finishes hydrating.
+
+		The two failures are not the same finding. No element with the id means
+		this variant does not ship the section. An id that is there but has no
+		usable copy means it is still rendering, so that one raises
+		ElementNotReady.
 		"""
 		matches = self.driver.find_elements(By.ID, element_id)
 
@@ -79,7 +100,7 @@ class ElementSelectionUtils:
 			except StaleElementReferenceException:
 				continue
 
-		raise NoSuchElementException(
+		raise ElementNotReady(
 			f"{element_id!r} is present but no visible copy has content yet"
 		)
 
