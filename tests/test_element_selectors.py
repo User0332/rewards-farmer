@@ -163,6 +163,19 @@ class DuplicatedContainer(unittest.TestCase):
 
 		self.assertEqual(len(cards), 7)
 
+	def test_a_container_that_is_there_but_empty_is_not_reported_as_missing(self):
+		# Both failures used to raise NoSuchElementException, so a section that
+		# was on the page and still rendering got reported as one this market
+		# does not ship. Waiting is the answer to this one.
+		with self.assertRaises(element_selectors.ElementNotReady):
+			selectors_for(self._driver(visible_links=0, hidden_links=7)).get_all_misc_cards()
+
+	def test_a_container_that_is_absent_is_reported_as_missing(self):
+		with self.assertRaises(NoSuchElementException) as caught:
+			selectors_for(FakeDriver()).get_all_misc_cards()
+
+		self.assertNotIsInstance(caught.exception, element_selectors.ElementNotReady)
+
 
 class DailySetOpener(unittest.TestCase):
 	"""The opener label has to be distinguished from the level up entry."""

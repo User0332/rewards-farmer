@@ -20,6 +20,48 @@ VISUAL_SEARCH_IMAGE_PATH = os.path.abspath("visual_search.jpg")
 
 logger = logging.getLogger(__name__)
 
+
+class ElementNeverAppeared(TimeoutException):
+	"""A wait expired without the element ever being in the page.
+
+	WebDriverWait reports only that the wait ran out, so a section this market
+	does not ship and a section that was on screen and slow arrived as the same
+	TimeoutException. Reporting both as "not available in this UI variant" was
+	wrong for the second one, which is what #52 describes.
+
+	Subclassed from TimeoutException so the handlers that already wait on a
+	control being absent, claim_bonus_points and complete_bing_daily_set, keep
+	working unchanged.
+	"""
+
+
+def task_failure_report(exc: BaseException) -> tuple[str, str]:
+	"""The tag and the reason a failed task is reported with.
+
+	Absence and an expired wait need different next steps. A section this market
+	does not ship is nothing to act on, so it stays a [SKIP]. A section that was
+	on the page and never became usable may have left points behind, so it is
+	reported as a failure instead of being folded into the same sentence.
+
+	Ordered from the most specific case outwards, not by exception hierarchy:
+	ElementNeverAppeared is a TimeoutException and ElementNotReady is a
+	NoSuchElementException, so each has to be tested before the class it
+	refines.
+	"""
+	unavailable = f"not available in this UI variant ({type(exc).__name__})"
+
+	if isinstance(exc, ElementNeverAppeared):
+		return "SKIP", unavailable
+
+	if isinstance(exc, (element_selectors.ElementNotReady, TimeoutException)):
+		return "FAIL", f"on the page but not ready in time ({type(exc).__name__})"
+
+	if isinstance(exc, NoSuchElementException):
+		return "SKIP", unavailable
+
+	return "FAIL", f"{type(exc).__name__}: {log_utils.exception_summary(exc)}"
+
+
 class RewardsTaskUtils:
 	def __init__(self, driver: webdriver.Edge):
 		self.driver = driver
@@ -37,15 +79,45 @@ class RewardsTaskUtils:
 		return self.driver.find_element(By.XPATH, xpath)
 
 	def wait_for_element(self, element_getter: Callable[[], WebElement | list[WebElement]], timeout: int = 10) -> WebElement | list[WebElement]:
+		# Keep the last reason the getter gave. Without it a wait that expires
+		# cannot say whether the element was missing the whole time or was on
+		# the page and not ready, and those are reported differently.
+		last_error: BaseException | None = None
+
 		def condition(_: webdriver.Edge):
+			nonlocal last_error
+
 			try:
 				element_or_elements = element_getter()
+			except Exception as exc:
+				# Exception rather than a bare except, so Ctrl+C during a
+				# getter ends the run instead of being retried away.
+				last_error = exc
 
-				return element_or_elements
-			except:
 				return False
 
-		return WebDriverWait(self.driver, timeout).until(condition)
+			last_error = None
+
+			return element_or_elements
+
+		try:
+			return WebDriverWait(self.driver, timeout).until(condition)
+		except TimeoutException:
+			# A falsy return means the getter found something and rejected it,
+			# and ElementNotReady means it was there but still rendering. Only
+			# a plain NoSuchElementException every time means it was never
+			# there at all.
+			never_there = (
+				isinstance(last_error, NoSuchElementException)
+				and not isinstance(last_error, element_selectors.ElementNotReady)
+			)
+
+			if not never_there:
+				raise
+
+			raise ElementNeverAppeared(
+				f"nothing matched during the {timeout}s wait: {log_utils.exception_summary(last_error)}"
+			) from last_error
 
 	def switch_to_earn_page(self):
 		self.move_to_and_click(self.elements.get_earn_tab())
@@ -303,11 +375,12 @@ class RewardsTaskUtils:
 			try:
 				step()
 				logger.info("[OK] %s", name)
-			except (NoSuchElementException, TimeoutException) as exc:
-				logger.warning("[SKIP] %s: not available in this UI variant (%s)", name, type(exc).__name__)
 			except Exception as exc:
-				logger.error(
-					"[FAIL] %s: %s: %s", name, type(exc).__name__, log_utils.exception_summary(exc),
+				tag, reason = task_failure_report(exc)
+
+				logger.log(
+					logging.WARNING if tag == "SKIP" else logging.ERROR,
+					"[%s] %s: %s", tag, name, reason,
 					exc_info=logger.isEnabledFor(logging.DEBUG)
 				)
 
