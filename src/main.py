@@ -1,124 +1,261 @@
+import json
 import logging
 import os
+import re
 import sys
+from datetime import date, datetime
+from typing import NamedTuple
 
 import log_utils
-import accounts
+import mimic_typing
+import mouse_trajectory
 import rewards_tasks
+from constants import (
+    DISABLE_DATABASE,
+    PROFILE_NAME,
+    REWARDS_HEADLESS,
+    USER_DATA_DIR,
+)
 from selenium import webdriver
 from selenium.common.exceptions import SessionNotCreatedException
 
-HEADLESS = os.environ.get("REWARDS_HEADLESS", "").strip().lower() in (
-	"1",
-	"true",
-	"yes",
-)
-
 logger = logging.getLogger(__name__)
 
-
-def build_options(account: accounts.Account) -> webdriver.EdgeOptions:
-	options = webdriver.EdgeOptions()
-
-	options.add_experimental_option("excludeSwitches", ["enable-automation"])
-	options.add_experimental_option("useAutomationExtension", False)
-	options.add_argument("--disable-blink-features=AutomationControlled")
-	options.add_argument(f"--user-data-dir={account.user_data_dir}")
-	options.add_argument(f"--profile-directory={account.profile_name}")
-
-	if HEADLESS:
-		# A container has no display. The window size is set explicitly because
-		# the pointer code works in viewport coordinates, and the default
-		# headless window is small enough to put cards out of reach.
-		options.add_argument("--headless=new")
-		options.add_argument("--window-size=1920,1080")
-		options.add_argument("--no-sandbox")
-		options.add_argument("--disable-dev-shm-usage")
-
-	return options
+DB_FILE = "completed_profiles.txt"
 
 
-def run_account(account: accounts.Account) -> bool:
-	"""Work one account. Returns whether the browser started."""
-	try:
-		driver = webdriver.Edge(options=build_options(account))
-	except SessionNotCreatedException as exc:
-		# Chromium allows one process per user data directory. When the profile
-		# is already open the driver's copy exits during startup, and selenium
-		# reports it as the browser crashing with a message that names neither
-		# the profile nor the other window.
-		logger.error("[FAIL] %s: could not start Edge with this profile.", account.name)
-		logger.error("       profile directory: %s", account.user_data_dir)
-		logger.error(
-			"       The usual cause is that this profile is already open in another"
-		)
-		logger.error("       Edge window, including one left over from a previous run.")
-		logger.error("       driver said: %s", log_utils.exception_summary(exc))
+def load_completed_profiles_today() -> set:
+    """Reads DB_FILE and returns profile names completed on today's calendar date."""
+    if DISABLE_DATABASE:
+        return set()
 
-		return False
+    completed_today = set()
+    today_str = date.today().isoformat()  # YYYY-MM-DD
 
-	try:
-		rewards = rewards_tasks.RewardsTaskUtils(driver)
-		rewards.complete_all_tasks()
-	finally:
-		try:
-			driver.quit()
-		except Exception as exc:
-			# quit() raises when the browser is already gone. Letting it out
-			# here would replace whatever actually went wrong with the tidy-up's
-			# own error, and the process it is meant to end is dead anyway.
-			logger.warning(
-				"%s: the driver did not shut down cleanly: %s",
-				account.name,
-				log_utils.exception_summary(exc),
-			)
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or "|" not in line:
+                    continue
+                prof_name, timestamp = line.rsplit("|", 1)
+                prof_name = prof_name.strip()
+                timestamp = timestamp.strip()
 
-	return True
+                if timestamp.startswith(today_str):
+                    completed_today.add(prof_name)
+
+    return completed_today
+
+
+def mark_profile_completed(profile_name: str):
+    """Appends profile completion with a full date and time timestamp."""
+    if DISABLE_DATABASE:
+        return
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(DB_FILE, "a", encoding="utf-8") as f:
+        f.write(f"{profile_name} | {now_str}\n")
+
+
+def build_options(profile_directory: str = None) -> webdriver.EdgeOptions:
+    """Builds Selenium options for Edge, keeping bot detection flags clean."""
+    options = webdriver.EdgeOptions()
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument(f"--user-data-dir={USER_DATA_DIR}")
+
+    if profile_directory:
+        options.add_argument(f"--profile-directory={profile_directory}")
+
+    if REWARDS_HEADLESS:
+        options.add_argument("--headless=new")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+
+    return options
+
+
+def get_info_cache_from_local_state() -> dict:
+    """Reads profile info cache directly from Edge's Local State file."""
+    local_state_path = os.path.join(USER_DATA_DIR, "Local State")
+    try:
+        with open(local_state_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data.get("profile", {}).get("info_cache", {})
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        logger.error("Could not read Local State: %s", exc)
+        return {}
+
+
+def is_local_state_updated(profile_children: list) -> bool:
+    """Verifies that Local State contains non-empty gaia IDs and valid profiles."""
+    profiles = get_info_cache_from_local_state()
+    if not profiles or not profiles.get("Default", {}).get("gaia_id"):
+        return False
+
+    for profile in profiles:
+        if profile not in profile_children:
+            logger.error(
+                "Profile '%s' in Local State does not exist in data-dir folder.",
+                profile,
+            )
+            return False
+    return True
+
+
+def call_the_bot():
+    """Initializes the data directory and prompts the user to sign in manually."""
+    logger.info("Opening Edge to create/update user data directory...")
+    driver = None
+    try:
+        driver = webdriver.Edge(options=build_options(PROFILE_NAME))
+        driver.get("https://rewards.bing.com/dashboard")
+        print("\nPlease sign in to your Microsoft Edge browser if you haven't already.")
+        input("Press Enter to continue after signing in...")
+    except Exception as exc:
+        logger.error("Failed during manual sign-in initialization: %s", exc)
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+
+
+def ensure_data_dir_ready():
+    """Ensures data-dir exists and Local State is valid before entering the menu."""
+    while True:
+        if not os.path.exists(USER_DATA_DIR):
+            logger.warning("data-dir folder missing. Launching initial setup...")
+            call_the_bot()
+            continue
+
+        children = os.listdir(USER_DATA_DIR)
+        profile_children = [c for c in children if re.search(r"Default|Profile", c)]
+
+        if not is_local_state_updated(profile_children):
+            logger.warning("Local State is not updated. Launching Edge for sign-in...")
+            call_the_bot()
+        else:
+            logger.info("data-dir and Local State are verified and ready.")
+            break
+
+
+class ProfileTask(NamedTuple):
+    profile_name: str
+    gaia_name: str
+    user_name: str
+
+
+def run_profile(task: ProfileTask) -> bool:
+    """Safely runs automation tasks for a selected profile with full cleanup."""
+    driver = None
+    try:
+        driver = webdriver.Edge(options=build_options(task.profile_name))
+    except SessionNotCreatedException as exc:
+        logger.error("[FAIL] %s: Could not start Edge.", task.profile_name)
+        logger.error(
+            "       The profile might already be open in another Edge window."
+        )
+        logger.error("       Driver output: %s", log_utils.exception_summary(exc))
+        return False
+    except Exception as exc:
+        logger.error("[FAIL] %s: %s", task.profile_name, log_utils.exception_summary(exc))
+        return False
+
+    try:
+        mouse = mouse_trajectory.MouseUtils(driver)
+        keyboard = mimic_typing.KeyboardUtils(driver)
+        rewards = rewards_tasks.RewardsTaskUtils(driver)
+        rewards.complete_all_tasks()
+        return True
+    except Exception as exc:
+        logger.error(
+            "[FAIL] %s: Task execution failed: %s",
+            task.profile_name,
+            log_utils.exception_summary(exc),
+        )
+        return False
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except Exception as exc:
+                logger.warning(
+                    "%s: Driver did not shut down cleanly: %s",
+                    task.profile_name,
+                    log_utils.exception_summary(exc),
+                )
 
 
 def main() -> int:
-	log_utils.setup_logging()
+    log_utils.setup_logging()
+    ensure_data_dir_ready()
 
-	try:
-		configured = accounts.configured()
-	except ValueError as exc:
-		logger.error("[FAIL] %s", exc)
+    profiles = get_info_cache_from_local_state()
+    completed_today_set = load_completed_profiles_today()
 
-		return 2
+    all_tasks = [
+        ProfileTask(
+            profile_name=prof,
+            gaia_name=data.get("gaia_name", ""),
+            user_name=data.get("user_name", ""),
+        )
+        for prof, data in profiles.items()
+    ]
 
-	started = 0
+    if not all_tasks:
+        logger.error("No valid profiles detected.")
+        return 1
 
-	for account in configured:
-		if len(configured) > 1:
-			logger.info("=== account: %s ===", account.name)
+    while True:
+        available_tasks = [
+            task for task in all_tasks if task.profile_name not in completed_today_set
+        ]
 
-		# One account must not be able to end the batch. complete_all_tasks
-		# already contains a task that fails, and run_account names the profile
-		# that is already open, but everything else - a driver that will not
-		# start for some other reason, the browser dying mid-run, a page that
-		# never loads - reached here and took the remaining accounts with it.
-		# KeyboardInterrupt is deliberately not caught: Ctrl-C means stop.
-		try:
-			if run_account(account):
-				started += 1
-		except Exception as exc:
-			logger.error(
-				"[FAIL] %s: %s: %s",
-				account.name,
-				type(exc).__name__,
-				log_utils.exception_summary(exc),
-				exc_info=logger.isEnabledFor(logging.DEBUG),
-			)
+        if not available_tasks:
+            print("\n🎉 All profiles are completed for today!")
+            print("They will automatically become available again tomorrow.")
+            break
 
-	if len(configured) > 1:
-		logger.info("%s/%s accounts ran", started, len(configured))
+        print(
+            f"\nPlease choose a profile to run "
+            f"(HEADLESS = {REWARDS_HEADLESS} | DISABLE_DATABASE = {DISABLE_DATABASE}):"
+        )
+        for i, task in enumerate(available_tasks):
+            print(
+                f"({i}) [{task.profile_name}] | Profile Name: {task.gaia_name} | "
+                f"User Name: {task.user_name}"
+            )
 
-	# Nothing is watching a container, and stdin is not a terminal there.
-	if not HEADLESS:
-		input("Press Enter to exit...")
+        input_number = input("Input_Number (No Symbols, No Letters): ").strip()
+        if re.match(r"^\d+$", input_number):
+            idx = int(input_number)
+            if 0 <= idx < len(available_tasks):
+                selected_task = available_tasks[idx]
+                logger.info("Executing profile: %s", selected_task.profile_name)
 
-	return 0 if started else 1
+                success = run_profile(selected_task)
+                if success:
+                    mark_profile_completed(selected_task.profile_name)
+                    if not DISABLE_DATABASE:
+                        completed_today_set.add(selected_task.profile_name)
+
+                if not REWARDS_HEADLESS:
+                    input("Press Enter to return to menu...")
+            else:
+                print(
+                    f"Out of range. Pick between 0 and {len(available_tasks) - 1}."
+                )
+        else:
+            print("Invalid input. NUMBERS ONLY.")
+
+    logger.info("Session finished.")
+    return 0
 
 
 if __name__ == "__main__":
-	sys.exit(main())
+    sys.exit(main())

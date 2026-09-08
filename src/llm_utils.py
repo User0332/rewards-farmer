@@ -41,7 +41,7 @@ _CLIENT = ollama.Client(timeout=180)
 MAX_EMPTY_RETRIES = 5
 
 
-def get_ollama_response(messages: list[dict[str, str]], model: str="gemma4:cloud") -> str:
+def get_ollama_response(messages: list[dict[str, str]], model: str="phi3.5:latest") -> str:
 	response = _CLIENT.chat(
 		model=model,
 		messages=messages
