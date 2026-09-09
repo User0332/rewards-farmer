@@ -18,6 +18,8 @@ import element_selectors
 
 VISUAL_SEARCH_IMAGE_PATH = os.path.abspath("visual_search.jpg")
 
+REWARDS_HOME_URL = "https://rewards.bing.com/"
+
 logger = logging.getLogger(__name__)
 
 
@@ -76,10 +78,15 @@ class RewardsTaskUtils:
 
 		self.driver.execute_cdp_cmd("Network.setExtraHTTPHeaders", {"headers": headers})
 
-		self.driver.get("https://rewards.bing.com/")
+		self.driver.get(REWARDS_HOME_URL)
 
 		self.tab_utils = tab_utils.TabUtils(driver)
 		self.tab_utils.ensure_focus()
+
+		# The tab the tasks work in. Recorded rather than looked up later,
+		# because "the current tab" stops meaning this one the moment a task
+		# opens a card in a new one.
+		self.main_window = driver.current_window_handle
 
 		self.mouse = mouse_trajectory.MouseUtils(driver)
 		self.keyboard = mimic_typing.KeyboardUtils(driver)
@@ -396,8 +403,56 @@ class RewardsTaskUtils:
 				)
 				self.wait_for_then_click(self.elements.get_clear_bing_search_query_button)
 
-		self.driver.get("https://rewards.bing.com/")
+		self.driver.get(REWARDS_HOME_URL)
 		self.tab_utils.ensure_focus()
+
+	def restore_main_tab(self):
+		"""Close the stray tabs, keeping the one the tasks work in.
+
+		close_all_other_tabs with no arguments keeps whatever tab is focused
+		right now. After a task that died on a Bing tab that is the Bing tab, so
+		the cleanup closed the Rewards tab and kept the search results. Naming
+		the tab to keep is the difference between tidying up and destroying the
+		only tab the next task can use.
+
+		If the main tab is gone, whatever is left is better than nothing: the
+		page fix below still has to run either way.
+		"""
+		try:
+			handles = self.driver.window_handles
+
+			if not handles:
+				return
+
+			keep = self.main_window if self.main_window in handles else handles[0]
+
+			self.tab_utils.close_all_other_tabs(exceptions=[keep])
+		except Exception as exc:
+			logger.warning(
+				"Could not tidy the open tabs: %s", log_utils.exception_summary(exc)
+			)
+
+	def return_to_rewards_home(self):
+		"""Put the browser back on the Rewards home page.
+
+		Only called when a task did not finish. Navigating after every task
+		would reload the page six times a run for no reason, and the tasks that
+		succeed already leave the browser somewhere their successor can work
+		from.
+		"""
+		try:
+			if self.driver.current_url.startswith(REWARDS_HOME_URL):
+				return
+
+			self.driver.get(REWARDS_HOME_URL)
+			self.tab_utils.ensure_focus()
+		except Exception as exc:
+			# Recovery is best effort. If even this fails the next task will
+			# report its own [SKIP], which is no worse than before.
+			logger.warning(
+				"Could not return to the Rewards home page: %s",
+				log_utils.exception_summary(exc)
+			)
 
 	def claim_bonus_points(self):
 		self.switch_to_dashboard()
@@ -426,9 +481,12 @@ class RewardsTaskUtils:
 			# The tags stay in the message rather than being folded into the
 			# level, they are the per-task outcome summary and reading a run
 			# means scanning for them.
+			completed = False
+
 			try:
 				step()
 				logger.info("[OK] %s", name)
+				completed = True
 			except Exception as exc:
 				tag, reason = task_failure_report(exc)
 
@@ -438,8 +496,10 @@ class RewardsTaskUtils:
 					exc_info=logger.isEnabledFor(logging.DEBUG)
 				)
 
-			# Leave a clean tab state behind for the next task.
-			try:
-				self.tab_utils.close_all_other_tabs()
-			except Exception:
-				pass
+			# Leave a clean tab state behind for the next task. Both halves of
+			# this matter, and they are separate failures: the right tab has to
+			# survive, and it has to be showing the right page.
+			self.restore_main_tab()
+
+			if not completed:
+				self.return_to_rewards_home()
