@@ -36,6 +36,20 @@ RUN EDGE_VERSION="$(microsoft-edge --version | awk '{print $3}')" \
 	&& rm /tmp/edgedriver.zip \
 	&& msedgedriver --version
 
+# Signing in needs a browser window, and the profile has to be written by the
+# container's own Edge: Chromium takes the cookie key from the operating system,
+# and on a Windows or macOS host that key is wrapped with DPAPI or the login
+# Keychain, neither of which the container can unwrap. Xvfb gives that browser a
+# display and noVNC puts it on the user's screen with nothing installed on the
+# host. Only src/signin.py reaches any of this; a run never does.
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+		xvfb x11vnc novnc websockify \
+	&& rm -rf /var/lib/apt/lists/* \
+	# Debian ships vnc.html and no index.html, so a bare localhost:6080 is a 404
+	# that reads as the feature being broken.
+	&& ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html
+
 WORKDIR /app
 
 RUN pip install --no-cache-dir "selenium>=4.46.0,<5.0.0" "numpy"
