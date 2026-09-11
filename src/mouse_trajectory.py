@@ -166,9 +166,16 @@ def get_final_path_from_real_time(
 	def final_path_function(t: float) -> Point:
 		if t < 0:
 			return start
-		elif t > movement_time:
+		elif t >= movement_time:
+			# Not just t > movement_time: the sigmoid below is asymptotic, so a
+			# sample taken exactly at movement_time still lands short of the
+			# target and the move has to end here instead.
 			return end
 
+		# 4.5 scales the input just enough to almost reach the target without
+		# distorting the movement velocity. logistic_sigmoid(4.5) is 0.978, not
+		# 1, so this never evaluates the bezier at its endpoint -- that is what
+		# the branch above is for. Revisit both together.
 		normalized_t = (t / movement_time)*4.5
 
 		return path(normalized_t)
@@ -289,8 +296,13 @@ class MouseUtils:
 		)
 		max_x, max_y = int(viewport[0]) - 2, int(viewport[1]) - 2
 
-		while (current_time := time.monotonic()) < end_time:
-			t = current_time - start_time
+		while True:
+			current_time = time.monotonic()
+
+			# Clamped, because the loop is driven by wall clock: without this the
+			# last sample is taken an iteration short of move_time and the pointer
+			# is left short of the target on every move.
+			t = min(current_time - start_time, move_time)
 			point = path_function(t)
 
 			point = (
@@ -309,6 +321,9 @@ class MouseUtils:
 				except JavascriptException: # some uninitialization has happened, reinitialize the cursor visualization
 					self.reinitialize()
 					self.driver.execute_script(f"window.moveVisualCursor({point[0]}, {point[1]});")
+
+			if current_time >= end_time:
+				break
 
 
 	def wheel_scroll_element_into_view(self, element: WebElement, max_wheel_events: int = 60):
