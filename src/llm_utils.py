@@ -46,7 +46,7 @@ class OllamaOfflineException(Exception):
 	pass
 
 
-def get_ollama_response(messages: list[dict[str, str]], model: str="gemma4:cloud") -> str:
+def get_ollama_response(messages: list[dict[str, str]], model: str="phi3.5:latest") -> str:
 	try:
 		response = _CLIENT.chat(
 			model=model,
