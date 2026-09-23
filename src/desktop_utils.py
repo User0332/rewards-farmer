@@ -23,6 +23,8 @@ KEYEVENTF_KEYUP = 0x0002
 
 _desktop_created = False
 _on_worker_desktop = False
+_start_desktop_id: bytes | None = None
+_worker_desktop_id: bytes | None = None
 _hops_to_worker = 1
 
 
@@ -32,18 +34,39 @@ def is_windows() -> bool:
 
 
 def is_virtual_desktop_enabled() -> bool:
-	"""Fetch USE_VIRTUAL_DESKTOP from environment variables, defaulting to False."""
-	return os.environ.get("USE_VIRTUAL_DESKTOP", "").strip().lower() in ("1", "true", "yes")
+	"""Fetch USE_VIRTUAL_DESKTOP from environment variables or constants, defaulting to False."""
+	env_val = os.environ.get("USE_VIRTUAL_DESKTOP")
+	if env_val is not None:
+		return env_val.strip().lower() in ("1", "true", "yes")
+	try:
+		from constants import USE_VIRTUAL_DESKTOP
+		return bool(USE_VIRTUAL_DESKTOP)
+	except Exception:
+		return False
 
 
 def should_switch_back_to_main_desktop() -> bool:
-	"""Fetch SWITCH_BACK_TO_MAIN_DESKTOP from environment variables, defaulting to True."""
-	return os.environ.get("SWITCH_BACK_TO_MAIN_DESKTOP", "true").strip().lower() in ("1", "true", "yes")
+	"""Fetch SWITCH_BACK_TO_MAIN_DESKTOP from environment variables or constants, defaulting to True."""
+	env_val = os.environ.get("SWITCH_BACK_TO_MAIN_DESKTOP")
+	if env_val is not None:
+		return env_val.strip().lower() in ("1", "true", "yes")
+	try:
+		from constants import SWITCH_BACK_TO_MAIN_DESKTOP
+		return bool(SWITCH_BACK_TO_MAIN_DESKTOP)
+	except Exception:
+		return True
 
 
 def is_cleanup_virtual_desktop_enabled() -> bool:
-	"""Fetch CLEANUP_VIRTUAL_DESKTOP from environment variables, defaulting to True."""
-	return os.environ.get("CLEANUP_VIRTUAL_DESKTOP", "true").strip().lower() in ("1", "true", "yes")
+	"""Fetch CLEANUP_VIRTUAL_DESKTOP from environment variables or constants, defaulting to True."""
+	env_val = os.environ.get("CLEANUP_VIRTUAL_DESKTOP")
+	if env_val is not None:
+		return env_val.strip().lower() in ("1", "true", "yes")
+	try:
+		from constants import CLEANUP_VIRTUAL_DESKTOP
+		return bool(CLEANUP_VIRTUAL_DESKTOP)
+	except Exception:
+		return True
 
 
 def get_switch_back_delay() -> float:
@@ -61,14 +84,14 @@ def get_switch_back_delay() -> float:
 	return delay
 
 
-def get_desktop_state() -> tuple[int, int]:
-	"""Returns (current_desktop_index, total_desktops) using Windows registry.
+def get_desktop_registry_data() -> tuple[list[bytes], bytes | None]:
+	"""Reads VirtualDesktopIDs (list of 16-byte GUIDs) and CurrentVirtualDesktop from Windows registry.
 
-	current_desktop_index is 0-indexed.
-	Defaults to (0, 1) if undetected or on non-Windows platforms.
+	Returns (desktop_ids_list, current_desktop_id).
+	Returns ([], None) on failure or non-Windows platforms.
 	"""
 	if not is_windows():
-		return 0, 1
+		return [], None
 
 	try:
 		import winreg
@@ -77,16 +100,14 @@ def get_desktop_state() -> tuple[int, int]:
 		with winreg.OpenKey(winreg.HKEY_CURRENT_USER, base_path) as key:
 			raw_ids, _ = winreg.QueryValueEx(key, "VirtualDesktopIDs")
 	except Exception:
-		return 0, 1
+		return [], None
 
 	if not raw_ids or len(raw_ids) % 16 != 0:
-		return 0, 1
+		return [], None
 
 	desktops = [raw_ids[i:i + 16] for i in range(0, len(raw_ids), 16)]
-	total = len(desktops)
 
 	current_id = None
-	# In some Windows 11 builds, CurrentVirtualDesktop is under SessionInfo\<id>\VirtualDesktops
 	session_base = r"Software\Microsoft\Windows\CurrentVersion\Explorer\SessionInfo"
 	try:
 		with winreg.OpenKey(winreg.HKEY_CURRENT_USER, session_base) as s_key:
@@ -112,6 +133,20 @@ def get_desktop_state() -> tuple[int, int]:
 		except Exception:
 			pass
 
+	return desktops, current_id
+
+
+def get_desktop_state() -> tuple[int, int]:
+	"""Returns (current_desktop_index, total_desktops) using Windows registry.
+
+	current_desktop_index is 0-indexed.
+	Defaults to (0, 1) if undetected or on non-Windows platforms.
+	"""
+	desktops, current_id = get_desktop_registry_data()
+	total = len(desktops)
+	if total == 0:
+		return 0, 1
+
 	if current_id and current_id in desktops:
 		return desktops.index(current_id), total
 
@@ -120,9 +155,11 @@ def get_desktop_state() -> tuple[int, int]:
 
 def reset_virtual_desktop_state() -> None:
 	"""Reset state for tracking desktop creation (useful for tests or multiple runs)."""
-	global _desktop_created, _on_worker_desktop, _hops_to_worker
+	global _desktop_created, _on_worker_desktop, _start_desktop_id, _worker_desktop_id, _hops_to_worker
 	_desktop_created = False
 	_on_worker_desktop = False
+	_start_desktop_id = None
+	_worker_desktop_id = None
 	_hops_to_worker = 1
 
 
@@ -187,10 +224,48 @@ def switch_to_right_desktop() -> bool:
 	return press_hotkey(VK_LWIN, VK_CONTROL, VK_RIGHT)
 
 
-def switch_to_worker_desktop() -> bool:
-	"""Switches to the worker desktop by pressing Win+Ctrl+Right _hops_to_worker times."""
+def _navigate_to_guid(target_id: bytes) -> bool:
+	"""Switches to target GUID by inspecting real-time registry desktop order and active desktop."""
 	if not is_windows():
 		return False
+
+	desktops, current_id = get_desktop_registry_data()
+	if not desktops or not current_id or current_id not in desktops or target_id not in desktops:
+		return False
+
+	current_idx = desktops.index(current_id)
+	target_idx = desktops.index(target_id)
+	delta = target_idx - current_idx
+
+	if delta == 0:
+		logger.debug("Already on target desktop (index %d).", target_idx)
+		return True
+
+	success = True
+	if delta > 0:
+		logger.debug("Moving right %d hops (from %d to %d)", delta, current_idx, target_idx)
+		for _ in range(delta):
+			if not switch_to_right_desktop():
+				success = False
+			time.sleep(0.1)
+	else:
+		hops = abs(delta)
+		logger.debug("Moving left %d hops (from %d to %d)", hops, current_idx, target_idx)
+		for _ in range(hops):
+			if not switch_to_left_desktop():
+				success = False
+			time.sleep(0.1)
+
+	return success
+
+
+def switch_to_worker_desktop() -> bool:
+	"""Switches to the worker desktop using dynamic GUID tracking if available, or hops fallback."""
+	if not is_windows():
+		return False
+	if _worker_desktop_id and _start_desktop_id and _worker_desktop_id != _start_desktop_id:
+		if _navigate_to_guid(_worker_desktop_id):
+			return True
 	success = True
 	for _ in range(_hops_to_worker):
 		if not switch_to_right_desktop():
@@ -200,15 +275,29 @@ def switch_to_worker_desktop() -> bool:
 
 
 def switch_to_main_desktop() -> bool:
-	"""Switches to the starting main desktop by pressing Win+Ctrl+Left _hops_to_worker times."""
+	"""Switches to the starting main desktop using dynamic GUID tracking if available, or hops fallback."""
 	if not is_windows():
 		return False
+	if _worker_desktop_id and _start_desktop_id and _worker_desktop_id != _start_desktop_id:
+		if _navigate_to_guid(_start_desktop_id):
+			return True
 	success = True
 	for _ in range(_hops_to_worker):
 		if not switch_to_left_desktop():
 			success = False
 		time.sleep(0.1)
 	return success
+
+
+def switch_to_target_desktop(target_id: bytes | None) -> bool:
+	"""Switches to the specified virtual desktop GUID if distinct, else falls back."""
+	if not is_windows():
+		return False
+	if target_id and _navigate_to_guid(target_id):
+		return True
+	if target_id == _start_desktop_id:
+		return switch_to_main_desktop()
+	return switch_to_worker_desktop()
 
 
 def close_current_virtual_desktop() -> bool:
@@ -220,13 +309,15 @@ def close_current_virtual_desktop() -> bool:
 
 def prepare_desktop_before_launch() -> bool:
 	"""Prepares virtual desktop before launching the browser. Returns True on success."""
-	global _desktop_created, _on_worker_desktop, _hops_to_worker
+	global _desktop_created, _on_worker_desktop, _start_desktop_id, _worker_desktop_id, _hops_to_worker
 	if not is_windows() or not is_virtual_desktop_enabled():
 		return True
 
 	if not _desktop_created:
 		logger.info("Creating and switching to a new Windows Virtual Desktop...")
+		ids_before, _start_desktop_id = get_desktop_registry_data()
 		start_idx, total_before = get_desktop_state()
+
 		if not create_virtual_desktop():
 			logger.error("Could not create the Windows Virtual Desktop.")
 			return False
@@ -234,6 +325,13 @@ def prepare_desktop_before_launch() -> bool:
 		_on_worker_desktop = True
 
 		time.sleep(0.2)
+		ids_after, cur_after = get_desktop_registry_data()
+		new_ids = [x for x in ids_after if x not in ids_before]
+		if new_ids:
+			_worker_desktop_id = new_ids[0]
+		else:
+			_worker_desktop_id = cur_after
+
 		_, total_after = get_desktop_state()
 		worker_idx = total_after - 1 if total_after > total_before else total_before
 		_hops_to_worker = max(1, worker_idx - start_idx)
@@ -273,7 +371,7 @@ def switch_back_after_launch() -> None:
 
 def cleanup_virtual_desktop() -> bool:
 	"""Closes the created worker virtual desktop and returns to the starting main desktop."""
-	global _desktop_created, _on_worker_desktop
+	global _desktop_created, _on_worker_desktop, _start_desktop_id, _worker_desktop_id
 	if not is_windows() or not is_virtual_desktop_enabled() or not _desktop_created:
 		return True
 
@@ -283,25 +381,39 @@ def cleanup_virtual_desktop() -> bool:
 
 	logger.info("Cleaning up Windows Virtual Desktop...")
 
-	if not _on_worker_desktop:
-		if not switch_to_worker_desktop():
-			logger.error("Failed to switch to worker desktop for cleanup.")
-			return False
-		_on_worker_desktop = True
-		time.sleep(0.3)
+	desktops, _ = get_desktop_registry_data()
+	# If the worker desktop was already closed manually by the user in Task View:
+	if _worker_desktop_id and desktops and _worker_desktop_id not in desktops:
+		logger.info("Worker desktop was already closed. Navigating back to starting desktop...")
+		if _start_desktop_id and _start_desktop_id != _worker_desktop_id:
+			_navigate_to_guid(_start_desktop_id)
+		_desktop_created = False
+		_on_worker_desktop = False
+		return True
 
+	# Step 1: Ensure we are on the worker desktop
+	if not switch_to_worker_desktop():
+		logger.error("Failed to switch to worker desktop for cleanup.")
+		return False
+	_on_worker_desktop = True
+	time.sleep(0.3)
+
+	# Step 2: Close the worker desktop via Win+Ctrl+F4
 	if not close_current_virtual_desktop():
 		logger.error("Failed to close virtual desktop.")
 		return False
 	time.sleep(0.5)
 
-	# Windows automatically switches to one desktop left of the closed desktop (worker_idx - 1).
-	# Calculate remaining hops needed to reach start_idx:
-	# remaining_left_hops = _hops_to_worker - 1
-	remaining_left_hops = max(0, _hops_to_worker - 1)
-	for _ in range(remaining_left_hops):
-		switch_to_left_desktop()
-		time.sleep(0.1)
+	# Step 3: Return to starting desktop
+	navigated = False
+	if _start_desktop_id and _worker_desktop_id and _start_desktop_id != _worker_desktop_id:
+		navigated = _navigate_to_guid(_start_desktop_id)
+
+	if not navigated:
+		remaining_left_hops = max(0, _hops_to_worker - 1)
+		for _ in range(remaining_left_hops):
+			switch_to_left_desktop()
+			time.sleep(0.1)
 
 	_desktop_created = False
 	_on_worker_desktop = False
