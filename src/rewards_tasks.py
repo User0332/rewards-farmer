@@ -113,6 +113,7 @@ class RewardsTaskUtils:
 		self.mouse = mouse_trajectory.MouseUtils(driver)
 		self.keyboard = mimic_typing.KeyboardUtils(driver)
 		self.elements = element_selectors.ElementSelectionUtils(driver)
+		self.dismiss_cookie_consent()
 		self.verify_signed_in_state()
 
 	def verify_signed_in_state(self):
@@ -124,6 +125,51 @@ class RewardsTaskUtils:
 				logger.warning("Please sign in once on rewards.bing.com in this Edge profile window.")
 		except Exception:
 			pass
+
+	def dismiss_cookie_consent(self, timeout: int = 3) -> bool:
+		"""Accept the cookie consent prompt if one shows up. Never raises.
+
+		The prompt is saved per profile once answered, so this is usually a
+		no-op. Returns whether a prompt was dismissed.
+		"""
+		try:
+			button = WebDriverWait(self.driver, timeout).until(
+				lambda _: self._consent_button_or_none()
+			)
+		except TimeoutException:
+			return False
+
+		try:
+			self.move_to_and_click(button)
+		except Exception:
+			pass
+
+		time.sleep(1)
+
+		# A real pointer click on a modal's button can land on the backdrop.
+		# Scripted only here, where nothing is being earned.
+		if self._consent_button_or_none() is not None:
+			try:
+				self.driver.execute_script("arguments[0].click();", button)
+			except Exception:
+				pass
+
+			time.sleep(1)
+
+		dismissed = self._consent_button_or_none() is None
+
+		if dismissed:
+			logger.info("Accepted the cookie consent prompt on %s", self.driver.current_url)
+		else:
+			logger.warning("Could not dismiss the cookie consent prompt on %s", self.driver.current_url)
+
+		return dismissed
+
+	def _consent_button_or_none(self):
+		try:
+			return self.elements.get_cookie_consent_accept_button()
+		except Exception:
+			return None
 
 	def find_element(self, xpath: str):
 		return self.driver.find_element(By.XPATH, xpath)
@@ -305,14 +351,32 @@ class RewardsTaskUtils:
 		self.tab_utils.switch_to_other_tab()
 		self.progress = "opened the visual search page"
 
+		self.dismiss_cookie_consent()
+
 		self.wait_for_then_click(self.elements.get_visual_search_button)
 
 		file_input = self.wait_for_element(self.elements.get_visual_search_file_input)
 
+		landing_url = self.driver.current_url
+
 		file_input.send_keys(VISUAL_SEARCH_IMAGE_PATH)
 		self.progress = "uploaded the image"
 
-		time.sleep(random.uniform(3, 5))
+		# send_keys succeeds even when an overlay ate the click and the image
+		# went nowhere. An accepted upload navigates away from the landing page.
+		def left_landing_page(_):
+			return self.driver.current_url != landing_url
+
+		try:
+			WebDriverWait(self.driver, 20).until(left_landing_page)
+		except TimeoutException:
+			logger.warning(
+				"Visual search: Bing did not move off %s after the upload, so the "
+				"image was probably not accepted. Please check manually.",
+				landing_url
+			)
+		else:
+			time.sleep(random.uniform(3, 5))
 
 		self.tab_utils.switch_to_other_tab()
 		self.tab_utils.close_all_other_tabs()
@@ -434,6 +498,8 @@ class RewardsTaskUtils:
 		"""
 		self.driver.get("https://www.bing.com/")
 		self.tab_utils.ensure_focus()
+
+		self.dismiss_cookie_consent()
 
 		self.wait_for_element(self.elements.get_bing_search_bar)
 

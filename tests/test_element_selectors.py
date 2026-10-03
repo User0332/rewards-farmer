@@ -257,5 +257,33 @@ class DailySetActivityUrls(unittest.TestCase):
 		self.assertEqual(len(found), 2)
 
 
+class CookieConsentTests(unittest.TestCase):
+	"""#80: an unanswered consent modal on bing.com swallows clicks silently."""
+
+	def _find(self, ids=(), buttons=()):
+		children = {(By.ID, "bnp_btn_accept"): list(ids), (By.TAG_NAME, "button"): list(buttons)}
+
+		return element_selectors.ElementSelectionUtils(FakeDriver(children)).get_cookie_consent_accept_button()
+
+	def test_prefers_the_bing_id(self):
+		by_id = FakeElement(text="Accepter")
+
+		self.assertIs(self._find(ids=[by_id], buttons=[FakeElement(text="Accept")]), by_id)
+
+	def test_matches_a_label_exactly(self):
+		accept = FakeElement(text=" Tout accepter ")
+
+		found = self._find(buttons=[FakeElement(text="Accept the challenge"), accept])
+
+		self.assertIs(found, accept)
+
+	def test_ignores_hidden_prompts(self):
+		with self.assertRaises(NoSuchElementException):
+			self._find(
+				ids=[FakeElement(displayed=False)],
+				buttons=[FakeElement(text="Accept", displayed=False)],
+			)
+
+
 if __name__ == "__main__":
 	unittest.main()
