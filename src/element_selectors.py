@@ -39,6 +39,15 @@ class Labels:
 	# The full streak label on purpose: plain "visual search" also matches an
 	# element on the dashboard, which can go stale mid-interaction.
 	VISUAL_SEARCH_STREAK = "visual search streak"
+	# Exact match: plain substrings like "accept" are too short to search the
+	# whole page for. bing.com has a stable id, rewards.bing.com does not.
+	CONSENT_ACCEPT = (
+		"accept", "accept all",
+		"accepter", "tout accepter",
+		"akzeptieren", "alle akzeptieren",
+		"aceptar", "aceptar todo",
+		"accetta", "accetta tutto",
+	)
 
 
 class ElementSelectionUtils:
@@ -294,6 +303,26 @@ class ElementSelectionUtils:
 
 	def get_visual_search_file_input(self):
 		return self.driver.find_element(By.CSS_SELECTOR, "#sb_fileinput")
+
+	def get_cookie_consent_accept_button(self):
+		"""The accept button of the cookie consent prompt, if one is showing.
+
+		On bing.com it is a modal whose overlay swallows every click and
+		keystroke without raising, which is why it has to be dismissed rather
+		than ignored.
+		"""
+		for button in self.driver.find_elements(By.ID, "bnp_btn_accept"):
+			if button.is_displayed():
+				return button
+
+		for button in self.driver.find_elements(By.TAG_NAME, "button"):
+			try:
+				if button.is_displayed() and (button.text or "").strip().lower() in Labels.CONSENT_ACCEPT:
+					return button
+			except StaleElementReferenceException:
+				continue
+
+		raise NoSuchElementException("no cookie consent prompt showing")
 
 	# ------------------------------------------------------------------
 	# cards
