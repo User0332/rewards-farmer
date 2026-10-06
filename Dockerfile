@@ -16,11 +16,12 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Edge, from Microsoft's own repository.
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
-		ca-certificates curl gnupg unzip fonts-liberation \
-	&& curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
-		| gpg --dearmor -o /usr/share/keyrings/microsoft.gpg \
-	&& echo "deb [arch=amd64 signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/edge stable main" \
-		> /etc/apt/sources.list.d/microsoft-edge.list \
+		ca-certificates curl gnupg unzip fonts-liberation apt-utils \
+	&& apt-get upgrade -y \
+	&& apt-get update \
+	&& curl -sSL -o ~/packages-microsoft-prod.deb https://packages.microsoft.com/config/debian/12/packages-microsoft-prod.deb \
+	&& apt-get install ~/./packages-microsoft-prod.deb \
+	&& rm ~/packages-microsoft-prod.deb \
 	&& apt-get update \
 	&& apt-get install -y --no-install-recommends microsoft-edge-stable \
 	&& rm -rf /var/lib/apt/lists/*
