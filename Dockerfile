@@ -52,7 +52,7 @@ RUN apt-get update \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir "selenium>=4.46.0,<5.0.0" "numpy" "python-dotenv"
+RUN pip install --no-cache-dir "selenium>=4.46.0,<5.0.0" "numpy" "python-dotenv" "requests"
 
 COPY src/ ./src/
 COPY nouns.txt ./

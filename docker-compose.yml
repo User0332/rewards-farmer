@@ -12,6 +12,8 @@ services:
     # Chromium wants more than the default 64MB of shared memory and crashes
     # partway through a page without it.
     shm_size: 1gb
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       # trends needs no account or model, which is why it is the default here.
       # To use a model instead, set QUERY_SOURCE=llm and give OLLAMA_HOST an
@@ -26,6 +28,8 @@ services:
       # profile in data-dir, which is the existing behaviour.
       REWARDS_ACCOUNTS: ${REWARDS_ACCOUNTS:-}
       OLLAMA_HOST: ${OLLAMA_HOST:-}
+      LOCAL_LLM_BASE_URL: ${LOCAL_LLM_BASE_URL:-}
+      LOCAL_LLM_MODEL: ${LOCAL_LLM_MODEL:-}
     volumes:
       # Keeps the sign-in across container rebuilds.
       - ./data-dir:/app/data-dir

@@ -46,7 +46,12 @@ def _get_llm_base_url() -> str:
 	if DEFAULT_LLM_PROVIDER in ("openrouter", "open-router"):
 		return os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip().rstrip("/")
 	elif DEFAULT_LLM_PROVIDER in ("local", "ollama"):
-		return os.getenv("LOCAL_LLM_BASE_URL", "http://localhost:11434/v1").strip().rstrip("/")
+		if base := os.getenv("LOCAL_LLM_BASE_URL", "").strip():
+			return base.rstrip("/")
+		host = os.getenv("OLLAMA_HOST", "localhost:11434").strip()
+		if not host.startswith(("http://", "https://")):
+			host = f"http://{host}"
+		return f"{host.rstrip('/')}/v1"
 
 	raise ValueError(f"Unsupported LLM_PROVIDER: {DEFAULT_LLM_PROVIDER}. Supported values are 'openrouter' and 'local'.")
 
