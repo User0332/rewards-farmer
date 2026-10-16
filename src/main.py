@@ -45,6 +45,56 @@ def run_account(account: accounts.Account) -> bool:
 	return True
 
 
+def _windows_console_attached() -> bool:
+	"""Whether stdin is a real Windows console, by asking the console itself.
+
+	isatty() cannot answer this: the null device the GUI hands main.py is a
+	character device, so isatty() reports True while every read ends at once.
+	GetConsoleMode succeeds only for an actual console.
+	"""
+
+	try:
+		import ctypes
+
+		kernel32 = ctypes.windll.kernel32
+		handle = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+		mode = ctypes.c_uint()
+
+		return bool(kernel32.GetConsoleMode(handle, ctypes.byref(mode)))
+	except Exception:
+		return False
+
+
+def stdin_is_interactive() -> bool:
+	"""Whether pressing Enter here could actually be read."""
+
+	if not sys.stdin:
+		return False
+
+	if os.name == "nt":
+		return _windows_console_attached()
+
+	return sys.stdin.isatty()
+
+
+def pause_for_enter() -> None:
+	"""Wait for Enter when someone is watching, and never any longer.
+
+	Nothing is watching a container, and stdin is not a terminal there. The
+	same is true when the GUI runs this: it wants the process to end, not to
+	sit on a prompt. The check above tells the two apart on Windows, and the
+	EOFError catch is there in case a console goes away between the two.
+	"""
+
+	if HEADLESS or not stdin_is_interactive():
+		return
+
+	try:
+		input("Press Enter to exit...")
+	except EOFError:
+		pass
+
+
 def main() -> int:
 	log_utils.setup_logging()
 	desktop_utils.reset_virtual_desktop_state()
@@ -86,9 +136,9 @@ def main() -> int:
 	if len(configured) > 1:
 		logger.info("%s/%s accounts ran", started, len(configured))
 
-	# Nothing is watching a container, and stdin is not a terminal there.
-	if not HEADLESS:
-		input("Press Enter to exit...")
+	# Nothing is watching a container, and stdin is not a terminal there. The
+	# same is true when the GUI runs this.
+	pause_for_enter()
 
 	desktop_utils.cleanup_virtual_desktop()
 
