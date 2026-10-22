@@ -1,20 +1,68 @@
+import http.client
+import inspect
 import json
 import os
+import re
 import shutil
 import socket
+import subprocess
 import tempfile
 import threading
 import time
-from datetime import datetime
+import unittest
+from collections import Counter
+from datetime import datetime, timezone
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import unquote, urlencode, urlsplit
 
 
 UI_DIR = Path(__file__).resolve().parents[2] / "ui"
 SCRATCH = Path(os.environ.get("REWARDS_APP_UI_SCRATCH", str(Path(tempfile.gettempdir()) / "rewards-farmer-ui")))
 SCREENSHOT_DIR = Path(os.environ.get("REWARDS_APP_SCREENSHOT_DIR", str(Path(tempfile.gettempdir()) / "rewards-farmer-ui" / datetime.now().strftime("%Y%m%d-%H%M%S"))))
+TRANSPORT_CODES = frozenset(("ERR_NO_BUFFER_SPACE", "ERR_INSUFFICIENT_RESOURCES", "ERR_CONNECTION_REFUSED",
+	"ERR_CONNECTION_RESET", "ERR_CONNECTION_ABORTED", "ERR_EMPTY_RESPONSE"))
+TRANSPORT_DROP_LIMIT = 3
+TRANSPORT_TIMEOUT = 2
+_RESOURCE_TRANSPORT = re.compile(r"^(http://\S+) - Failed to load resource: net::(ERR_[A-Z_]+)$")
+
+
+def _current_test_id():
+	frame = inspect.currentframe()
+	module = __name__
+	try:
+		while frame is not None:
+			case = frame.f_locals.get("self")
+			if isinstance(case, unittest.TestCase):
+				return case.id()
+			if frame.f_globals.get("__name__", "").startswith("ui.test_"):
+				module = frame.f_globals["__name__"]
+			frame = frame.f_back
+		return module + ".module_fixture"
+	finally:
+		del frame
+
+
+def _tcp_snapshot(port):
+	if os.name != "nt":
+		return {"status": "skipped", "reason": "netstat snapshot is Windows-only"}
+	try:
+		command = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "netstat.exe")
+		result = subprocess.run([command, "-an"], stdin=subprocess.DEVNULL, capture_output=True,
+			text=True, encoding="utf-8", errors="replace", timeout=TRANSPORT_TIMEOUT)
+		if result.returncode:
+			return {"status": "error", "source": "netstat -an", "exit_code": result.returncode}
+		states, own_states = Counter(), Counter()
+		for line in result.stdout.splitlines():
+			fields = line.split()
+			if len(fields) == 4 and fields[0] == "TCP":
+				states[fields[3]] += 1
+				if any(endpoint.endswith(":" + str(port)) for endpoint in fields[1:3]):
+					own_states[fields[3]] += 1
+		return {"status": "ok", "source": "netstat -an", "states": dict(states), "harness_states": dict(own_states)}
+	except (OSError, subprocess.TimeoutExpired) as error:
+		return {"status": "error", "source": "netstat -an", "exception": type(error).__name__}
 
 
 def browser_preflight():
@@ -117,6 +165,11 @@ class UiHarness:
 		self.signed_in = None
 		self.inprivate = True
 		self.http_counts = {"connections": 0, "requests": 0, "requests_by_connection": {}}
+		self.transport_dropped = 0
+		self._transport_verified = 0
+		self._transport_observed = 0
+		self._transport_cap_exceeded = False
+		self._transport_summary_printed = False
 
 	def start(self):
 		if self.driver is not None:
@@ -155,23 +208,31 @@ class UiHarness:
 	def stop(self):
 		try:
 			try:
-				if self.driver is not None:
-					self.driver.quit()
+				try:
+					if self.driver is not None:
+						self.driver.quit()
+				finally:
+					self.driver = None
+					self._remove_profile()
 			finally:
-				self.driver = None
-				self._remove_profile()
+				if self.server is not None:
+					self.server.shutdown()
+					self.server.server_close()
+					self.http_counts = self.server.stats()
+					print(f"harness_connections={self.http_counts['connections']} harness_requests={self.http_counts['requests']}", flush=True)
+					self.server = None
+				if self.thread is not None:
+					self.thread.join(timeout=5)
+					if self.thread.is_alive():
+						raise RuntimeError("Owned HTTP server thread did not stop")
+					self.thread = None
 		finally:
-			if self.server is not None:
-				self.server.shutdown()
-				self.server.server_close()
-				self.http_counts = self.server.stats()
-				print(f"harness_connections={self.http_counts['connections']} harness_requests={self.http_counts['requests']}", flush=True)
-				self.server = None
-			if self.thread is not None:
-				self.thread.join(timeout=5)
-				if self.thread.is_alive():
-					raise RuntimeError("Owned HTTP server thread did not stop")
-				self.thread = None
+			if not self._transport_summary_printed:
+				print(f"harness_transport_summary dropped={self.transport_dropped} verified={self._transport_verified} "
+					f"limit={TRANSPORT_DROP_LIMIT} cap_exceeded={self._transport_cap_exceeded}", flush=True)
+				self._transport_summary_printed = True
+			if self._transport_cap_exceeded:
+				raise AssertionError(f"Harness transport recovery exceeded module limit {TRANSPORT_DROP_LIMIT}")
 
 	def _remove_profile(self):
 		profile = self.profile
@@ -262,5 +323,86 @@ class UiHarness:
 
 	def errors(self):
 		# A partial source locale legitimately fetches missing namespaces as 404.
-		# Runtime errors, missing keys and every other failed resource remain red.
-		return [row["message"] for row in self.driver.get_log("browser") if row["level"] == "SEVERE" and not ("/i18n/" in row["message"] and "404" in row["message"])]
+		# A loopback transport row needs an independent byte proof, never a blanket retry.
+		errors = []
+		for row in self.driver.get_log("browser"):
+			message = row["message"]
+			if row["level"] != "SEVERE" or ("/i18n/" in message and "404" in message):
+				continue
+			resource = self._transport_resource(row)
+			if resource is None:
+				errors.append(message)
+				continue
+			url, code, path = resource
+			self._transport_observed += 1
+			tcp = _tcp_snapshot(self.server.server_port)
+			proof = self._refetch_static(url, path)
+			verified = proof["status"] == 200 and proof["bytes_equal"]
+			if verified:
+				self._transport_verified += 1
+				if self._transport_verified > TRANSPORT_DROP_LIMIT:
+					self._transport_cap_exceeded = True
+			dropped = verified and not self._transport_cap_exceeded
+			if dropped:
+				self.transport_dropped += 1
+			else:
+				errors.append(message)
+			print("harness_transport_error " + json.dumps({"test": _current_test_id(), "sequence": self._transport_observed,
+				"at": datetime.now(timezone.utc).isoformat(), "browser_timestamp": row.get("timestamp"),
+				"port": self.server.server_port, "url": url, "error": code, "refetch": proof["status"],
+				"bytes_equal": proof["bytes_equal"], "exception": proof.get("exception"), "dropped": dropped,
+				"tcp": tcp}, sort_keys=True), flush=True)
+		if self._transport_cap_exceeded:
+			errors.append(f"Harness transport recovery exceeded module limit {TRANSPORT_DROP_LIMIT}")
+		return errors
+
+	def _transport_resource(self, row):
+		if self.server is None or row.get("source") != "network":
+			return None
+		match = _RESOURCE_TRANSPORT.fullmatch(row["message"])
+		if match is None or match[2] not in TRANSPORT_CODES:
+			return None
+		try:
+			url = urlsplit(match[1])
+			if url.scheme != "http" or url.netloc != f"127.0.0.1:{self.server.server_port}" or url.fragment:
+				return None
+			root = UI_DIR.resolve()
+			path = (root / unquote(url.path, errors="strict").lstrip("/")).resolve()
+			if not path.is_relative_to(root) or not path.is_file():
+				return None
+			return match[1], match[2], path
+		except (OSError, ValueError, UnicodeError):
+			return None
+
+	def _refetch_static(self, url, path):
+		connection = None
+		deadline = time.monotonic() + TRANSPORT_TIMEOUT
+		try:
+			expected = path.read_bytes()
+			parts = urlsplit(url)
+			connection = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=TRANSPORT_TIMEOUT)
+			connection.connect()
+			transport_socket = connection.sock
+			transport_socket.settimeout(max(0.001, deadline - time.monotonic()))
+			target = parts.path + ("?" + parts.query if parts.query else "")
+			connection.request("GET", target, headers={"Connection": "close", "Accept-Encoding": "identity"})
+			response = connection.getresponse()
+			status = response.status
+			if status != 200:
+				return {"status": status, "bytes_equal": False}
+			body = bytearray()
+			while len(body) <= len(expected):
+				remaining = deadline - time.monotonic()
+				if remaining <= 0:
+					raise TimeoutError("Static refetch deadline exceeded")
+				transport_socket.settimeout(remaining)
+				chunk = response.read1(min(65536, len(expected) + 1 - len(body)))
+				if not chunk:
+					break
+				body.extend(chunk)
+			return {"status": status, "bytes_equal": bytes(body) == expected}
+		except (OSError, http.client.HTTPException) as error:
+			return {"status": None, "bytes_equal": False, "exception": type(error).__name__}
+		finally:
+			if connection is not None:
+				connection.close()
