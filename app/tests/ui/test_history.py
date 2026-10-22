@@ -274,20 +274,32 @@ class HistoryTests(unittest.TestCase):
 
 	def test_f81_visual_interaction_motion_and_forced_colors(self):
 		from selenium.webdriver.common.keys import Keys
-		_harness.viewport(1131,643);_harness.open('#/history','history/week','dark','en',False).wait_ready()
-		WebDriverWait(_harness.driver,10).until(lambda d:d.execute_script("return document.querySelector('.history-screen')?.getAttribute('aria-busy')==='false'"))
-		_harness.driver.find_element('tag name','body').send_keys(Keys.TAB)
-		self.js("""
-		 const rail=document.querySelector('.history-date-list');assert(rail.querySelector('ul>li>a'),'F81 semanticlistoflinks');const links=[...rail.querySelectorAll('a')];links[0].focus();links[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));assert(document.activeElement===links[1],'F81 arrowfocusnotselection');assert(links[0].hasAttribute('aria-current'),'F81 focusedunselectedkeepsselection');links[1].dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true}));assert(document.activeElement===links[0],'F81 Homefocus');
-		 const page=document.querySelector('.history-day-page'),normal=getComputedStyle(page);assert(normal.animationDuration==='0.1s','F81 inspector100ms');assert(getComputedStyle(links[0]).transitionDuration==='0.1s','F81 hover100ms');
-		 const idle=document.querySelector('.history-idle');idle.open=true;await pause(30);assert(getComputedStyle(idle.querySelector('.history-idle-body')).animationDuration==='0.18s','F81 disclosure180ms');
-		 document.documentElement.dataset.reducedMotion='true';assert(getComputedStyle(page).animationName==='none'&&getComputedStyle(links[0]).transitionProperty==='none','F81 reducedmotionimmediate');document.documentElement.dataset.reducedMotion='false';
-		 const focused=getComputedStyle(document.activeElement);assert(focused.outlineWidth==='2px','F81 focus2px');
-		 """)
-		_harness.driver.execute_cdp_cmd('Emulation.setEmulatedMedia',{'features':[{'name':'forced-colors','value':'active'}]})
-		try:self.js("const page=document.querySelector('.history-day-page');assert(matchMedia('(forced-colors: active)').matches&&getComputedStyle(page).animationName==='none','F81 forcedcolorsimmediate');")
+		_harness.driver.execute_cdp_cmd('Emulation.setEmulatedMedia',{'features':[{'name':'prefers-reduced-motion','value':'no-preference'}]})
+		try:
+			_harness.viewport(1131,643);_harness.open('#/history','history/week','dark','en',False).wait_ready()
+			WebDriverWait(_harness.driver,10).until(lambda d:d.execute_script("return document.querySelector('.history-screen')?.getAttribute('aria-busy')==='false'"))
+			_harness.driver.find_element('tag name','body').send_keys(Keys.TAB)
+			self.js("""
+			 const motion=message=>message+' systemReducedMotion='+matchMedia('(prefers-reduced-motion: reduce)').matches;
+			 assert(!matchMedia('(prefers-reduced-motion: reduce)').matches,motion('F81 normal motion media'));
+			 const rail=document.querySelector('.history-date-list');assert(rail.querySelector('ul>li>a'),'F81 semanticlistoflinks');const links=[...rail.querySelectorAll('a')];links[0].focus();links[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));assert(document.activeElement===links[1],'F81 arrowfocusnotselection');assert(links[0].hasAttribute('aria-current'),'F81 focusedunselectedkeepsselection');links[1].dispatchEvent(new KeyboardEvent('keydown',{key:'Home',bubbles:true}));assert(document.activeElement===links[0],'F81 Homefocus');
+			 const page=document.querySelector('.history-day-page'),normal=getComputedStyle(page);assert(normal.animationDuration==='0.1s',motion('F81 inspector100ms actual='+normal.animationDuration));assert(getComputedStyle(links[0]).transitionDuration==='0.1s',motion('F81 hover100ms'));
+			 const idle=document.querySelector('.history-idle');idle.open=true;await pause(30);assert(getComputedStyle(idle.querySelector('.history-idle-body')).animationDuration==='0.18s',motion('F81 disclosure180ms'));
+			 document.documentElement.dataset.reducedMotion='true';try{assert(getComputedStyle(page).animationName==='none'&&getComputedStyle(links[0]).transitionProperty==='none',motion('F81 reducedmotionimmediate'));}finally{document.documentElement.dataset.reducedMotion='false';}
+			 const focused=getComputedStyle(document.activeElement);assert(focused.outlineWidth==='2px','F81 focus2px');
+			 """)
+			_harness.driver.execute_cdp_cmd('Emulation.setEmulatedMedia',{'features':[{'name':'prefers-reduced-motion','value':'reduce'}]})
+			self.js("""
+			 const systemReduced=matchMedia('(prefers-reduced-motion: reduce)').matches,motion=message=>message+' systemReducedMotion='+systemReduced;
+			 assert(systemReduced&&document.documentElement.dataset.reducedMotion==='false',motion('F81 system reduced motion with app flag false'));
+			 const page=document.querySelector('.history-day-page'),links=[...document.querySelectorAll('.history-date')],body=document.querySelector('.history-idle[open] .history-idle-body');
+			 assert(page&&links.length&&body,motion('F81 system reduced motion targets'));
+			 for(const node of [page,...links,body]){const style=getComputedStyle(node);assert(style.animationName==='none'&&style.transitionProperty==='none'&&style.animationDuration==='0s'&&style.transitionDuration==='0s',motion('F81 system reduced motion immediate '+node.className+' animation='+style.animationName+'/'+style.animationDuration+' transition='+style.transitionProperty+'/'+style.transitionDuration));}
+			 """)
+			_harness.driver.execute_cdp_cmd('Emulation.setEmulatedMedia',{'features':[{'name':'prefers-reduced-motion','value':'no-preference'},{'name':'forced-colors','value':'active'}]})
+			self.js("const page=document.querySelector('.history-day-page'),systemReduced=matchMedia('(prefers-reduced-motion: reduce)').matches;assert(!systemReduced&&matchMedia('(forced-colors: active)').matches&&getComputedStyle(page).animationName==='none','F81 forcedcolorsimmediate systemReducedMotion='+systemReduced);")
+			self.assertEqual([],_harness.errors())
 		finally:_harness.driver.execute_cdp_cmd('Emulation.setEmulatedMedia',{'features':[]})
-		self.assertEqual([],_harness.errors())
 
 	def test_f81_partial_day_paging_and_dedup(self):
 		_harness.viewport(1131,643);self.open();self.js("""
