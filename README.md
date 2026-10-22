@@ -30,7 +30,7 @@ Paste this into PowerShell:
 irm https://raw.githubusercontent.com/User0332/rewards-farmer/main/install.ps1 | iex
 ```
 
-It installs Python 3.13 through winget when no Python 3.12 or newer is installed, downloads the code into `%LOCALAPPDATA%\rewards-farmer`, puts the dependencies in a `.venv` there and fetches the visual search image. Then it runs the configuration script described below, which also signs your accounts in, and asks whether to run the farmer every day at a time you pick. You can read [install.ps1](install.ps1) before running it.
+It downloads the code into `%LOCALAPPDATA%\rewards-farmer`, uses the newest installed Python 3.12 or newer supported by the Windows wheels in `poetry.lock` or installs Python 3.13 through winget if none qualifies, puts the dependencies in a `.venv` there and fetches the visual search image. Then it runs the configuration script described below, which also signs your accounts in, and asks whether to run the farmer every day at a time you pick. You can read [install.ps1](install.ps1) before running it.
 
 The daily run is a Task Scheduler task. A time missed while the computer was off runs once it is back on, and since Edge opens a visible window, the task only runs while you are logged in. It starts `main.py --unattended`, which exits at the end instead of waiting for Enter. For a run by hand there is a Rewards Farmer entry in the Start menu.
 

@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from rfapp import __version__
 
@@ -27,6 +28,14 @@ def installer_language_entries():
 	text = (PACKAGING / "RewardsFarmer.iss").read_text(encoding="utf-8")
 	section = text.split("[Languages]", 1)[1].split("[InstallDelete]", 1)[0]
 	return re.findall(r'^Name: "([^"]+)"; MessagesFile: "([^"]+)"$', section, re.MULTILINE)
+
+
+def installer_compiler_root(candidates):
+	for path in candidates:
+		# PATH can point to a shim. Language files remain assertions, not markers.
+		if (path / "ISCC.exe").is_file() and (path / "ISCmplr.dll").is_file():
+			return path
+	raise unittest.SkipTest("Installed Inno Setup is unavailable; official file existence/RTL checked on the Windows packaging host")
 
 
 def custom_messages(path):
@@ -197,14 +206,12 @@ class PackagingTests(unittest.TestCase):
 		self.assertEqual({path.stem for path in (PACKAGING / "languages").glob("*.isl")}, set(INSTALLER_LANGUAGES))
 
 	def test_official_installer_files_exist_and_arabic_keeps_rtl(self):
-		compiler = shutil.which("ISCC.exe")
-		candidates = [Path(compiler).parent] if compiler else []
+		compilers = (os.environ.get("RF_ISCC"), shutil.which("ISCC.exe"))
+		candidates = [Path(compiler).parent for compiler in compilers if compiler]
 		for base in (os.environ.get("LOCALAPPDATA"), os.environ.get("ProgramFiles(x86)"), os.environ.get("ProgramFiles")):
 			if base:
 				candidates += [Path(base) / "Programs/Inno Setup 6", Path(base) / "Inno Setup 6"]
-		compiler_root = next((path for path in candidates if (path / "ISCC.exe").is_file()), None)
-		if compiler_root is None:
-			self.skipTest("Installed Inno Setup is unavailable; official file existence/RTL checked on the Windows packaging host")
+		compiler_root = installer_compiler_root(candidates)
 		for official in INSTALLER_LANGUAGES.values():
 			self.assertTrue((compiler_root / official).is_file(), official)
 		arabic = (compiler_root / INSTALLER_LANGUAGES["ar"]).read_text(encoding="utf-8-sig")
@@ -388,6 +395,80 @@ class PackagingTests(unittest.TestCase):
 		self.assertIn('"close_to_tray": False', text)
 		self.assertIn('"tray_hint_shown": True', text)
 		self.assertNotRegex(text, r'--run-now|--check-now|--signin|--tray')
+
+
+class InstallerCompilerRootTests(unittest.TestCase):
+	def setUp(self):
+		temporary = tempfile.TemporaryDirectory()
+		self.addCleanup(temporary.cleanup)
+		self.root = Path(temporary.name)
+
+	def make_install(self, name):
+		root = self.root / name
+		for filename in ("ISCC.exe", "ISCmplr.dll", *INSTALLER_LANGUAGES.values()):
+			path = root / filename
+			path.parent.mkdir(parents=True, exist_ok=True)
+			path.write_text("RightToLeft=yes\n" if filename == INSTALLER_LANGUAGES["ar"] else "synthetic", encoding="utf-8")
+		return root
+
+	def test_path_shim_before_real_install_is_ignored(self):
+		shim = self.root / "shim"
+		shim.mkdir()
+		(shim / "ISCC.exe").write_text("synthetic shim", encoding="utf-8")
+		real = self.make_install("real")
+		self.assertEqual(installer_compiler_root([shim, real]), real)
+
+	def test_only_a_path_shim_skips_the_official_files_check(self):
+		shim = self.root / "shim"
+		shim.mkdir()
+		(shim / "ISCC.exe").write_text("synthetic shim", encoding="utf-8")
+		with patch(__name__ + ".shutil.which", return_value=str(shim / "ISCC.exe")), patch.dict(os.environ, {
+			"RF_ISCC": "", "LOCALAPPDATA": str(self.root / "local"),
+			"ProgramFiles(x86)": str(self.root / "programs-x86"), "ProgramFiles": str(self.root / "programs"),
+		}):
+			case = PackagingTests("test_official_installer_files_exist_and_arabic_keeps_rtl")
+			result = unittest.TestResult()
+			case.run(result)
+		self.assertEqual((result.testsRun, len(result.failures), len(result.errors), len(result.skipped)), (1, 0, 0, 1))
+		self.assertEqual(result.skipped[0][1], "Installed Inno Setup is unavailable; official file existence/RTL checked on the Windows packaging host")
+
+	def test_rf_iscc_real_install_takes_precedence_over_path(self):
+		override = self.make_install("override")
+		path_install = self.make_install("on-path")
+		(path_install / INSTALLER_LANGUAGES["de"]).unlink()
+		with patch.dict(os.environ, {"RF_ISCC": str(override / "ISCC.exe")}), patch(__name__ + ".shutil.which", return_value=str(path_install / "ISCC.exe")):
+			PackagingTests("test_official_installer_files_exist_and_arabic_keeps_rtl").test_official_installer_files_exist_and_arabic_keeps_rtl()
+
+	def test_real_install_missing_any_official_file_still_fails(self):
+		real = self.make_install("real")
+		fallback = self.make_install("fallback")
+		for official in INSTALLER_LANGUAGES.values():
+			with self.subTest(official=official):
+				path = real / official
+				data = path.read_bytes()
+				path.unlink()
+				try:
+					selected = installer_compiler_root([real, fallback])
+					self.assertEqual(selected, real)
+					with patch(__name__ + ".installer_compiler_root", return_value=selected):
+						with self.assertRaisesRegex(AssertionError, re.escape(official)):
+							PackagingTests("test_official_installer_files_exist_and_arabic_keeps_rtl").test_official_installer_files_exist_and_arabic_keeps_rtl()
+				finally:
+					path.write_bytes(data)
+
+	def test_real_install_arabic_still_requires_rtl(self):
+		real = self.make_install("real")
+		(real / INSTALLER_LANGUAGES["ar"]).write_text("RightToLeft=no\n", encoding="utf-8")
+		with patch(__name__ + ".installer_compiler_root", return_value=installer_compiler_root([real])):
+			with self.assertRaises(AssertionError):
+				PackagingTests("test_official_installer_files_exist_and_arabic_keeps_rtl").test_official_installer_files_exist_and_arabic_keeps_rtl()
+
+	def test_compiler_dll_without_executable_is_not_an_install(self):
+		partial = self.root / "partial"
+		partial.mkdir()
+		(partial / "ISCmplr.dll").write_text("synthetic", encoding="utf-8")
+		with self.assertRaises(unittest.SkipTest):
+			installer_compiler_root([partial])
 
 
 if __name__ == "__main__":

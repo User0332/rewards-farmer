@@ -43,44 +43,115 @@ function Install-RewardsFarmer([bool]$InstallDirGiven) {
 		Write-Host "== $Text" -ForegroundColor Cyan
 	}
 
+	function Get-LockedPackages([string]$LockPath) {
+		if (-not (Test-Path -LiteralPath $LockPath -PathType Leaf)) {
+			throw "poetry.lock is missing from the downloaded code. Download it again before choosing Python."
+		}
+
+		# Read the package file inventories emitted by Poetry, without needing Python.
+		$packages = @()
+		foreach ($block in ([regex]::Split([IO.File]::ReadAllText($LockPath), '(?m)^\[\[package\]\][ \t]*\r?$') | Select-Object -Skip 1)) {
+			$nameMatch = [regex]::Match($block, '(?m)^name\s*=\s*"([^"]+)"')
+			$versionMatch = [regex]::Match($block, '(?m)^version\s*=\s*"([^"]+)"')
+			$filesMatch = [regex]::Match($block, '(?ms)^files\s*=\s*\[(.*?)^\]')
+			if (-not $nameMatch.Success -or -not $versionMatch.Success -or -not $filesMatch.Success) {
+				throw "poetry.lock has an unreadable package file inventory. Regenerate the lock before running this installer."
+			}
+			$wheels = @([regex]::Matches($filesMatch.Groups[1].Value, '\bfile\s*=\s*"([^"]+\.whl)"') | ForEach-Object { $_.Groups[1].Value })
+			$packages += [pscustomobject]@{ Name = $nameMatch.Groups[1].Value; Version = $versionMatch.Groups[1].Value; Wheels = $wheels }
+		}
+		if (-not $packages.Count) { throw "poetry.lock has no package file inventories. Cannot choose a compatible Python." }
+		return $packages
+	}
+
+	function Test-Wheel([string]$Wheel, [int]$Minor) {
+		if ($Wheel -notmatch '-([^-]+)-([^-]+)-([^-]+)\.whl$') { return $false }
+		$pythonTags = $Matches[1].Split('.')
+		$abiTags = $Matches[2].Split('.')
+		$platformTags = $Matches[3].Split('.')
+		foreach ($tag in $pythonTags) {
+			if ($abiTags -contains 'none' -and ($platformTags -contains 'any' -or $platformTags -contains 'win_amd64')) {
+				if ($tag -eq 'py3') { return $true }
+				if ($tag -match '^py3(\d+)$' -and [int]$Matches[1] -le $Minor) { return $true }
+				if ($tag -eq "cp3$Minor") { return $true }
+			}
+			if ($platformTags -contains 'win_amd64' -and $tag -match '^cp3(\d+)$') {
+				$wheelMinor = [int]$Matches[1]
+				if ($abiTags -contains 'abi3' -and $wheelMinor -le $Minor) { return $true }
+				if ($wheelMinor -eq $Minor -and $abiTags -contains "cp3$Minor") { return $true }
+			}
+		}
+		return $false
+	}
+
+	function Get-WheelBlockers([object[]]$Packages, [int]$Minor) {
+		foreach ($package in $Packages) {
+			# Source-only and other-platform-only packages require no Windows wheel.
+			$windowsWheels = @($package.Wheels | Where-Object { $_ -match '-(?:any|[^-]*win(?:32|_amd64|_arm64)[^-]*)\.whl$' })
+			if ($windowsWheels.Count -and -not @($windowsWheels | Where-Object { Test-Wheel $_ $Minor }).Count) {
+				"$($package.Name) $($package.Version)"
+			}
+		}
+	}
+
 	function Test-Python([string]$Exe, [string[]]$Arguments = @()) {
 		$ErrorActionPreference = "Continue"
 
 		try {
-			$out = @(& $Exe @Arguments -c "import sys; print(sys.version_info >= (3, 12)); print(sys.executable)" 2>$null)
+			$out = @(& $Exe @Arguments -c "import json, sys, sysconfig; print(json.dumps({'exe': sys.executable, 'version': '.'.join(map(str, sys.version_info[:3])), 'major': sys.version_info.major, 'minor': sys.version_info.minor, 'free_threaded': bool(sysconfig.get_config_var('Py_GIL_DISABLED')) or 't' in getattr(sys, 'abiflags', ''), 'platform': sysconfig.get_platform()}))" 2>$null)
+			if ($LASTEXITCODE -eq 0 -and $out.Count -eq 1) {
+				$details = $out[0] | ConvertFrom-Json -ErrorAction Stop
+				return [pscustomobject]@{ Exe = $details.exe; Version = [version]$details.version; Major = $details.major; Minor = $details.minor; FreeThreaded = [bool]$details.free_threaded; Platform = $details.platform }
+			}
 		} catch {
 			return $null
-		}
-
-		if ($LASTEXITCODE -eq 0 -and $out.Count -ge 2 -and $out[0] -eq "True") {
-			return $out[1]
 		}
 
 		return $null
 	}
 
-	function Find-Python {
-		# The py launcher knows every install from python.org. The python.exe in
-		# WindowsApps is only a stub that opens the Microsoft Store, so it is skipped.
+	function Find-Python([object[]]$Packages) {
+		$candidates = @()
+		# Enumerate registrations, rather than letting py -3 choose the newest one.
 		if (Get-Command py -ErrorAction SilentlyContinue) {
-			$found = Test-Python "py" @("-3")
-
-			if ($found) { return $found }
+			try {
+				$listing = @(& py -0p 2>$null)
+				if ($LASTEXITCODE -ne 0) { $listing = @(& py --list-paths 2>$null) }
+				foreach ($line in $listing) {
+					if ("$line" -match '([A-Za-z]:\\.+)$') { $candidates += $Matches[1].Trim().Trim('"') }
+				}
+			} catch { }
 		}
 
 		$python = Get-Command python -ErrorAction SilentlyContinue
+		if ($python) { $candidates += $python.Source }
 
-		if ($python -and $python.Source -notlike "*\WindowsApps\*") {
-			$found = Test-Python $python.Source
-
-			if ($found) { return $found }
+		# A new winget install may not be on PATH, and hosted runners use a cache.
+		$candidates += @(Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
+		foreach ($cache in @($env:RUNNER_TOOL_CACHE, $env:AGENT_TOOLSDIRECTORY) | Where-Object { $_ } | Sort-Object -Unique) {
+			$candidates += @(Get-ChildItem "$cache\Python\*\x64\python.exe" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
 		}
 
-		# Python installed a moment ago by winget is not on this window's PATH yet.
-		foreach ($exe in @(Get-ChildItem "$env:LOCALAPPDATA\Programs\Python\Python3*\python.exe" -ErrorAction SilentlyContinue | Sort-Object FullName -Descending)) {
-			$found = Test-Python $exe.FullName
-
-			if ($found) { return $found }
+		$installed = @()
+		foreach ($exe in $candidates | Where-Object { $_ -and $_ -notmatch '[\\/]WindowsApps[\\/]' } | Sort-Object -Unique) {
+			$details = Test-Python $exe
+			if ($details -and $details.Major -eq 3 -and $details.Minor -ge 12) { $installed += $details }
+		}
+		foreach ($details in $installed | Sort-Object Version -Descending) {
+			if ($details.FreeThreaded) {
+				Write-Host "Skipping Python $($details.Version) because free-threaded Python is not supported."
+				continue
+			}
+			if ($details.Platform -ne 'win-amd64') {
+				Write-Host "Skipping Python $($details.Version) because the locked Windows wheels need x64 Python."
+				continue
+			}
+			$blocked = @(Get-WheelBlockers $Packages $details.Minor)
+			if ($blocked.Count) {
+				Write-Host "Skipping Python $($details.Version) because poetry.lock has no compatible Windows wheel for $($blocked -join ', ')."
+				continue
+			}
+			return $details
 		}
 
 		return $null
@@ -88,7 +159,7 @@ function Install-RewardsFarmer([bool]$InstallDirGiven) {
 
 	function Install-Python {
 		if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-			throw "No Python 3.12 or newer was found, and winget is not available to install it. Install Python from https://www.python.org/downloads/windows/ and run this again."
+			throw "No compatible Python 3.12 or newer was found, and winget is not available to install Python 3.13. Install a Python covered by poetry.lock from https://www.python.org/downloads/windows/ and run this again."
 		}
 
 		Write-Step "Installing Python 3.13 for this user with winget"
@@ -97,6 +168,24 @@ function Install-RewardsFarmer([bool]$InstallDirGiven) {
 		if ($LASTEXITCODE -ne 0) {
 			throw "winget could not install Python (exit code $LASTEXITCODE). Install it from https://www.python.org/downloads/windows/ and run this again."
 		}
+	}
+
+	function Select-Python([string]$Root) {
+		$packages = @(Get-LockedPackages (Join-Path $Root 'poetry.lock'))
+		$python = Find-Python $packages
+		if (-not $python) {
+			Install-Python
+			$python = Find-Python $packages
+			if (-not $python) {
+				$blocked = @(Get-WheelBlockers $packages 13)
+				if ($blocked.Count) {
+					throw "poetry.lock does not cover Python 3.13: no compatible Windows wheel for $($blocked -join ', '). Install a Python covered by this lock instead."
+				}
+				throw "Python 3.13 was installed but a compatible interpreter cannot be found yet. Open a new PowerShell window and run this again."
+			}
+		}
+		Write-Host "Using Python $($python.Version) at $($python.Exe)"
+		return $python.Exe
 	}
 
 	function Get-Code([string]$Destination, [string]$FromRepo, [string]$FromBranch) {
@@ -215,22 +304,11 @@ function Install-RewardsFarmer([bool]$InstallDirGiven) {
 		throw "$root already exists and does not hold rewards-farmer. Set REWARDS_FARMER_HOME to another folder and run this again."
 	}
 
-	$python = Find-Python
-
-	if (-not $python) {
-		Install-Python
-		$python = Find-Python
-
-		if (-not $python) {
-			throw "Python was installed but cannot be found yet. Open a new PowerShell window and run this again."
-		}
-	}
-
-	Write-Host "Using Python at $python"
-
 	if (-not $fromClone) {
 		Get-Code $root $Repo $Branch
 	}
+
+	$python = Select-Python $root
 
 	Push-Location -LiteralPath $root
 
