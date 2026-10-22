@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "methods": {
+    "list_accounts": {"ok": true, "data": {"accounts": [{"id": "account-1", "label": "Alex (synthetic)", "dir": "C:\\Synthetic\\account-1", "paused": false, "is_root": false, "signed_in": true, "balance": 4200, "balance_at": "2026-10-14T20:00:00Z", "last_run_at": null, "last_result": null, "email": "alex@example.com", "name": "Alex Synthetic", "picture_rev": null}]}},
+    "get_settings": {"ok": true, "data": {"secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "values": {"schedule.mode": "automatic", "schedule.window_start": "09:45", "schedule.window_end": "21:45", "schedule.checks": 4, "schedule.time": "09:45", "schedule.days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}, "schedule": {"mode": "automatic", "task_name": "RewardsFarmerApp_test0000", "task_exists": true, "in_sync": true, "next_at": null, "next_is_check": true, "legacy_task": null, "error_code": null}}},
+    "get_legacy_install": {"ok": true, "data": {"found": false, "path": null, "accounts": []}},
+    "cancel_signin": {"ok": true, "data": {}}
+  },
+  "pushes": [
+    {"after_ms": 0, "topic": "signin.status", "data": {"account_id": "account-1", "state": "starting", "error_code": null, "message_key": "accounts.signin.starting", "detail": null, "at": "2026-10-14T20:00:00Z"}},
+    {"after_ms": 60, "topic": "signin.status", "data": {"account_id": "account-1", "state": "waiting", "error_code": null, "message_key": "accounts.signin.waiting", "detail": null, "at": "2026-10-14T20:00:01Z"}},
+    {"after_ms": 120, "topic": "signin.status", "data": {"account_id": "account-1", "state": "verifying", "error_code": null, "message_key": "accounts.signin.verifying", "detail": null, "at": "2026-10-14T20:00:02Z"}},
+    {"after_ms": 180, "topic": "signin.status", "data": {"account_id": "account-1", "state": "signed_in", "error_code": null, "message_key": "accounts.signin.signed_in", "detail": null, "at": "2026-10-14T20:00:03Z"}}
+  ]
+}

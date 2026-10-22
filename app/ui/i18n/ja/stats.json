@@ -1,0 +1,32 @@
+{
+  "namespace": "stats",
+  "messages": {
+    "stats.title": {"text": "統計", "src": "352f245c"},
+    "stats.loading": {"text": "統計を読み込んでいます", "src": "64b042b8"},
+    "stats.empty.title": {"text": "履歴はここから始まります", "src": "3410ef28"},
+    "stats.empty.body": {"text": "初回の実行後に、ポイントと日々の進み具合がここに表示されます。", "src": "327fad2d"},
+    "stats.account": {"text": "アカウント", "src": "fb2a1c8f"},
+    "stats.account.all": {"text": "すべてのアカウント", "src": "e1cce800"},
+    "stats.range": {"text": "期間", "src": "54581cd2"},
+    "stats.range.7": {"text": "7 日間", "src": "714f2c4e"},
+    "stats.range.30": {"text": "30 日間", "src": "d9645efa"},
+    "stats.range.90": {"text": "90 日間", "src": "0470550f"},
+    "stats.week": {"text": "今週", "src": "a7691b11"},
+    "stats.month": {"text": "今月", "src": "94356504"},
+    "stats.streak.title": {"text": "連続達成日数", "src": "981264d4"},
+    "stats.calendar.title": {"text": "日々の進み具合", "src": "c6348b21"},
+    "stats.calendar.day": {"text": "{date}、{state}", "src": "85afee76"},
+    "stats.state.done": {"text": "完了", "src": "2b4a262c"},
+    "stats.state.today_open": {"text": "今日の残り", "src": "c82a738a"},
+    "stats.state.missed": {"text": "未完了", "src": "3e29bb56"},
+    "stats.state.no_check": {"text": "未確認", "src": "b81b8356"},
+    "stats.state.before_tracking": {"text": "記録開始前", "src": "cfea3b78"},
+    "stats.warning.ledger_rebuilt": {"text": "残っている実行の詳細から統計を再作成しました。以前の一部の日付は含まれていない可能性があります。", "src": "047d2674"},
+    "stats.warning.ledger_newer": {"text": "この統計は新しいバージョンのアプリで保存されています。アプリを更新するまでは、参照できる実行の詳細のみを表示します。", "src": "4522304f"},
+    "stats.chart.help": {"text": "左右の矢印キーで日付を確認できます。Home キーで最初の日、End キーで最新の日に移動します。データのない箇所は不明として表示します。", "src": "132b973e"},
+    "stats.sources.day": {"text": "{date} のタスク", "src": "cbfc1381"},
+    "stats.sources.day_empty": {"text": "この日のタスク別の合計はありません", "src": "1da981d8"},
+    "stats.day.points": {"text": "{earned} / {possible}", "src": "bba4a015"},
+    "stats.day.runs": {"text": "{date} の実行", "src": "d299af23"}
+  }
+}

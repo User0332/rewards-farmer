@@ -1,0 +1,22 @@
+{
+  "namespace": "tray",
+  "messages": {
+    "tray.tooltip.running": {"text": "Rewards Farmer em execução", "src": "c6fb48f3"},
+    "tray.tooltip.today": {"plural": "total", "forms": {"one": "Hoje: {earned} de {total} ponto", "many": "Hoje: {earned} de {total} pontos", "other": "Hoje: {earned} de {total} pontos"}, "src": "5dcdaac0"},
+    "tray.tooltip.idle": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "tray.menu.open": {"text": "Abrir Rewards Farmer", "src": "6a15e6b4"},
+    "tray.menu.run_now": {"text": "Executar agora", "src": "d716b60f"},
+    "tray.menu.stop": {"text": "Parar execução", "src": "72200071"},
+    "tray.menu.next_check": {"text": "Próxima verificação: {time}", "src": "bbd1573b"},
+    "tray.menu.next_run": {"text": "Próxima execução: {time}", "src": "0435d4c1"},
+    "tray.menu.manual": {"text": "Somente execuções manuais", "src": "0ea06527"},
+    "tray.menu.quit": {"text": "Sair", "src": "235b8aa6"},
+    "tray.notify.done.title": {"text": "Rewards Farmer terminou", "src": "971ff610"},
+    "tray.notify.done.body": {"plural": "points", "forms": {"one": "+{points} ponto, saldo {balance}", "many": "+{points} pontos, saldo {balance}", "other": "+{points} pontos, saldo {balance}"}, "src": "98f0a8ee"},
+    "tray.notify.done.body_no_balance": {"plural": "points", "forms": {"one": "+{points} ponto", "many": "+{points} pontos", "other": "+{points} pontos"}, "src": "e1bd8366"},
+    "tray.notify.done.body_no_points": {"text": "A execução terminou. Abra o Rewards Farmer para ver os detalhes.", "src": "83691a74"},
+    "tray.notify.problem.title": {"text": "Rewards Farmer precisa de atenção", "src": "bbd38c09"},
+    "tray.notify.signed_out": {"text": "É preciso entrar novamente em {account}.", "src": "161cf976"},
+    "tray.notify.closed_to_tray": {"text": "O Rewards Farmer continua na área de notificação. Escolha Sair ali para fechá-lo.", "src": "50ddf2a7"}
+  }
+}

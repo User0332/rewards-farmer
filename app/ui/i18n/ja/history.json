@@ -1,0 +1,28 @@
+{
+  "namespace": "history",
+  "messages": {
+    "history.title": {"text": "履歴", "src": "ee7ea2a7"},
+    "history.loading": {"text": "履歴を開いています", "src": "1b51a0b8"},
+    "history.checks.latest": {"text": "最新の確認を開く", "src": "240765be"},
+    "history.empty.title": {"text": "実行はまだ記録されていません", "src": "cfd9586c"},
+    "history.empty.body": {"text": "実行の記録がここに表示されます。準備ができたら、[概要] から開始してください。", "src": "b8385610"},
+    "history.empty.overview": {"text": "概要を開く", "src": "e2d35e84"},
+    "history.more": {"text": "以前の実行を読み込む", "src": "5a071c67"},
+    "history.refresh": {"text": "履歴を更新", "src": "209bea6f"},
+    "history.back": {"text": "履歴に戻る", "src": "802d1fd2"},
+    "history.detail.title": {"text": "実行の詳細", "src": "96852a87"},
+    "history.day.today": {"text": "今日", "src": "9fc3002e"},
+    "history.day.yesterday": {"text": "昨日", "src": "4e2fdb08"},
+    "history.mark.app_run": {"text": "アプリから実行", "src": "711c56ba"},
+    "history.mark.waited": {"text": "{minutes} 分待機", "src": "cfd7f471"},
+    "history.mark.attention": {"text": "要確認", "src": "ae139315"},
+    "history.sources.title": {"text": "タスク別ポイント", "src": "b6410bb5"},
+    "history.tasks.not_run": {"plural": "count", "forms": {"other": "実行なしのタスク {count} 件"}, "src": "631bacc5"},
+    "history.tasks.no_points": {"plural": "count", "forms": {"other": "ポイント獲得なしのタスク {count} 件"}, "src": "4a7d171c"},
+    "history.deferred.waited": {"plural": "count", "forms": {"other": "全画面表示のアプリやプレゼンテーションが開いていたため、{count} 分遅れて実行を開始しました。"}, "src": "a21280fe"},
+    "history.deferred.gave_up": {"text": "40 分待っても全画面表示のアプリやプレゼンテーションが開いたままだったため、そのまま実行を開始しました。", "src": "681c93d3"},
+    "history.technical.title": {"text": "技術的な詳細", "src": "9b9dc17e"},
+    "history.technical.task": {"text": "{task}", "src": "920380b0"},
+    "history.checks.day_count": {"plural": "count", "forms": {"other": "確認 {count} 回"}, "src": "a83a3c90"}
+  }
+}

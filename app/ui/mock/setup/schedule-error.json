@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "methods": {
+    "get_settings": {"ok": true, "data": {"secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "values": {"schedule.mode": "automatic", "schedule.window_start": "21:45", "schedule.window_end": "09:45", "schedule.checks": 4, "schedule.time": "09:45", "schedule.days": []}, "schedule": {"mode": "automatic", "task_name": "RewardsFarmerApp_test0000", "task_exists": false, "in_sync": false, "next_at": null, "next_is_check": true, "legacy_task": null, "error_code": "schedule.failed"}}},
+    "get_legacy_install": {"ok": true, "data": {"found": false, "path": null, "accounts": []}},
+    "save_settings": {"ok": false, "error": {"code": "settings.invalid", "message_key": "errors.app.settings_invalid", "params": {}, "detail": null, "fields": {"schedule.window_end": "window_order", "schedule.days": "days_empty"}}}
+  },
+  "pushes": []
+}

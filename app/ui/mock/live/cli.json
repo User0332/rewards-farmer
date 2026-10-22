@@ -1,0 +1,34 @@
+{
+  "synthetic": true,
+  "note": "Synthetic active CLI run. Its progress is visible, but no supervisor owns it and the app cannot offer Stop.",
+  "methods": {
+    "get_live": {
+      "ok": true,
+      "data": {
+        "run": {
+          "run_id": "synthetic-cli", "trigger": "cli", "kind": "run",
+          "started_at": "2026-10-14T19:45:00Z", "ended_at": null,
+          "duration_ms": null, "active": true, "result": null, "result_key": null,
+          "points_earned": 35, "stop_requested": false, "deferred": null,
+          "accounts": [{
+            "account_id": "jamie", "label": "Jamie", "status": "running",
+            "decision": null, "state_before": null, "state_after": null,
+            "points_now": 12225, "points_earned": 35, "search": null, "error": null,
+            "tasks": [
+              {"task":"daily_set","name_key":"common.task.daily_set","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":12190,"points_after":12225,"duration_ms":30000},
+              {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"running","reason_key":null,"detail":null,"progress":null,"points_before":12225,"points_after":null,"duration_ms":null},
+              {"task":"visual_search","name_key":"common.task.visual_search","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+              {"task":"misc_cards","name_key":"common.task.misc_cards","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+              {"task":"quests","name_key":"common.task.quests","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+              {"task":"searches","name_key":"common.task.searches","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+              {"task":"bonus","name_key":"common.task.bonus","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null}
+            ]
+          }], "warnings": [], "log_size": 22
+        },
+        "log": {"text": "Synthetic CLI run log\n", "next_offset": 22}
+      }
+    },
+    "get_run_log": {"ok":true,"data":{"text":"Synthetic CLI run log\n","next_offset":22,"eof":true,"size":22}}
+  },
+  "pushes": []
+}

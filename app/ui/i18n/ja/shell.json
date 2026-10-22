@@ -1,0 +1,26 @@
+{
+  "namespace": "shell",
+  "messages": {
+    "shell.window.title": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "shell.nav.label": {"text": "メイン ナビゲーション", "src": "38213473"},
+    "shell.nav.overview": {"text": "概要", "src": "fb6819e9"},
+    "shell.nav.stats": {"text": "統計", "src": "352f245c"},
+    "shell.route.stats.title": {"text": "統計", "src": "352f245c"},
+    "shell.nav.live": {"text": "実行状況", "src": "81326d0d"},
+    "shell.nav.history": {"text": "履歴", "src": "ee7ea2a7"},
+    "shell.nav.accounts": {"text": "アカウント", "src": "dd0f0ab0"},
+    "shell.nav.settings": {"text": "設定", "src": "f89b44f5"},
+    "shell.route.setup.title": {"text": "Rewards Farmer のセットアップ", "src": "35c12547"},
+    "shell.route.overview.title": {"text": "概要", "src": "fb6819e9"},
+    "shell.route.live.title": {"text": "実行状況", "src": "81326d0d"},
+    "shell.route.history.title": {"text": "履歴", "src": "ee7ea2a7"},
+    "shell.route.accounts.title": {"text": "アカウント", "src": "dd0f0ab0"},
+    "shell.route.settings.title": {"text": "設定", "src": "f89b44f5"},
+    "shell.nav.live_active": {"text": "実行中", "src": "8cca6b0b"},
+    "shell.update.available": {"text": "バージョン {version} を利用できます", "src": "c36d6e09"},
+    "shell.update.download": {"text": "ダウンロード", "src": "c996a8b4"},
+    "shell.account.none": {"text": "アカウントはまだありません", "src": "9a947bee"},
+    "shell.error.title": {"text": "このページを開けませんでした", "src": "8b9732cc"},
+    "shell.error.body": {"text": "もう一度お試しください。繰り返す場合は、アプリを再起動してください。", "src": "378b46f2"}
+  }
+}

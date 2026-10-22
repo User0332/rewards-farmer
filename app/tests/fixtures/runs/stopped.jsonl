@@ -1,0 +1,4 @@
+{"v":1,"ts":"2026-10-14T11:00:00.000Z","run":"20261014T110000Z-0003","type":"run_start","trigger":"app","accounts":["default"],"plan":{"check_only":false}}
+{"v":1,"ts":"2026-10-14T11:00:01.000Z","run":"20261014T110000Z-0003","type":"account_start","account":"default","profile":"profiles"}
+{"v":1,"ts":"2026-10-14T11:00:02.000Z","run":"20261014T110000Z-0003","type":"stop_requested","by":"app"}
+{"v":1,"ts":"2026-10-14T11:00:03.000Z","run":"20261014T110000Z-0003","type":"run_end","result":"stopped","exit_code":4,"accounts_started":1,"accounts_ran":0,"duration_ms":3000,"written_by":"farmer","detail":null}

@@ -1,0 +1,15 @@
+{
+  "synthetic": true,
+  "note": "An invented portrait drawn as flat shapes in a 64px PNG, never a real account photo. Uses the real Accounts screen without expanding its frozen fixture matrix.",
+  "methods": {
+    "list_accounts": {"ok": true, "data": {"accounts": [
+      {"id": "account-1", "label": "Alex (synthetic)", "name": "Taylor Synthetic", "email": "alex@example.com", "dir": "C:\\Synthetic\\account-1", "paused": false, "is_root": false, "signed_in": true, "balance": 4200, "balance_at": "2026-10-14T20:00:00Z", "last_run_at": null, "last_result": null, "picture_rev": "synthetic-portrait-1"},
+      {"id": "account-2", "label": "Robin (synthetic)", "name": null, "email": "casey@example.com", "dir": "C:\\Synthetic\\account-2", "paused": false, "is_root": false, "signed_in": false, "balance": null, "balance_at": null, "last_run_at": null, "last_result": null, "picture_rev": null}
+    ]}},
+    "get_account_picture": [
+      {"when": {"account_id": "account-1"}, "ok": true, "data": {"account_id": "account-1", "rev": "synthetic-portrait-1", "data_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAABP0lEQVR4nO2YwW0CMRBF/z5RAyc6ydaReyghUqqIlBKSZrYUCsk9QGR7xtgfeEdYzbzvMcjeZf/yKmeQOcgcZA4yB5mDzEHmIHOQObtOdU/fb+cfHo4/6Y2W9KPERfV+MbixfeEzYwKUmyVmIKtQrVNWBlKqtNmkZLD/GyVeIrKQp/AQnhMYDTIHmYPMQeYQLxE5nB3CB7vnBAILmXKuTptArU3WrQDlUe6UeKdBqZSY5d7Ilk5vp43vxDcGmYPMQebsehRdP9+vfbV9fM37I16ve/dLssQDVHmnJ2GsvcIV2icQV/9D2yiYxF6tNZnEvrky89i31Wcq+4YuzGZf28v+KMGEy1/VkTnty/s+zBYyDrAO2j+F3R9gAt4B1qH7p8Th3icwP8gcZA4yB5mDzEH3HWDLfhPYwPavg/0EfgGei1QRNJ338wAAAABJRU5ErkJggg=="}},
+      {"ok": true, "data": {"account_id": "account-2", "rev": null, "data_url": null}}
+    ]
+  },
+  "pushes": []
+}

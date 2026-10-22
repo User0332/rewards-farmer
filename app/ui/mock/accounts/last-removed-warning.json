@@ -1,0 +1,7 @@
+{
+  "synthetic": true,
+  "methods": {
+    "remove_account": {"ok": true, "data": {"accounts": [], "warnings": [{"code": "accounts.recycle_failed", "message_key": "errors.app.accounts_recycle_failed", "params": {"path": "C:\\Synthetic\\jamie"}}]}}
+  },
+  "pushes": []
+}

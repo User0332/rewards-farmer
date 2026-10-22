@@ -1,0 +1,82 @@
+.overview-screen { overflow-wrap: anywhere; }
+.overview-screen .overview-spread.is-known-only { grid-template-columns: minmax(0, 1fr); }
+.overview-screen .overview-balance-captured { margin-block-start: var(--sp-2); font-size: var(--fs-2); }
+.overview-screen .screen-header > div { min-inline-size: 0; }
+.overview-screen .overview-tasks .card-header h2 { font-size: var(--fs-5); }
+.overview-screen .overview-tasks .open-work { margin-block: var(--sp-2) var(--sp-3); }
+.overview-screen .overview-tasks .open-work p,
+.overview-screen .overview-tasks .task-reason { font-size: var(--fs-2); }
+.overview-screen .overview-tasks .task-row { min-block-size: 42px; }
+.overview-screen .overview-tasks .task-name,
+.overview-screen .overview-tasks .task-state { min-block-size: 42px; }
+.overview-screen .overview-summary > .card-body { display: grid; align-content: start; gap: var(--sp-4); }
+.overview-screen .overview-summary .stat-value { font-weight: var(--fw-bold); }
+.overview-screen .overview-summary .stat.is-unknown .stat-value { font-size: var(--fs-3); font-weight: var(--fw-regular); line-height: var(--lh-normal); }
+.overview-screen .overview-balance .stat-label { font-size: var(--fs-2); }
+.overview-screen .overview-balance .stat-value { margin-block: var(--sp-1) 0; }
+.overview-screen .overview-balance .balance-unit { line-height: var(--lh-tight); }
+.overview-screen .overview-summary .earned-line { margin-block-start: 0; font-size: var(--fs-2); }
+.overview-screen .overview-summary .summary-divider { padding-block-start: var(--sp-4); }
+.overview-screen .overview-schedule.summary-divider { background: color-mix(in srgb, var(--c-text) 4%, var(--c-surface)); border-block-start: 0; border-radius: var(--r-m); padding: var(--sp-3); }
+.overview-screen .overview-schedule .subtle { line-height: var(--lh-tight); }
+.overview-screen .overview-schedule .next-time { margin-block: var(--sp-1) 0; }
+.overview-screen .overview-schedule .next-description { margin-block-end: 0; }
+.overview-screen .overview-goal { line-height: var(--lh-tight); }
+.overview-next-link { display: block; text-decoration: none; color: var(--c-text); }
+.overview-next-link:hover { text-decoration: underline; text-underline-offset: var(--sp-1); }
+.overview-screen #overview-account { max-inline-size: 30ch; }
+.overview-screen .screen-header > .field { min-inline-size: min(100%, 180px); max-inline-size: 40%; }
+.overview-notice { margin-block-end: var(--sp-3); }
+.overview-schedule-warning { display: block; color: var(--c-warning); font-size: var(--fs-2); margin-block-start: var(--sp-2); text-underline-offset: var(--sp-1); }
+.overview-run-reason { font-size: var(--fs-2); overflow-wrap: anywhere; }
+.overview-screen .overview-goal .button { inline-size: auto; }
+.overview-screen .overview-chart .card-header { align-items: center; flex-wrap: wrap; }
+.overview-screen .overview-chart .field-label { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+.overview-screen .overview-chart .segmented-options { font-size: var(--fs-1); }
+.overview-streaks { margin-block-start: var(--sp-3); }
+.overview-streaks h3 { font-size: var(--fs-3); font-weight: var(--fw-medium); }
+.overview-streak-bonus { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--sp-4) var(--sp-6); padding-block: var(--sp-2) var(--sp-4); }
+.overview-bonus-points { font-size: var(--fs-5); font-weight: var(--fw-medium); line-height: var(--lh-tight); margin-block-start: var(--sp-1); }
+.overview-stamps-label { color: var(--c-text-2); font-size: var(--fs-2); margin-block-start: var(--sp-2); }
+.overview-stamp-grid { display: grid; grid-template-columns: repeat(6, var(--sp-5)); gap: var(--sp-2); }
+.overview-stamp { display: grid; place-items: center; inline-size: var(--sp-5); block-size: var(--sp-5); border: 1px solid var(--c-text-3); border-radius: var(--r-s); }
+.overview-stamp.is-collected { background: var(--c-accent); border-color: var(--c-accent); color: var(--c-on-accent); }
+.overview-stamp .icon { inline-size: var(--sp-4); block-size: var(--sp-4); }
+.overview-streak-list { list-style: none; padding: 0; margin: 0; }
+.overview-streak-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 196px); align-items: center; gap: var(--sp-3) var(--sp-5); padding-block: var(--sp-3); border-block-start: 1px solid var(--c-border); }
+.overview-streak-copy, .overview-streak-progress { min-inline-size: 0; }
+.overview-streak-next, .overview-streak-today, .overview-streak-captured { color: var(--c-text-2); font-size: var(--fs-2); }
+.overview-streak-next, .overview-streak-today { margin-block-start: var(--sp-1); }
+.overview-streak-progress { text-align: end; }
+.overview-streak-day { font-size: var(--fs-2); }
+.overview-streak-track { display: flex; gap: var(--sp-1); margin-block-start: var(--sp-1); }
+.overview-streak-step { flex: 1; min-inline-size: 0; block-size: var(--sp-2); border: 1px solid var(--c-text-3); border-radius: var(--r-s); }
+.overview-streak-step.is-complete { border-color: var(--c-accent); background: var(--c-accent); }
+.overview-streak-captured { margin-block-start: var(--sp-3); }
+@media (min-width: 1000.01px) {
+    .overview-screen .is-known-only .overview-summary:has(.overview-balance-captured) > .card-body {
+        /* Recreate the ready spread's 1.52:1 end column, excluding its card padding and borders. */
+        grid-template-columns: minmax(0, 1fr) minmax(0, calc((100% + var(--sp-4) * 2 + 2px - var(--sp-3)) / 2.52 - var(--sp-4) * 2 - 2px));
+        column-gap: var(--sp-3);
+    }
+    .overview-screen .is-known-only .overview-summary:has(.overview-balance-captured) .overview-balance { grid-column: 1; grid-row: 1 / 3; align-self: start; }
+    .overview-screen .is-known-only .overview-summary:has(.overview-balance-captured) .overview-schedule { grid-column: 2; grid-row: 1; }
+    .overview-screen .is-known-only .overview-summary:has(.overview-balance-captured) #overview-run-now { grid-column: 2; grid-row: 2; }
+    .overview-screen .is-known-only .overview-summary:has(.overview-balance-captured) .overview-run-reason { grid-column: 2; grid-row: 3; }
+    .overview-screen .is-known-only .overview-summary:has(.overview-balance-captured) .overview-goal { grid-column: 1 / -1; grid-row: 3; }
+    .overview-screen .is-known-only .overview-summary:has(.overview-balance-captured):has(.overview-run-reason) .overview-balance { grid-row: 1 / 4; }
+    .overview-screen .is-known-only .overview-summary:has(.overview-balance-captured):has(.overview-run-reason) .overview-goal { grid-row: 4; }
+}
+@media (max-width: 760px) {
+    .overview-streak-row { grid-template-columns: minmax(0, 1fr) minmax(0, 148px); gap: var(--sp-3); }
+}
+@media (forced-colors: active) {
+    .overview-stamp.is-collected, .overview-streak-step.is-complete { background: Highlight; border-color: Highlight; forced-color-adjust: none; }
+    .overview-stamp.is-collected { color: HighlightText; }
+}
+@media (max-width: 1000px) {
+    .overview-screen .overview-tasks .card-header h2 { font-size: var(--fs-4); }
+    .overview-screen .overview-tasks .task-row,
+    .overview-screen .overview-tasks .task-name,
+    .overview-screen .overview-tasks .task-state { min-block-size: 42px; }
+}

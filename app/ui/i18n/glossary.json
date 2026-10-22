@@ -1,0 +1,42 @@
+{
+  "source": "en",
+  "ui_terms": {
+    "Quests": {
+      "meaning": "The Microsoft Rewards task named Quests.",
+      "step": "quest step",
+      "translation": "Use the locale's term for Quests for both the task and a step of it.",
+      "never_use": ["punch card"]
+    }
+  },
+  "never_translate": ["Rewards Farmer", "Microsoft Rewards", "Bing", "Microsoft Edge", "Ollama", "OpenRouter", "Discord", "Windows", "msedge.exe", "msedgedriver.exe"],
+  "windows_terms": {
+    "Task Scheduler": "Use the official localized Windows name when one exists; otherwise keep Task Scheduler.",
+    "Recycle Bin": "Use the official localized Windows name when one exists."
+  },
+  "windows_terms_locales": {
+    "de": {"Task Scheduler": "Aufgabenplanung", "Recycle Bin": "Papierkorb"},
+    "es": {"Task Scheduler": "Programador de tareas", "Recycle Bin": "Papelera de reciclaje"},
+    "fr": {"Task Scheduler": "Planificateur de tâches", "Recycle Bin": "Corbeille"},
+    "it": {"Task Scheduler": "Utilità di pianificazione", "Recycle Bin": "Cestino"},
+    "pt-BR": {"Task Scheduler": "Agendador de Tarefas", "Recycle Bin": "Lixeira"},
+    "ja": {"Task Scheduler": "タスク スケジューラ", "Recycle Bin": "ごみ箱"},
+    "zh-Hans": {"Task Scheduler": "任务计划程序", "Recycle Bin": "回收站"},
+    "ar": {"Task Scheduler": "جدولة المهام", "Recycle Bin": "سلة المحذوفات"}
+  },
+  "form_of_address": {
+    "default": "informal",
+    "locales": {
+      "en": "informal",
+      "de": "Informal du/dein. Microsoft German Localization Style Guide §4.1.14 leaves the form to product guidance, so this glossary's informal default applies. Guide index: https://learn.microsoft.com/globalization/reference/microsoft-style-guides",
+      "es": "Informal tú. Microsoft Spanish Neutral Localization Style Guide §3.3. Guide index: https://learn.microsoft.com/globalization/reference/microsoft-style-guides",
+      "fr": "Formal vous, as prescribed by Microsoft French (France) Localization Style Guide §4.1.13. https://download.microsoft.com/download/3b118cfd-a071-48aa-8c01-b49bc14fd38c/fra-fra-StyleGuide.pdf",
+      "it": "Informal tu. Microsoft Italian Localization Style Guide §§2.1, 2.2.1, 2.2.4. https://download.microsoft.com/download/f/f/7/ff70427c-1f7e-429f-96be-724d2e49cd47/ita-ita-StyleGuide.pdf",
+      "pt-BR": "Informal você; leave the pronoun out where natural. Microsoft Portuguese (Brazil) Localization Style Guide §4.1.11. https://download.microsoft.com/download/8/e/3/8e349e32-9eb9-4b63-9909-7586b94a24dd/por-bra-StyleGuide.pdf",
+      "ja": "Polite です/ます, してください for instructions, no second-person pronoun. Microsoft Japanese Localization Style Guide §§2.1.3, 4.1.8, 4.2. https://download.microsoft.com/download/191bd918-cf6a-4576-95e1-a9d40a6b7c60/jpn-jpn-StyleGuide.pdf",
+      "zh-Hans": "Informal 你; leave the pronoun out where natural. Microsoft Simplified Chinese Localization Style Guide §4.1.12. https://download.microsoft.com/download/1/5/9/159cb91c-b61b-4385-97ca-80ccc7ff1fa0/zho-chn-StyleGuide.pdf",
+      "ar": "Informal singular second person in Modern Standard Arabic. Microsoft Arabic Localization Style Guide §§2.1, 2.2.1. https://download.microsoft.com/download/5/6/d/56d1774f-ac3f-4ad9-80af-a6dfd5df419d/ara-sau-StyleGuide.pdf"
+    },
+    "guidance": "Address one person informally. Add a locale-specific decision here if its usual app voice needs another form. Do not change brand names to suit grammar."
+  },
+  "voice": "Plain, short and friendly. Errors say what happened and what to do next. Keep technical detail out of the main message. Keep placeholders unchanged."
+}

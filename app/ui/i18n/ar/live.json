@@ -1,0 +1,16 @@
+{
+  "namespace": "live",
+  "messages": {
+    "live.title": {"text": "التشغيل المباشر", "src": "81326d0d"},
+    "live.points_earned": {"text": "النقاط المكتسبة في هذا التشغيل", "src": "9dfeaf4b"},
+    "live.search_progress": {"text": "{earned} من {max}", "src": "f9dc0854"},
+    "live.stop": {"text": "إيقاف هذا التشغيل", "src": "72200071"},
+    "live.stop_waiting": {"text": "جارٍ الإيقاف", "src": "3d6e4670"},
+    "live.stop_note": {"text": "بانتظار توقف المتصفح. قد يستغرق ذلك لحظات.", "src": "d757bf3d"},
+    "live.history": {"text": "فتح التشغيل في المحفوظات", "src": "52466e7c"},
+    "live.overview": {"text": "فتح نظرة عامة", "src": "e2d35e84"},
+    "live.last_run": {"text": "آخر تشغيل", "src": "0b828e5b"},
+    "live.more_details": {"text": "مزيد من التفاصيل", "src": "7bb83408"},
+    "live.idle.title": {"text": "لا يوجد تشغيل جارٍ", "src": "0888f8c6"}
+  }
+}

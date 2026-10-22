@@ -8,7 +8,7 @@ from urllib.parse import urlsplit, urlunsplit
 import requests
 from PIL import Image
 
-from constants import REPO_ROOT
+from constants import DATA_HOME
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 API_URL = "https://commons.wikimedia.org/w/api.php"
 
-OUTPUT_FILE = Path(REPO_ROOT, "visual_search.jpg")
-METADATA_FILE = Path(REPO_ROOT, "visual_search.json")
+OUTPUT_FILE = Path(DATA_HOME, "visual_search.jpg")
+METADATA_FILE = Path(DATA_HOME, "visual_search.json")
 
 MAX_ATTEMPTS = 10
 

@@ -1,0 +1,22 @@
+{
+  "synthetic":true,"note":"Synthetic stop already requested. Waiting rows stay visible until a final record arrives.",
+  "methods":{
+    "stop_run":{"ok":true,"data":{"stopping":true}},
+    "get_run_log":{"ok":true,"data":{"text":"Synthetic run log\nStop requested\n","next_offset":33,"eof":true,"size":33}},
+    "get_live":{"ok":true,"data":{
+      "run":{"run_id":"synthetic-stopping","trigger":"scheduled","kind":"run","started_at":"2026-10-14T19:45:00Z","ended_at":null,"duration_ms":null,"active":true,"result":null,"result_key":null,"points_earned":35,"stop_requested":true,"deferred":null,
+        "accounts":[{"account_id":"jamie","label":"Jamie","status":"running","decision":{"run":true,"reason":"enough_open","reason_key":"errors.decision.enough_open","open_points":75,"min_points":15},"state_before":null,"state_after":null,"points_now":12300,"points_earned":35,"search":null,"error":null,
+          "tasks":[
+            {"task":"daily_set","name_key":"common.task.daily_set","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":12265,"points_after":12300,"duration_ms":30000},
+            {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"running","reason_key":null,"detail":null,"progress":null,"points_before":12300,"points_after":null,"duration_ms":null},
+            {"task":"visual_search","name_key":"common.task.visual_search","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"misc_cards","name_key":"common.task.misc_cards","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"quests","name_key":"common.task.quests","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"searches","name_key":"common.task.searches","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"bonus","name_key":"common.task.bonus","status":"pending","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null}
+          ]
+        }],"warnings":[],"log_size":33
+      },"log":{"text":"Synthetic run log\nStop requested\n","next_offset":33}
+    }}
+  },"pushes":[]
+}

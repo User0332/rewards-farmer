@@ -1,0 +1,16 @@
+{
+  "namespace": "live",
+  "messages": {
+    "live.title": {"text": "Live run", "note": "Page heading and document title for the Live run route."},
+    "live.points_earned": {"text": "Points earned this run", "note": "Label above live measured points. Unknown never becomes zero."},
+    "live.search_progress": {"text": "{earned} of {max}", "note": "Running search row. earned and max are formatted search-points measurements."},
+    "live.stop": {"text": "Stop run", "note": "Requests a graceful stop of this specific active run."},
+    "live.stop_waiting": {"text": "Stopping", "note": "Disabled stop button after a stop request; does not claim the run has ended."},
+    "live.stop_note": {"text": "Waiting for the browser to stop. This can take a moment.", "note": "Waiting explanation until the final run record arrives."},
+    "live.history": {"text": "Open run in History", "note": "Action to inspect this finished run's details."},
+    "live.overview": {"text": "Open Overview", "note": "Idle-state action to inspect tasks or start a run."},
+    "live.last_run": {"text": "Last run", "note": "Card heading when no run is active and a previous summary exists."},
+    "live.more_details": {"text": "More details", "note": "Collapsed disclosure for secondary failure results, warnings, check decisions and unreadable-page diagnostics. The primary account error stays visible above it."},
+    "live.idle.title": {"text": "No run in progress", "note": "Idle-state heading, not an error."}
+  }
+}

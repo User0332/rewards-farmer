@@ -1,0 +1,34 @@
+{
+  "synthetic":true,
+  "methods": {
+    "get_settings":{"ok":true,"data":{"values":{
+      "schedule.mode":"automatic","schedule.window_start":"09:45","schedule.window_end":"21:45","schedule.checks":4,"schedule.time":"09:45","schedule.days":["mon","tue","wed","thu","fri","sat","sun"],"schedule.random_delay":15,"schedule.catch_up":true,"schedule.on_battery":true,"schedule.min_points":15,
+      "run.browser_mode":"hidden","run.tasks_off":[],"run.search_source":"openrouter","run.ollama_url":"http://localhost:11434/v1","run.ollama_model":"gemma3:4b","run.openrouter_model":"openrouter/free","notify.policy":"always",
+      "app.autostart":true,"app.close_to_tray":true,"app.language":"system","app.update_check":true,"advanced.edge_path":"","advanced.driver_path":"","advanced.log_level":"INFO","advanced.data_folder":""
+    },"secrets_set":{"run.openrouter_key":true,"notify.webhook_url":true},"schedule":{"mode":"automatic","task_name":"RewardsFarmerApp_synthetic","task_exists":true,"in_sync":true,"next_at":"2026-10-15T07:45:00Z","next_is_check":true,"legacy_task":null,"error_code":null}}},
+    "save_settings":[
+      {"when":{"changes":{"notify.policy":"errors"}},"ok":true,"data":{"values":{
+        "schedule.mode":"automatic","schedule.window_start":"09:45","schedule.window_end":"21:45","schedule.checks":4,"schedule.time":"09:45","schedule.days":["mon","tue","wed","thu","fri","sat","sun"],"schedule.random_delay":15,"schedule.catch_up":true,"schedule.on_battery":true,"schedule.min_points":15,
+        "run.browser_mode":"hidden","run.tasks_off":[],"run.search_source":"openrouter","run.ollama_url":"http://localhost:11434/v1","run.ollama_model":"gemma3:4b","run.openrouter_model":"openrouter/free","notify.policy":"errors",
+        "app.autostart":true,"app.close_to_tray":true,"app.language":"system","app.update_check":true,"advanced.edge_path":"","advanced.driver_path":"","advanced.log_level":"INFO","advanced.data_folder":""
+      },"secrets_set":{"run.openrouter_key":true,"notify.webhook_url":true},"schedule":{"mode":"automatic","task_name":"RewardsFarmerApp_synthetic","task_exists":true,"in_sync":true,"next_at":"2026-10-15T07:45:00Z","next_is_check":true,"legacy_task":null,"error_code":null},"warnings":[]}},
+      {"when":{"changes":{"run.openrouter_key":"synthetic-new-key-for-ui"}},"ok":true,"data":{"values":{
+        "schedule.mode":"automatic","schedule.window_start":"09:45","schedule.window_end":"21:45","schedule.checks":4,"schedule.time":"09:45","schedule.days":["mon","tue","wed","thu","fri","sat","sun"],"schedule.random_delay":15,"schedule.catch_up":true,"schedule.on_battery":true,"schedule.min_points":15,
+        "run.browser_mode":"hidden","run.tasks_off":[],"run.search_source":"openrouter","run.ollama_url":"http://localhost:11434/v1","run.ollama_model":"gemma3:4b","run.openrouter_model":"openrouter/free","notify.policy":"errors",
+        "app.autostart":true,"app.close_to_tray":true,"app.language":"system","app.update_check":true,"advanced.edge_path":"","advanced.driver_path":"","advanced.log_level":"INFO","advanced.data_folder":""
+      },"secrets_set":{"run.openrouter_key":true,"notify.webhook_url":true},"schedule":{"mode":"automatic","task_name":"RewardsFarmerApp_synthetic","task_exists":true,"in_sync":true,"next_at":"2026-10-15T07:45:00Z","next_is_check":true,"legacy_task":null,"error_code":null},"warnings":[]}},
+      {"when":{"changes":{"notify.webhook_url":""}},"ok":true,"data":{"values":{
+        "schedule.mode":"automatic","schedule.window_start":"09:45","schedule.window_end":"21:45","schedule.checks":4,"schedule.time":"09:45","schedule.days":["mon","tue","wed","thu","fri","sat","sun"],"schedule.random_delay":15,"schedule.catch_up":true,"schedule.on_battery":true,"schedule.min_points":15,
+        "run.browser_mode":"hidden","run.tasks_off":[],"run.search_source":"openrouter","run.ollama_url":"http://localhost:11434/v1","run.ollama_model":"gemma3:4b","run.openrouter_model":"openrouter/free","notify.policy":"errors",
+        "app.autostart":true,"app.close_to_tray":true,"app.language":"system","app.update_check":true,"advanced.edge_path":"","advanced.driver_path":"","advanced.log_level":"INFO","advanced.data_folder":""
+      },"secrets_set":{"run.openrouter_key":true,"notify.webhook_url":false},"schedule":{"mode":"automatic","task_name":"RewardsFarmerApp_synthetic","task_exists":true,"in_sync":true,"next_at":"2026-10-15T07:45:00Z","next_is_check":true,"legacy_task":null,"error_code":null},"warnings":[]}},
+      {"when":{"changes":{"run.openrouter_key":""}},"ok":true,"data":{"values":{
+        "schedule.mode":"automatic","schedule.window_start":"09:45","schedule.window_end":"21:45","schedule.checks":4,"schedule.time":"09:45","schedule.days":["mon","tue","wed","thu","fri","sat","sun"],"schedule.random_delay":15,"schedule.catch_up":true,"schedule.on_battery":true,"schedule.min_points":15,
+        "run.browser_mode":"hidden","run.tasks_off":[],"run.search_source":"openrouter","run.ollama_url":"http://localhost:11434/v1","run.ollama_model":"gemma3:4b","run.openrouter_model":"openrouter/free","notify.policy":"errors",
+        "app.autostart":true,"app.close_to_tray":true,"app.language":"system","app.update_check":true,"advanced.edge_path":"","advanced.driver_path":"","advanced.log_level":"INFO","advanced.data_folder":""
+      },"secrets_set":{"run.openrouter_key":false,"notify.webhook_url":false},"schedule":{"mode":"automatic","task_name":"RewardsFarmerApp_synthetic","task_exists":true,"in_sync":true,"next_at":"2026-10-15T07:45:00Z","next_is_check":true,"legacy_task":null,"error_code":null},"warnings":[]}},
+      {"ok":false,"error":{"code":"settings.invalid","message_key":"errors.app.settings_invalid","params":{},"detail":"Synthetic invalid replacement","fields":{"run.openrouter_key":"dollar_brace"}}}
+    ]
+  },
+  "pushes":[]
+}

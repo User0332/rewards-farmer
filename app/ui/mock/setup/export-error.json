@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "methods": {
+    "get_settings": {"ok": false, "error": {"code": "internal", "message_key": "errors.app.internal", "params": {}, "detail": "Synthetic load failure", "fields": null}},
+    "get_legacy_install": {"ok": true, "data": {"found": false, "path": null, "accounts": []}},
+    "export_diagnostics": {"ok": false, "error": {"code": "diagnostics.failed", "message_key": "errors.app.diagnostics_failed", "params": {}, "detail": "Synthetic save failure", "fields": null}}
+  },
+  "pushes": []
+}

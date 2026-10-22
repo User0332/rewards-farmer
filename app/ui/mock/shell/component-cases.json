@@ -1,0 +1,17 @@
+{
+  "methods": {},
+  "pushes": [],
+  "cases": {
+    "log_pages": [
+      {"offset":0,"data":{"text":"first é\n","next_offset":9,"eof":false,"size":22}},
+      {"offset":9,"data":{"text":"second\n","next_offset":16,"eof":false,"size":22}},
+      {"offset":16,"data":{"text":"third\n","next_offset":22,"eof":true,"size":22}}
+    ],
+    "joins": [
+      {"name":"duplicate","prior":{"text":"ab","next_offset":2},"push":{"run_id":"join-test","offset":0,"next_offset":2,"text":"ab"},"requests":[],"expected":{"text":"ab","next_offset":2}},
+      {"name":"append","prior":{"text":"ab","next_offset":2},"push":{"run_id":"join-test","offset":2,"next_offset":4,"text":"é"},"requests":[],"expected":{"text":"abé","next_offset":4}},
+      {"name":"gap","prior":{"text":"ab","next_offset":2},"push":{"run_id":"join-test","offset":4,"next_offset":6,"text":"ef"},"requests":[{"run_id":"join-test","offset":2,"max_bytes":4}],"page":{"text":"cdef","next_offset":6,"eof":true,"size":6},"expected":{"text":"abcdef","next_offset":6}},
+      {"name":"overlap","prior":{"text":"abcd","next_offset":4},"push":{"run_id":"join-test","offset":2,"next_offset":6,"text":"cdef"},"requests":[{"run_id":"join-test","offset":4,"max_bytes":2}],"page":{"text":"ef","next_offset":6,"eof":true,"size":6},"expected":{"text":"abcdef","next_offset":6}}
+    ]
+  }
+}

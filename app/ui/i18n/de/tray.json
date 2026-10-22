@@ -1,0 +1,22 @@
+{
+  "namespace": "tray",
+  "messages": {
+    "tray.tooltip.running": {"text": "Rewards Farmer läuft", "src": "c6fb48f3"},
+    "tray.tooltip.today": {"plural": "total", "forms": {"one": "Heute: {earned} von {total} Punkt", "other": "Heute: {earned} von {total} Punkten"}, "src": "5dcdaac0"},
+    "tray.tooltip.idle": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "tray.menu.open": {"text": "Rewards Farmer öffnen", "src": "6a15e6b4"},
+    "tray.menu.run_now": {"text": "Jetzt starten", "src": "d716b60f"},
+    "tray.menu.stop": {"text": "Durchlauf stoppen", "src": "72200071"},
+    "tray.menu.next_check": {"text": "Nächste Prüfung um {time}", "src": "bbd1573b"},
+    "tray.menu.next_run": {"text": "Nächster Durchlauf um {time}", "src": "0435d4c1"},
+    "tray.menu.manual": {"text": "Nur manuelle Durchläufe", "src": "0ea06527"},
+    "tray.menu.quit": {"text": "Beenden", "src": "235b8aa6"},
+    "tray.notify.done.title": {"text": "Rewards Farmer ist fertig", "src": "971ff610"},
+    "tray.notify.done.body": {"plural": "points", "forms": {"one": "+{points} Punkt, Punktestand {balance}", "other": "+{points} Punkte, Punktestand {balance}"}, "src": "98f0a8ee"},
+    "tray.notify.done.body_no_balance": {"plural": "points", "forms": {"one": "+{points} Punkt", "other": "+{points} Punkte"}, "src": "e1bd8366"},
+    "tray.notify.done.body_no_points": {"text": "Der Durchlauf ist beendet. Öffne Rewards Farmer für Details.", "src": "83691a74"},
+    "tray.notify.problem.title": {"text": "Rewards Farmer braucht deine Hilfe", "src": "bbd38c09"},
+    "tray.notify.signed_out": {"text": "{account} ist abgemeldet. Melde dich erneut an.", "src": "161cf976"},
+    "tray.notify.closed_to_tray": {"text": "Rewards Farmer bleibt im Infobereich. Wähle dort „Beenden“, um die App zu schließen.", "src": "50ddf2a7"}
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "synthetic":true,
+  "note":"F79 R2 synthetic skipped check with nothing open, no task rows or stray minus.",
+  "methods":{
+    "get_run":{"ok":true,"data":{
+      "run_id":"synthetic-nothing-open","trigger":"scheduled","kind":"check","started_at":"2026-10-20T19:55:00Z","ended_at":"2026-10-20T19:55:10Z","duration_ms":10000,
+      "active":false,"result":"skipped","result_key":"errors.run.skipped","points_earned":null,"stop_requested":false,"deferred":null,
+      "accounts":[{"account_id":"alex","label":"Alex","status":"skipped","decision":{"run":false,"reason":"nothing_open","reason_key":"errors.decision.nothing_open","open_points":0,"min_points":30},
+        "state_before":null,"state_after":null,"points_now":null,"points_earned":null,"search":null,"error":null,
+        "tasks":[
+          {"task":"daily_set","name_key":"common.task.daily_set","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"visual_search","name_key":"common.task.visual_search","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"misc_cards","name_key":"common.task.misc_cards","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"quests","name_key":"common.task.quests","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"searches","name_key":"common.task.searches","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"bonus","name_key":"common.task.bonus","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null}
+        ]}],"warnings":[],"log_size":21
+    }},
+    "get_run_log":{"ok":true,"data":{"text":"Synthetic check log.\n","next_offset":21,"eof":true,"size":21}}
+  },
+  "pushes":[]
+}

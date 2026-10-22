@@ -1,0 +1,33 @@
+.live-content { margin-block-end: var(--sp-4); }
+.live-summary { display: grid; grid-template-columns: minmax(0, 1fr) max-content; align-items: center; gap: var(--sp-4); padding-block: var(--sp-2); }
+.live-summary .banner,
+.live-summary .live-stop-note,
+.live-summary .live-external-run { grid-column: 1 / -1; }
+.live-progress { display: flex; align-items: center; justify-content: end; gap: var(--sp-3); }
+.live-summary > .live-progress { grid-column: 2; }
+.live-summary .stat-value { font-weight: var(--fw-bold); }
+.live-stop-note { color: var(--c-text-2); }
+.live-plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); align-items: start; gap: var(--sp-4); }
+.live-account-plan > .card-body { display: grid; gap: var(--sp-3); }
+.live-account-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2) var(--sp-3); }
+.live-account-heading h2 { font-size: var(--fs-4); overflow-wrap: anywhere; }
+.live-account-points { margin-inline-start: auto; font-weight: var(--fw-medium); }
+.live-task-list { list-style: none; padding: 0; margin: 0; }
+.live-task-entry { padding-block: var(--sp-3); border-block-end: 1px solid var(--c-border); }
+.live-task-entry:last-child { border-block-end: 0; }
+.live-task-row { display: grid; grid-template-columns: var(--sp-5) minmax(0, 1fr) max-content; gap: var(--sp-3); align-items: center; font-size: var(--fs-3); }
+.live-task-mark { color: var(--c-text-2); display: flex; }
+.live-task-row[data-status="fail"] .live-task-mark, .live-task-reason { color: var(--c-danger); }
+.live-task-row[data-status="running"] .live-task-mark { color: var(--c-accent); }
+.live-task-progress, .live-task-reason { font-size: var(--fs-2); }
+.live-task-reason { padding-inline-start: calc(var(--sp-5) + var(--sp-3)); margin-block-start: var(--sp-2); }
+.live-decision { color: var(--c-text-2); }
+.live-screen .log-toggle { min-block-size: 40px; gap: var(--sp-3); }
+.live-screen .live-summary .stat { min-inline-size: 0; }
+.live-more-details > summary { list-style: none; cursor: pointer; }
+.live-more-details > summary::-webkit-details-marker { display: none; }
+.live-diagnostics { padding: var(--sp-3); }
+@media (max-width: 1000px) {
+    .live-plans { grid-template-columns: minmax(0, 1fr); }
+    .live-task-row { gap: var(--sp-2); font-size: var(--fs-2); }
+}

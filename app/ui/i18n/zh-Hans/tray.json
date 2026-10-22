@@ -1,0 +1,22 @@
+{
+  "namespace": "tray",
+  "messages": {
+    "tray.tooltip.running": {"text": "Rewards Farmer 正在运行", "src": "c6fb48f3"},
+    "tray.tooltip.today": {"plural": "total", "forms": {"other": "今日已获得 {earned} 积分，共可获取 {total} 积分"}, "src": "5dcdaac0"},
+    "tray.tooltip.idle": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "tray.menu.open": {"text": "打开 Rewards Farmer", "src": "6a15e6b4"},
+    "tray.menu.run_now": {"text": "立即运行", "src": "d716b60f"},
+    "tray.menu.stop": {"text": "停止运行", "src": "72200071"},
+    "tray.menu.next_check": {"text": "下次检查于 {time}", "src": "bbd1573b"},
+    "tray.menu.next_run": {"text": "下次运行于 {time}", "src": "0435d4c1"},
+    "tray.menu.manual": {"text": "仅手动运行", "src": "0ea06527"},
+    "tray.menu.quit": {"text": "退出", "src": "235b8aa6"},
+    "tray.notify.done.title": {"text": "Rewards Farmer 运行完成", "src": "971ff610"},
+    "tray.notify.done.body": {"plural": "points", "forms": {"other": "+{points} 积分，余额 {balance}"}, "src": "98f0a8ee"},
+    "tray.notify.done.body_no_balance": {"plural": "points", "forms": {"other": "+{points} 积分"}, "src": "e1bd8366"},
+    "tray.notify.done.body_no_points": {"text": "运行已结束。打开 Rewards Farmer 查看详情。", "src": "83691a74"},
+    "tray.notify.problem.title": {"text": "Rewards Farmer 有问题需要处理", "src": "bbd38c09"},
+    "tray.notify.signed_out": {"text": "“{account}”需要你重新登录。", "src": "161cf976"},
+    "tray.notify.closed_to_tray": {"text": "Rewards Farmer 仍在托盘中运行。选择托盘菜单中的“退出”即可关闭应用。", "src": "50ddf2a7"}
+  }
+}

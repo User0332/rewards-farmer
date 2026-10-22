@@ -1,0 +1,32 @@
+{
+  "namespace": "stats",
+  "messages": {
+    "stats.title": {"text":"Stats","note":"Page and window title for points and completion history."},
+    "stats.loading": {"text":"Loading your stats","note":"Screen reader loading status."},
+    "stats.empty.title": {"text":"Your history starts here","note":"Empty statistics state before any readable record."},
+    "stats.empty.body": {"text":"After your first run, your points and daily progress will appear here.","note":"Friendly empty-state explanation, no fabricated zero history."},
+    "stats.account": {"text":"Account","note":"Scope selector shown only when more than one account exists."},
+    "stats.account.all": {"text":"All accounts","note":"Combined scope over current active and paused accounts, not a comparison table."},
+    "stats.range": {"text":"Date range","note":"Accessible label for the range radio group."},
+    "stats.range.7": {"text":"7 days","note":"Seven calendar days ending today."},
+    "stats.range.30": {"text":"30 days","note":"Thirty calendar days ending today."},
+    "stats.range.90": {"text":"90 days","note":"Ninety calendar days ending today."},
+    "stats.week": {"text":"This week","note":"Producer-calculated points since the regional first weekday."},
+    "stats.month": {"text":"This month","note":"Producer-calculated current calendar-month points."},
+    "stats.streak.title": {"text":"Days in a row","note":"App-defined core completion streak, not Microsoft's official streak."},
+    "stats.calendar.title": {"text":"Your daily progress","note":"Completion calendar heading. No fewer/more points scale."},
+    "stats.calendar.day": {"text":"{date}: {state}","note":"Accessible day button label. date and state are already localized strings."},
+    "stats.state.done": {"text":"Done","note":"Readable daily set and search quota both complete."},
+    "stats.state.today_open": {"text":"Still open today","note":"Today only, readable core work still open or not yet checked. Never a missed-day failure."},
+    "stats.state.missed": {"text":"Missed","note":"Past readable day with core work left open."},
+    "stats.state.no_check": {"text":"Not checked","note":"Date after tracking started without a readable core result, not a failed day."},
+    "stats.state.before_tracking": {"text":"Before tracking","note":"Calendar date before any account observations, not a missed day."},
+    "stats.sources.day": {"text":"Tasks on {date}","note":"Heading of the task-points panel for the calendar's selected date, not the date range. date is already regionally formatted. Hover or focus previews do not change this selection."},
+    "stats.sources.day_empty": {"text":"No task totals for this day","note":"One short line in the selected-date task panel when that day's sources.runs is zero. No task rows or invented zero task values; the day's known overall earnings remain visible on the left."},
+    "stats.day.points": {"text":"{earned} / {possible}","note":"Compact known earned and possible point counts. Both are regionally formatted; a percentage follows only when possible is positive. Omit unknown values."},
+    "stats.day.runs": {"text":"Runs on {date}","note":"Accessible name of selected-day run links. Checks appear only in History."},
+    "stats.warning.ledger_rebuilt": {"text":"Your stats were rebuilt from the run details still available. Some earlier days may be missing.","note":"Ledger recovery could preserve only evidence still retained, not complete lifetime history."},
+    "stats.warning.ledger_newer": {"text":"These stats were saved by a newer app. Only available run details are shown until the app is updated.","note":"Future ledger schema is not overwritten or downgraded."},
+    "stats.chart.help": {"text":"Use Left and Right to inspect dates, Home for the first day and End for the latest. Missing values stay unavailable.","note":"Keyboard chart help shared by Stats and Overview; arrows follow the mirrored RTL timeline."}
+  }
+}

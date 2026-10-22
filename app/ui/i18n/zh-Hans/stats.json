@@ -1,0 +1,32 @@
+{
+  "namespace": "stats",
+  "messages": {
+    "stats.title": {"text": "统计", "src": "352f245c"},
+    "stats.loading": {"text": "正在加载统计数据", "src": "64b042b8"},
+    "stats.empty.title": {"text": "你的记录从这里开始", "src": "3410ef28"},
+    "stats.empty.body": {"text": "首次运行后，这里会显示你的积分和每日完成情况。", "src": "327fad2d"},
+    "stats.account": {"text": "帐户", "src": "fb2a1c8f"},
+    "stats.account.all": {"text": "所有帐户", "src": "e1cce800"},
+    "stats.range": {"text": "日期范围", "src": "54581cd2"},
+    "stats.range.7": {"text": "7 天", "src": "714f2c4e"},
+    "stats.range.30": {"text": "30 天", "src": "d9645efa"},
+    "stats.range.90": {"text": "90 天", "src": "0470550f"},
+    "stats.week": {"text": "本周", "src": "a7691b11"},
+    "stats.month": {"text": "本月", "src": "94356504"},
+    "stats.streak.title": {"text": "连续完成天数", "src": "981264d4"},
+    "stats.calendar.title": {"text": "每日完成情况", "src": "c6348b21"},
+    "stats.calendar.day": {"text": "{date}: {state}", "src": "85afee76"},
+    "stats.state.done": {"text": "已完成", "src": "2b4a262c"},
+    "stats.state.today_open": {"text": "今日待完成", "src": "c82a738a"},
+    "stats.state.missed": {"text": "未完成", "src": "3e29bb56"},
+    "stats.state.no_check": {"text": "暂无检查结果", "src": "b81b8356"},
+    "stats.state.before_tracking": {"text": "开始记录前", "src": "cfea3b78"},
+    "stats.warning.ledger_rebuilt": {"text": "统计数据已根据现有运行详情重建。部分较早日期的数据可能缺失。", "src": "047d2674"},
+    "stats.warning.ledger_newer": {"text": "这些统计数据由较新版本的应用保存。更新应用前，只显示现有的运行详情。", "src": "4522304f"},
+    "stats.chart.help": {"text": "使用左、右方向键查看日期，Home 键跳到第一天，End 键跳到最近一天。缺失的数值仍显示为“暂无数据”。", "src": "132b973e"},
+    "stats.sources.day": {"text": "{date}的任务", "src": "cbfc1381"},
+    "stats.sources.day_empty": {"text": "这一天暂无任务合计", "src": "1da981d8"},
+    "stats.day.points": {"text": "{earned} / {possible}", "src": "bba4a015"},
+    "stats.day.runs": {"text": "{date}的运行", "src": "d299af23"}
+  }
+}

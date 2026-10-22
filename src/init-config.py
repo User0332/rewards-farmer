@@ -1,10 +1,12 @@
 import os
+import io
 from pathlib import Path
 import time
 from accounts import Account, directory_name_is_valid
 from browser import start_driver
 import sys
 import dotenv
+from file_replace import read_file
 from typing import Literal, TextIO
 from argparse import ArgumentParser
 
@@ -273,6 +275,14 @@ def main():
 	except OSError as e:
 		print(f"Error creating or clearing the .env file: {e}")
 
+def _env_key(path, key):
+	try:
+		text = read_file(path)
+	except FileNotFoundError:
+		text = ""
+	return dotenv.dotenv_values(stream=io.StringIO(text)).get(key)
+
+
 def manage_accounts():
 	print("Add, remove, or modify accounts without changing other configuration settings here.\n")
 
@@ -280,7 +290,11 @@ def manage_accounts():
 
 	# we could use dotenv.get_key to read REWARDS_ACCOUNTS, but loading the .env file ensures that
 	# sign-in works correctly if the user configured custom paths for the driver and browser.
-	dotenv.load_dotenv(dotenv_path=path_to_dotenv)
+	try:
+		text = read_file(path_to_dotenv)
+	except FileNotFoundError:
+		text = ""
+	dotenv.load_dotenv(stream=io.StringIO(text))
 
 	current_accounts_str = os.environ.get("REWARDS_ACCOUNTS", "")
 	current_accounts = [acc.strip() for acc in current_accounts_str.split(",")] if current_accounts_str else []
@@ -318,7 +332,7 @@ def manage_accounts():
 					driver = start_driver(
 						Account(
 							data_dir_name,
-							user_data_dir=Path(dotenv.get_key(str(path_to_dotenv), "USER_DATA_DIR") or Path(__file__).parent.parent / "data-dir") / data_dir_name,
+							user_data_dir=Path(_env_key(path_to_dotenv, "USER_DATA_DIR") or Path(__file__).parent.parent / "data-dir") / data_dir_name,
 							profile_name="Default",
 						)
 					)
@@ -364,7 +378,7 @@ def manage_accounts():
 				driver = start_driver(
 					Account(
 						acc_to_signin,
-						user_data_dir=Path(dotenv.get_key(str(path_to_dotenv), "USER_DATA_DIR") or Path(__file__).parent.parent / "data-dir") / acc_to_signin,
+						user_data_dir=Path(_env_key(path_to_dotenv, "USER_DATA_DIR") or Path(__file__).parent.parent / "data-dir") / acc_to_signin,
 						profile_name="Default",
 					)
 				)

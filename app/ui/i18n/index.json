@@ -1,0 +1,15 @@
+{
+  "source": "en",
+  "namespaces": ["common", "shell", "errors", "tray", "setup", "overview", "live", "history", "accounts", "settings", "stats"],
+  "locales": [
+    {"code": "en", "name": "English", "dir": "ltr"},
+    {"code": "de", "name": "Deutsch", "dir": "ltr"},
+    {"code": "es", "name": "Español", "dir": "ltr"},
+    {"code": "fr", "name": "Français", "dir": "ltr"},
+    {"code": "it", "name": "Italiano", "dir": "ltr"},
+    {"code": "pt-BR", "name": "Português (Brasil)", "dir": "ltr"},
+    {"code": "ja", "name": "日本語", "dir": "ltr"},
+    {"code": "zh-Hans", "name": "中文（简体）", "dir": "ltr"},
+    {"code": "ar", "name": "العربية", "dir": "rtl"}
+  ]
+}

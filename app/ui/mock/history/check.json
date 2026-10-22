@@ -1,0 +1,20 @@
+{
+  "synthetic":true,
+  "methods":{
+    "get_run":{"ok":true,"data":{
+      "run_id":"synthetic-check","trigger":"scheduled","kind":"check","started_at":"2026-10-17T06:00:00Z","ended_at":"2026-10-17T06:00:10Z","duration_ms":10000,"active":false,"result":"skipped","result_key":"errors.run.skipped","points_earned":null,"stop_requested":false,"deferred":null,
+      "accounts":[{"account_id":"alex","label":"Alex (synthetic)","status":"skipped","decision":{"should_run":false,"reason":"unreadable","reason_key":"errors.decision.unreadable","open_points":null,"min_points":30},"state_before":{"at":"2026-10-17T06:00:00Z","balance":null,"earned_today":null,"searches_earned":null,"searches_max":null,"daily_set_open":null,"cards_open":null,"quests_open":null,"open_points":null,"unreadable":"page_blank"},"state_after":null,"points_now":null,"points_earned":null,"search":null,"error":null,
+        "tasks":[
+          {"task":"daily_set","name_key":"common.task.daily_set","status":"not_run","reason_key":"errors.task.not_run","detail":"Synthetic check diagnostic; no task ran.","progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"visual_search","name_key":"common.task.visual_search","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"misc_cards","name_key":"common.task.misc_cards","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"quests","name_key":"common.task.quests","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"searches","name_key":"common.task.searches","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"bonus","name_key":"common.task.bonus","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null}
+        ]}],"warnings":[],"log_size":21
+    }},
+    "get_run_log":{"ok":true,"data":{"text":"Synthetic check log.\n","next_offset":21,"eof":true,"size":21}}
+  },
+  "pushes":[]
+}

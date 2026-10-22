@@ -1,28 +1,99 @@
+from contextlib import contextmanager
 import logging
 import log_utils
 import os
 import random
 import time
 from typing import Callable
+from urllib.parse import urlsplit
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException, NoSuchElementException
+from urllib3.util import Timeout
 import tab_utils
 import queries
 import mouse_trajectory
 import mimic_typing
 import element_selectors
+import run_record
 
-from constants import REPO_ROOT
+from constants import DATA_HOME
 
-VISUAL_SEARCH_IMAGE_PATH = os.path.join(REPO_ROOT, "visual_search.jpg")
+VISUAL_SEARCH_IMAGE_PATH = os.path.join(DATA_HOME, "visual_search.jpg")
+
+TASKS = (
+	("daily_set", "Bing daily set", "complete_bing_daily_set"),
+	("explore_on_bing", "Explore on Bing", "complete_explore_on_bing_tasks"),
+	("visual_search", "Visual search", "complete_visual_search"),
+	("misc_cards", "Misc cards", "complete_misc_cards"),
+	("quests", "Quests", "complete_quests"),
+	("searches", "Required searches", "complete_required_searches"),
+	("bonus", "Bonus points", "claim_bonus_points"),
+)
+TASK_IDS = tuple(task_id for task_id, _, _ in TASKS)
+SKIP_TASKS_ENV = "REWARDS_SKIP_TASKS"
+
+
+def skipped_tasks() -> frozenset[str]:
+	return frozenset(part.strip().lower() for part in os.environ.get(SKIP_TASKS_ENV, "").split(",")) & frozenset(TASK_IDS)
 
 REWARDS_HOME_URL = "https://rewards.bing.com/"
+# Each account owns one measured budget, including WebDriver command time.
+BALANCE_RUN_BUDGET = 60.0
+BALANCE_READ_TIMEOUT = BALANCE_RUN_BUDGET / (len(TASKS) + 1)
+BALANCE_POLL_INTERVAL = 0.25
+# Leave time for the transport to return its timeout and unwind locally.
+BALANCE_COMMAND_MARGIN = 0.05
+BALANCE_RESTORE_RESERVE = 0.5
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def _balance_command_deadline(driver, deadline, clock, *, cleanup=False):
+	"""Bound serial Selenium calls, without leaving a reader thread behind.
+
+	The instance-local executor hook is restored before the next task. Selenium
+	uses this config for its HTTP read timeout; urllib3 retries must also be off
+	or a read timeout could silently spend the same remaining budget twice.
+	"""
+	executor = getattr(driver, "command_executor", None)
+	config = getattr(executor, "_client_config", None)
+	if config is None:
+		yield
+		return
+	execute = executor.execute
+	previous_timeout = config.timeout
+	previous_deadline = getattr(executor, "_balance_deadline", None)
+	executor._balance_deadline = min(deadline, previous_deadline) if previous_deadline is not None and not cleanup else deadline
+	connection = getattr(executor, "_conn", None)
+	request = getattr(connection, "request", None)
+	def bounded_execute(*args, **kwargs):
+		remaining = executor._balance_deadline - clock() - BALANCE_COMMAND_MARGIN
+		if remaining <= 0:
+			raise TimeoutException("balance command budget exhausted")
+		config.timeout = Timeout(total=remaining, connect=remaining, read=remaining)
+		return execute(*args, **kwargs)
+	def bounded_request(*args, **kwargs):
+		kwargs["retries"] = False
+		return request(*args, **kwargs)
+	executor.execute = bounded_execute
+	if request is not None:
+		connection.request = bounded_request
+	try:
+		yield
+	finally:
+		executor.execute = execute
+		config.timeout = previous_timeout
+		if previous_deadline is None:
+			del executor._balance_deadline
+		else:
+			executor._balance_deadline = previous_deadline
+		if request is not None:
+			connection.request = request
 
 
 class ElementNeverAppeared(TimeoutException):
@@ -39,7 +110,15 @@ class ElementNeverAppeared(TimeoutException):
 	"""
 
 
-def task_failure_report(exc: BaseException, progress: str | None = None) -> tuple[str, str]:
+class SearchQuotaShort(Exception):
+	"""A readable quota stayed short; retrying a Selenium lookup cannot fix it."""
+
+	def __init__(self, earned: int, maximum: int):
+		self.earned, self.maximum = earned, maximum
+		super().__init__(f"the search points stayed at {earned}/{maximum}")
+
+
+def _failure_text(exc: BaseException, progress: str | None = None) -> tuple[str, str]:
 	"""The tag and the reason a failed task is reported with.
 
 	Absence and an expired wait need different next steps. A section this market
@@ -61,7 +140,9 @@ def task_failure_report(exc: BaseException, progress: str | None = None) -> tupl
 
 	# No cause means nothing matched at all, which is only absence when the
 	# task had not got anywhere yet.
-	if isinstance(exc, ElementNeverAppeared):
+	if isinstance(exc, SearchQuotaShort):
+		cause = f"the search points stayed at {exc.earned}/{exc.maximum}"
+	elif isinstance(exc, ElementNeverAppeared):
 		cause = None
 	elif isinstance(exc, (element_selectors.ElementNotReady, TimeoutException)):
 		cause = f"on the page but not ready in time ({name})"
@@ -80,6 +161,31 @@ def task_failure_report(exc: BaseException, progress: str | None = None) -> tupl
 		cause = f"the next element never appeared ({name})"
 
 	return "FAIL", f"{progress}, then {cause}"
+
+
+def classify_task_failure(exc: BaseException, progress: str | None = None) -> tuple[str, str, str]:
+	tag, reason = _failure_text(exc, progress)
+	if tag == "SKIP":
+		key = "not_available"
+	elif isinstance(exc, SearchQuotaShort):
+		key = "quota_short"
+	elif isinstance(exc, ElementNeverAppeared) or (isinstance(exc, NoSuchElementException) and not isinstance(exc, element_selectors.ElementNotReady)):
+		key = "element_missing"
+	elif isinstance(exc, (element_selectors.ElementNotReady, TimeoutException)):
+		key = "not_ready"
+	else:
+		message = str(exc).lower()
+		if any(text in message for text in ("chrome not reachable", "no such window", "invalid session id", "target window already closed", "disconnected")):
+			key = "browser_closed"
+		elif any(text in message for text in ("err_internet_disconnected", "err_name_not_resolved", "err_connection_", "err_network_changed", "err_timed_out")):
+			key = "offline"
+		else:
+			key = "error"
+	return tag, reason, key
+
+
+def task_failure_report(exc: BaseException, progress: str | None = None) -> tuple[str, str]:
+	return classify_task_failure(exc, progress)[:2]
 
 
 class RewardsTaskUtils:
@@ -122,6 +228,7 @@ class RewardsTaskUtils:
 			if "login.live.com" in url or "account.microsoft.com" in url or "signup" in url:
 				logger.warning("Microsoft Rewards is NOT signed in on rewards.bing.com for this profile!")
 				logger.warning("Please sign in once on rewards.bing.com in this Edge profile window.")
+				run_record.emit("warning", code="signed_out", detail="Microsoft Rewards is NOT signed in on rewards.bing.com for this profile!")
 		except Exception:
 			pass
 
@@ -221,6 +328,7 @@ class RewardsTaskUtils:
 				"Daily set panel only shows %s of %s activities",
 				len(daily_set_links), expected_activities
 			)
+			run_record.emit("warning", code="daily_set_partial", detail=f"Daily set panel only shows {len(daily_set_links)} of {expected_activities} activities")
 
 		main_tab = self.driver.current_window_handle
 		opened = 0
@@ -391,6 +499,7 @@ class RewardsTaskUtils:
 					"Misc Card [desc=%r] is not complete after clicking. Please check manually.",
 					self.elements.extract_card_descriptions(card)
 				)
+				run_record.emit("card_left_open", description=self.elements.extract_card_descriptions(card))
 
 		self.tab_utils.close_all_other_tabs(exceptions=[main_tab])
 
@@ -403,12 +512,13 @@ class RewardsTaskUtils:
 		# card searches count towards the same quota. A single up front division
 		# therefore leaves points on the table and still reports success.
 		# Measure, search, measure again.
+		sent = 0
+		self._searches_sent = 0
+		self.progress = "sent 0 searches"
 		points_earned, max_pts = self.read_search_points()
 
 		logger.info("Search points before: %s/%s", points_earned, max_pts)
-
-		sent = 0
-		self.progress = "sent 0 searches"
+		run_record.emit("search_points", earned=points_earned, max=max_pts, round=0)
 
 		for round_number in range(1, max_rounds + 1):
 			if points_earned >= max_pts:
@@ -417,16 +527,41 @@ class RewardsTaskUtils:
 			# Assume the lower known rate so a round never overshoots by much.
 			searches = max(1, (max_pts - points_earned) // 3)
 
-			batch = self.run_search_batch(searches, already_sent=sent)
+			batch_error = None
+			try:
+				batch = self.run_search_batch(searches, already_sent=sent)
+			except (NoSuchElementException, TimeoutException) as exc:
+				if self._searches_sent == 0:
+					raise
+				batch_error = exc
+				batch = self._searches_sent - sent
 			sent += batch
 
 			previous = points_earned
-			points_earned, max_pts = self.read_search_points()
+			try:
+				if batch_error is not None:
+					raise batch_error
+				points_earned, max_pts = self.read_search_points()
+			except (NoSuchElementException, TimeoutException) as exc:
+				# The last query can fill the quota before its clear button or the
+				# returning earn page is ready. Only a fresh reading can prove that.
+				logger.warning("Search result could not be verified after %s (%s), reloading once", self.progress, type(exc).__name__)
+				try:
+					self.driver.get("https://rewards.bing.com/earn")
+					self.tab_utils.ensure_focus()
+					points_earned, max_pts = self.read_search_points()
+				except Exception:
+					if batch_error is not None:
+						raise batch_error
+					raise
+				if points_earned < max_pts:
+					raise exc
 
 			logger.info(
 				"Round %s: %s searches -> %s/%s",
 				round_number, batch, points_earned, max_pts
 			)
+			run_record.emit("search_points", earned=points_earned, max=max_pts, round=round_number)
 
 			if points_earned <= previous:
 				logger.warning("Round produced no points, stopping instead of searching pointlessly.")
@@ -434,14 +569,15 @@ class RewardsTaskUtils:
 
 		if points_earned < max_pts:
 			logger.warning("Search quota not filled: %s/%s", points_earned, max_pts)
+			raise SearchQuotaShort(points_earned, max_pts)
 		else:
 			logger.info("Search quota complete: %s/%s", points_earned, max_pts)
 
 	def complete_quests(self, max_steps: int = 8):
 		"""Work through the punch cards in the quests section.
 
-		Every activity is a plain Bing link, so there is nothing to interpret.
-		Cards unlock one step at a time, which is why each card's page is loaded
+		Cards can start with activation before their Bing activities unlock.
+		They unlock one step at a time, which is why each card's page is loaded
 		again after every activity instead of collecting its links up front.
 		"""
 		self.switch_to_earn_page()
@@ -472,6 +608,11 @@ class RewardsTaskUtils:
 		"""Click the unlocked activities of one punch card, returning how many."""
 		completed = 0
 		clicked = set()
+		def activity_key(activity):
+			href = activity.get_dom_attribute("href") or ""
+			# Only the admitted activation control can be on the Rewards host.
+			# New tracking parameters must not make that same start step new.
+			return ("quest start",) if "rewards.bing.com" in href else ((activity.text or "").strip(), href)
 
 		for _ in range(max_steps):
 			self.driver.get(url)
@@ -488,7 +629,7 @@ class RewardsTaskUtils:
 			# per round until max_steps ran out.
 			activities = [
 				activity for activity in self.elements.get_quest_activity_links()
-				if ((activity.text or "").strip(), activity.get_dom_attribute("href") or "") not in clicked
+				if activity_key(activity) not in clicked
 			]
 
 			if not activities:
@@ -496,7 +637,7 @@ class RewardsTaskUtils:
 
 			activity = activities[0]
 			label = (activity.text or "").strip()
-			clicked.add((label, activity.get_dom_attribute("href") or ""))
+			clicked.add(activity_key(activity))
 
 			self.move_to_and_click(activity)
 			time.sleep(random.uniform(2, 4))
@@ -513,18 +654,38 @@ class RewardsTaskUtils:
 			logger.info("%s activity/activities completed on %s", completed, card)
 		else:
 			logger.info("Nothing left to click on %s", card)
+			if max_steps > 0:
+				try:
+					logger.info("%s", self.elements.describe_quest_controls())
+				except Exception as exc:
+					logger.info("Quest controls in main: unreadable (%s)", type(exc).__name__)
 
 		return completed
 
-	def read_search_points(self):
-		"""Open the points breakdown, read the Bing search row, close it again."""
+	def reach_earn_page(self, marker, timeout: int = 20):
+		"""Wait for earn content, with one full navigation if the SPA stays empty.
+
+		After a tab click the page sometimes kept only 4 text buttons instead of
+		17. Waiting did not hydrate it, but navigating directly to /earn did.
+		"""
 		self.switch_to_earn_page()
 
+		try:
+			return self.wait_for_element(marker, timeout=timeout)
+		except TimeoutException:
+			logger.warning("Earn page did not render after the tab click, reloading")
+			self.driver.get("https://rewards.bing.com/earn")
+			self.tab_utils.ensure_focus()
+			return self.wait_for_element(marker, timeout=timeout)
+
+	def read_search_points(self):
+		"""Open the points breakdown, read the Bing search row, close it again."""
 		# 30s rather than the default 10s: this runs after the earlier tasks have
 		# navigated away, so the earn page re-renders from scratch first and the
 		# breakdown button regularly needs longer than 10s to appear. Timing out
 		# here skipped the entire search task while points were still available.
-		self.wait_for_then_click(self.elements.get_points_breakdown_button, timeout=30)
+		breakdown = self.reach_earn_page(self.elements.get_points_breakdown_button, timeout=30)
+		self.move_to_and_click(breakdown)
 
 		# Wait for the search row, not for the panel's close button. The close
 		# button is incidental to reading the number, and waiting on it first
@@ -549,6 +710,7 @@ class RewardsTaskUtils:
 		The trends source can come back with fewer queries than asked for, so
 		the caller cannot assume count.
 		"""
+		self._searches_sent = already_sent
 		self.driver.get("https://www.bing.com/")
 		self.tab_utils.ensure_focus()
 
@@ -564,6 +726,7 @@ class RewardsTaskUtils:
 			self.keyboard.send_keys(f"{query} -noai{Keys.ENTER}")
 			sent_here = i + 1
 			sent = already_sent + sent_here
+			self._searches_sent = sent
 			self.progress = f"sent {sent} {'search' if sent == 1 else 'searches'}"
 
 			time.sleep(random.uniform(5.5, 7.5))
@@ -632,7 +795,14 @@ class RewardsTaskUtils:
 	def claim_bonus_points(self):
 		self.switch_to_dashboard()
 
-		self.wait_for_then_click(self.elements.get_bonus_button_on_dashboard)
+		# The dashboard can stay unhydrated after its tab click too.
+		try:
+			self.wait_for_then_click(self.elements.get_bonus_button_on_dashboard, timeout=20)
+		except TimeoutException:
+			logger.warning("Dashboard did not render after the tab click, reloading")
+			self.driver.get("https://rewards.bing.com/dashboard")
+			self.tab_utils.ensure_focus()
+			self.wait_for_then_click(self.elements.get_bonus_button_on_dashboard, timeout=20)
 		self.progress = "opened the bonus panel"
 
 		try:
@@ -640,21 +810,136 @@ class RewardsTaskUtils:
 		except TimeoutException:
 			logger.warning("Could not find the 'Claim Bonus Points' button. There are likely no bonus points to claim at this time.")
 
-	def complete_all_tasks(self):
+	def _balance_host(self):
+		try:
+			host = urlsplit(self.driver.current_url).hostname
+			# Unknown hosts can contain tenant or account names. Keep only the
+			# fixed public hosts needed to tell Rewards from a search or sign-in.
+			self._balance_last_host = host if host in ("rewards.bing.com", "www.bing.com", "bing.com", "login.live.com", "account.microsoft.com") else "other"
+			return self._balance_last_host
+		except Exception:
+			self._balance_last_host = None
+			return None
+
+	def _prepare_balance_page(self, deadline, clock, cleanup_deadline=None):
+		if self._balance_host() in (None, "rewards.bing.com"):
+			return "not_needed"
+		# Each task selects its own earn/dashboard section at entry. Returning
+		# an off-site main tab home cannot discard input its successor needs.
+		# Charge this navigation to the reading, not another 60s page-load wait.
+		previous_timeout = None
+		try:
+			previous_timeout = self.driver.timeouts.page_load
+			# The last slice still needs to restore the driver's page timeout.
+			navigation_deadline = min(deadline, cleanup_deadline - BALANCE_RESTORE_RESERVE) if cleanup_deadline is not None else deadline
+			remaining = navigation_deadline - clock()
+			if remaining <= 0:
+				return "timed_out"
+			self.driver.set_page_load_timeout(min(previous_timeout, remaining))
+			try:
+				self.driver.get(REWARDS_HOME_URL)
+				return "returned"
+			except TimeoutException:
+				# A page-load timeout can still leave a readable header.
+				return "timed_out"
+			finally:
+				# Navigation discards the kept document's visibility overrides.
+				try:
+					with _balance_command_deadline(self.driver, cleanup_deadline or deadline, clock, cleanup=True):
+						self.tab_utils.ensure_focus()
+				except Exception:
+					pass
+		except Exception:
+			return "failed"
+		finally:
+			if previous_timeout is not None:
+				try:
+					with _balance_command_deadline(self.driver, cleanup_deadline or deadline, clock, cleanup=True):
+						self.driver.set_page_load_timeout(previous_timeout)
+				except Exception:
+					pass
+
+	def _read_balance(self, *, timeout=BALANCE_READ_TIMEOUT, prepare=False, clock=time.monotonic, sleep=time.sleep):
+		"""Wait for a readable header, without clicking or guessing earned points."""
+		self._balance_read_diagnostic = None
+		reader = getattr(self, "balance_reader", None)
+		if reader is None:
+			return None
+		began = clock()
+		budget = max(0, getattr(self, "_balance_remaining", BALANCE_RUN_BUDGET))
+		deadline = began + min(max(0, timeout), budget)
+		command_deadline = deadline if timeout > 0 else began + min(BALANCE_READ_TIMEOUT, budget)
+		transport_margin = BALANCE_COMMAND_MARGIN if getattr(getattr(self.driver, "command_executor", None), "_client_config", None) is not None else 0
+		immediate = getattr(self, "_balance_timed_out", False) or timeout <= 0
+		initial_host = getattr(self, "_balance_last_host", None)
+		navigation = "not_attempted"
+		attempts, reader_error = 0, False
+		elements = getattr(self, "elements", None)
+		if elements is not None:
+			elements.balance_observation = None
+			elements.balance_host = None
+		try:
+			# A cumulative deadline, not eight independent polling deadlines, also
+			# bounds URL queries, navigation, focus, observation and timeout restore.
+			with _balance_command_deadline(self.driver, command_deadline, clock):
+				if budget > 0:
+					initial_host = self._balance_host()
+					if prepare and not immediate:
+						navigation = self._prepare_balance_page(deadline, clock, began + budget)
+					while True:
+						attempts += 1
+						try:
+							# The single attempt after a timeout may take command time,
+							# but never another polling window or the remaining run budget.
+							balance = reader()
+							if getattr(elements, "balance_host", None) is not None:
+								self._balance_last_host = elements.balance_host
+							reader_error = False
+							if type(balance) is int and balance >= 0 and clock() <= command_deadline:
+								self._balance_timed_out = False
+								return balance
+						except Exception:
+							reader_error = True
+						remaining = deadline - clock() - transport_margin
+						if immediate or remaining <= 0:
+							break
+						sleep(min(BALANCE_POLL_INTERVAL, remaining))
+		except Exception:
+			reader_error = True
+		finally:
+			self._balance_remaining = max(0, budget - (clock() - began))
+		self._balance_timed_out = True
+		# The record survives the run; exception text and URLs do not belong in
+		# it. Reusing this missing boundary keeps both adjacent tasks honest.
+		self._balance_read_diagnostic = {"status": "unreadable", "attempts": attempts,
+			"elapsed_ms": round((clock() - began) * 1000), "initial_host": initial_host,
+			"host": getattr(self, "_balance_last_host", None), "navigation": navigation, "reader_error": reader_error,
+			"wait_mode": "immediate" if immediate else "poll", "budget_remaining_ms": round(self._balance_remaining * 1000),
+			"observation": getattr(elements, "balance_observation", None)}
+		return None
+
+	def complete_all_tasks(self, *, only=None, clock=time.monotonic, sleep=time.sleep):
 		# Each task is run independently. The Rewards UI differs by market and
 		# changes between deploys, so a task the current variant does not ship
 		# must not take the remaining ones down with it.
-		steps = (
-			("Bing daily set", self.complete_bing_daily_set),
-			("Explore on Bing", self.complete_explore_on_bing_tasks),
-			("Visual search", self.complete_visual_search),
-			("Misc cards", self.complete_misc_cards),
-			("Quests", self.complete_quests),
-			("Required searches", self.complete_required_searches),
-			("Bonus points", self.claim_bonus_points),
-		)
-
-		for name, step in steps:
+		self._balance_remaining = BALANCE_RUN_BUDGET
+		self._balance_timed_out = False
+		have_before = False
+		before, before_diagnostic = None, None
+		for task_id, name, method in TASKS:
+			# Missing task events already mean not_run to the record readers.
+			if only is not None and task_id not in only:
+				continue
+			if task_id in skipped_tasks():
+				logger.info("[SKIP] %s: turned off in the settings", name)
+				run_record.emit("task_end", task=task_id, name=name, outcome="off", reason_key="turned_off", detail="turned off in the settings", progress=None, points_before=None, points_after=None, duration_ms=0)
+				continue
+			if not have_before:
+				before = self._read_balance(clock=clock, sleep=sleep)
+				before_diagnostic = self._balance_read_diagnostic
+			began = clock()
+			run_record.emit("task_start", task=task_id, name=name, points_before=before)
+			outcome, reason, reason_key = "ok", None, None
 			# The tags stay in the message rather than being folded into the
 			# level, they are the per-task outcome summary and reading a run
 			# means scanning for them.
@@ -665,18 +950,18 @@ class RewardsTaskUtils:
 			self.progress = None
 
 			try:
-				step()
+				getattr(self, method)()
 				logger.info("[OK] %s", name)
 				completed = True
 			except Exception as exc:
-				tag, reason = task_failure_report(exc, self.progress)
+				tag, reason, reason_key = classify_task_failure(exc, self.progress)
+				outcome = "skip" if tag == "SKIP" else "fail"
 
 				logger.log(
 					logging.WARNING if tag == "SKIP" else logging.ERROR,
 					"[%s] %s: %s", tag, name, reason,
 					exc_info=logger.isEnabledFor(logging.DEBUG)
 				)
-
 			# Leave a clean tab state behind for the next task. Both halves of
 			# this matter, and they are separate failures: the right tab has to
 			# survive, and it has to be showing the right page.
@@ -684,3 +969,12 @@ class RewardsTaskUtils:
 
 			if not completed:
 				self.return_to_rewards_home()
+			after = self._read_balance(prepare=True, clock=clock, sleep=sleep)
+			after_diagnostic = self._balance_read_diagnostic
+			diagnostic = {phase: value for phase, value in (("before", before_diagnostic), ("after", after_diagnostic)) if value is not None}
+			run_record.emit("task_end", task=task_id, name=name, outcome=outcome, reason_key=reason_key, detail=reason,
+				progress=self.progress, points_before=before, points_after=after, duration_ms=round((clock() - began) * 1000),
+				**({"balance_read": diagnostic} if diagnostic else {}))
+			# Only logs and record writes separate these boundaries, including
+			# when a turned-off task lies between them. None is shared too.
+			before, before_diagnostic, have_before = after, after_diagnostic, True

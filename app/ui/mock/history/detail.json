@@ -1,0 +1,31 @@
+{
+  "synthetic": true,
+  "methods": {
+    "get_run": {"ok":true,"data":{
+      "run_id":"synthetic-partial","trigger":"scheduled","kind":"run","started_at":"2026-10-17T07:00:00Z","ended_at":"2026-10-17T07:04:00Z","duration_ms":240000,"active":false,"result":"partial","result_key":"errors.run.partial","points_earned":36,"stop_requested":false,"deferred":null,
+      "accounts":[{
+        "account_id":"alex","label":"Alex","status":"done","decision":{"should_run":true,"reason":"enough_open","reason_key":"errors.decision.enough_open","open_points":30,"min_points":20},
+        "state_before":{"at":"2026-10-17T07:00:00Z","balance":12280,"earned_today":0,"searches_earned":45,"searches_max":60,"daily_set_open":1,"cards_open":0,"quests_open":1,"open_points":36,"unreadable":null},
+        "state_after":{"at":"2026-10-17T07:04:00Z","balance":12316,"earned_today":36,"searches_earned":60,"searches_max":60,"daily_set_open":0,"cards_open":0,"quests_open":0,"open_points":0,"unreadable":null},
+        "points_now":12316,"points_earned":36,"search":{"earned":60,"max":60},"error":null,
+        "tasks":[
+          {"task":"daily_set","name_key":"common.task.daily_set","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":12280,"points_after":12292,"points":12,"duration_ms":30000},
+          {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":12292,"points_after":12292,"points":0,"duration_ms":30000},
+          {"task":"visual_search","name_key":"common.task.visual_search","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":12292,"points_after":12295,"points":3,"duration_ms":10000},
+          {"task":"misc_cards","name_key":"common.task.misc_cards","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":12295,"points_after":12295,"points":0,"duration_ms":30000},
+          {"task":"quests","name_key":"common.task.quests","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":12295,"points_after":12301,"points":6,"duration_ms":20000},
+          {"task":"searches","name_key":"common.task.searches","status":"fail","reason_key":"errors.task.element_missing","detail":"Synthetic failed task diagnostic, not operator data.","progress":null,"points_before":12301,"points_after":12313,"points":15,"duration_ms":120000},
+          {"task":"bonus","name_key":"common.task.bonus","status":"off","reason_key":"errors.task.turned_off","detail":null,"progress":null,"points_before":12313,"points_after":12313,"points":null,"duration_ms":null}
+        ]
+      }],
+      "warnings":[],
+      "log_size":2677
+    }},
+    "get_run_log": [
+      {"when":{"offset":876},"ok":true,"data":{"text":"[Synthetic preview log, page 2]\n17:46:00 Looking up synthetic search terms\n17:46:01 The external source is unavailable\n17:46:02 Falling back to a built-in word list\n17:46:03 Recording a search-terms warning\n17:46:04 Synthetic search step 1\n17:46:05 Synthetic search step 2\n17:46:06 Synthetic search step 3\n17:46:07 Synthetic search step 4\n17:46:08 Synthetic search step 5\n17:46:09 Synthetic search step 6\n17:46:10 Synthetic search step 7\n17:46:11 Synthetic search step 8\n17:46:12 Synthetic search step 9\n17:46:13 Synthetic search step 10\n17:46:14 Synthetic search step 11\n17:46:15 Synthetic search step 12\n17:46:16 Synthetic search step 13\n17:46:17 Synthetic search step 14\n17:46:18 Synthetic search step 15\n17:46:19 Checking the last recorded point value\n17:46:20 This fixture never reaches Microsoft\n17:46:21 All accounts and points are made up\n17:46:22 The final page contains the recorded outcome\n","next_offset":1777,"eof":false,"size":2677}},
+      {"when":{"offset":1777},"ok":true,"data":{"text":"[Synthetic preview log, page 3]\n17:49:00 Reading the final synthetic balance\n17:49:01 Final balance was 12340\n17:49:02 Measured change was 60 points\n17:49:03 Search points were 45 of 60\n17:49:04 Daily set has no remaining activities\n17:49:05 One activity card remains open\n17:49:06 One quest remains open\n17:49:07 Bonus was turned off in Settings\n17:49:08 Quest task has no recorded outcome\n17:49:09 Daily set finished\n17:49:10 Explore on Bing finished\n17:49:11 Visual search skipped normally\n17:49:12 Activity cards failed part way\n17:49:13 Searches finished\n17:49:14 Appending final task outcomes\n17:49:15 Appending the warning record\n17:49:16 Writing the final run result\n17:49:17 The run result is partial\n17:49:18 Releasing the synthetic run lock\n17:49:19 Notifying the synthetic app\n17:49:20 No real notification was sent\n17:49:21 This is the end of the sample log\n17:50:00 Synthetic run ended\n","next_offset":2677,"eof":true,"size":2677}},
+      {"ok":true,"data":{"text":"[Synthetic preview log, page 1]\n17:45:00 Starting the scheduled check\n17:45:01 Reading the recorded balance\n17:45:02 Checking the daily set\n17:45:03 Checking activity cards\n17:45:04 Checking open quests\n17:45:05 Checking desktop search points\n17:45:06 About 60 points are open\n17:45:07 Starting the synthetic run\n17:45:08 Daily set activity 1\n17:45:09 Daily set activity 2\n17:45:10 Daily set activity 3\n17:45:11 Daily set finished\n17:45:12 Explore activity 1\n17:45:13 Explore activity 2\n17:45:14 Explore finished\n17:45:15 Visual search is not offered\n17:45:16 Reading activity card labels\n17:45:17 Opening synthetic card 1\n17:45:18 Card button could not be found\n17:45:19 Keeping the card error in the run record\n17:45:20 No script or browser activity occurs in this fixture\n17:45:21 This is illustrative technical text\n17:45:22 The next page continues the same synthetic log\n","next_offset":876,"eof":false,"size":2677}}
+    ]
+  },
+  "pushes": []
+}

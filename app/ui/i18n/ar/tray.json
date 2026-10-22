@@ -1,0 +1,22 @@
+{
+  "namespace": "tray",
+  "messages": {
+    "tray.tooltip.running": {"text": "Rewards Farmer قيد التشغيل", "src": "c6fb48f3"},
+    "tray.tooltip.today": {"plural": "total", "forms": {"zero": "اليوم: {earned} من أصل {total} نقطة", "one": "اليوم: {earned} من أصل نقطة واحدة", "two": "اليوم: {earned} من أصل نقطتين", "few": "اليوم: {earned} من أصل {total} نقاط", "many": "اليوم: {earned} من أصل {total} نقطة", "other": "اليوم: {earned} من أصل {total} نقطة"}, "src": "5dcdaac0"},
+    "tray.tooltip.idle": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "tray.menu.open": {"text": "فتح Rewards Farmer", "src": "6a15e6b4"},
+    "tray.menu.run_now": {"text": "تشغيل الآن", "src": "d716b60f"},
+    "tray.menu.stop": {"text": "إيقاف التشغيل الجاري", "src": "72200071"},
+    "tray.menu.next_check": {"text": "التحقق التالي الساعة {time}", "src": "bbd1573b"},
+    "tray.menu.next_run": {"text": "التشغيل التالي الساعة {time}", "src": "0435d4c1"},
+    "tray.menu.manual": {"text": "تشغيل يدوي فقط", "src": "0ea06527"},
+    "tray.menu.quit": {"text": "إنهاء", "src": "235b8aa6"},
+    "tray.notify.done.title": {"text": "انتهى Rewards Farmer", "src": "971ff610"},
+    "tray.notify.done.body": {"plural": "points", "forms": {"zero": "لم تُكتسب نقاط، الرصيد {balance}", "one": "اكتسبت نقطة واحدة، الرصيد {balance}", "two": "اكتسبت نقطتين، الرصيد {balance}", "few": "اكتسبت {points} نقاط، الرصيد {balance}", "many": "اكتسبت {points} نقطة، الرصيد {balance}", "other": "اكتسبت {points} نقطة، الرصيد {balance}"}, "src": "98f0a8ee"},
+    "tray.notify.done.body_no_balance": {"plural": "points", "forms": {"zero": "لم تُكتسب نقاط", "one": "اكتسبت نقطة واحدة", "two": "اكتسبت نقطتين", "few": "اكتسبت {points} نقاط", "many": "اكتسبت {points} نقطة", "other": "اكتسبت {points} نقطة"}, "src": "e1bd8366"},
+    "tray.notify.done.body_no_points": {"text": "انتهى التشغيل. افتح Rewards Farmer لعرض التفاصيل.", "src": "83691a74"},
+    "tray.notify.problem.title": {"text": "Rewards Farmer يحتاج إلى انتباهك", "src": "bbd38c09"},
+    "tray.notify.signed_out": {"text": "يحتاج {account} إلى تسجيل دخولك مجددًا.", "src": "161cf976"},
+    "tray.notify.closed_to_tray": {"text": "ما زال Rewards Farmer في علبة النظام. اختر «إنهاء» من هناك لإغلاقه.", "src": "50ddf2a7"}
+  }
+}

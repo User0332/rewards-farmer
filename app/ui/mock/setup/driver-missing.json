@@ -1,0 +1,12 @@
+{
+  "synthetic": true,
+  "methods": {
+    "list_accounts": {"ok": true, "data": {"accounts": []}},
+    "get_settings": {"ok": true, "data": {"values": {"schedule.mode": "manual", "schedule.window_start": "09:45", "schedule.window_end": "21:45", "schedule.checks": 4, "schedule.time": "09:45", "schedule.days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}, "secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "schedule": {"mode": "manual", "task_name": "RewardsFarmerApp_test0000", "task_exists": false, "in_sync": true, "next_at": null, "next_is_check": false, "legacy_task": null, "error_code": null}}},
+    "get_legacy_install": {"ok": true, "data": {"found": false, "path": null, "accounts": []}},
+    "pick_path": {"ok": true, "data": {"path": "C:\\Synthetic\\Edge\\msedge.exe"}},
+    "save_settings": {"ok": true, "data": {"values": {"advanced.edge_path": "C:\\Synthetic\\Edge\\msedge.exe", "advanced.driver_path": ""}, "secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "schedule": {"mode": "manual", "task_name": "RewardsFarmerApp_test0000", "task_exists": false, "in_sync": true, "next_at": null, "next_is_check": false, "legacy_task": null, "error_code": null}, "warnings": []}},
+    "export_diagnostics": {"ok": true, "data": {"path": "C:\\Synthetic\\diagnostics.zip"}}
+  },
+  "pushes": [{"after_ms": 0, "topic": "signin.status", "data": {"account_id": "account-1", "state": "failed", "error_code": "driver_missing", "message_key": "errors.browser.driver_missing", "detail": "Synthetic driver download failure", "at": "2026-10-14T20:00:01Z"}}]
+}

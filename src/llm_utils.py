@@ -92,7 +92,8 @@ def get_llm_response(messages: list[dict[str, str]]) -> str:
 			"model": _get_llm_model(),
 			"messages": messages,
 		},
-		timeout=float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "60")),
+		# A cold local model took 40s to load, and browser load lengthens calls.
+		timeout=float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "180")),
 	)
 	response.raise_for_status()
 
@@ -104,16 +105,23 @@ def get_llm_response(messages: list[dict[str, str]]) -> str:
 	return content
 
 def get_nonempty_llm_response(messages: list[dict[str, str]]) -> str:
-	"""Retry a bounded number of times instead of spinning forever on empties."""
+	"""Bound empty and failed calls so a cold model can recover before fallback."""
+	last_error = None
+
 	for attempt in range(MAX_EMPTY_RETRIES):
-		response = get_llm_response(messages)
+		try:
+			response = get_llm_response(messages)
+		except Exception as exc:
+			last_error = exc
+			logger.warning("LLM call failed (%s), attempt %s/%s", type(exc).__name__, attempt + 1, MAX_EMPTY_RETRIES)
+			continue
 
 		if response and response.strip():
 			return response
 
 		logger.warning("Empty LLM response, retry %s/%s", attempt + 1, MAX_EMPTY_RETRIES)
 
-	raise RuntimeError(f"LLM returned nothing usable after {MAX_EMPTY_RETRIES} attempts")
+	raise RuntimeError(f"LLM returned nothing usable after {MAX_EMPTY_RETRIES} attempts") from last_error
 
 def get_search_query_from_task_description(task_description: str) -> str:
 	# compat

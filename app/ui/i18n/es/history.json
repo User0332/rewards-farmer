@@ -1,0 +1,28 @@
+{
+  "namespace": "history",
+  "messages": {
+    "history.title": {"text": "Historial", "src": "ee7ea2a7"},
+    "history.loading": {"text": "Abriendo el historial", "src": "1b51a0b8"},
+    "history.checks.latest": {"text": "Abrir la última comprobación", "src": "240765be"},
+    "history.empty.title": {"text": "Aún no hay ejecuciones registradas", "src": "cfd9586c"},
+    "history.empty.body": {"text": "Tus ejecuciones aparecerán aquí. Inicia una desde Resumen cuando quieras.", "src": "b8385610"},
+    "history.empty.overview": {"text": "Abrir Resumen", "src": "e2d35e84"},
+    "history.more": {"text": "Cargar ejecuciones anteriores", "src": "5a071c67"},
+    "history.refresh": {"text": "Actualizar historial", "src": "209bea6f"},
+    "history.back": {"text": "Volver al historial", "src": "802d1fd2"},
+    "history.detail.title": {"text": "Detalles de la ejecución", "src": "96852a87"},
+    "history.day.today": {"text": "Hoy", "src": "9fc3002e"},
+    "history.day.yesterday": {"text": "Ayer", "src": "4e2fdb08"},
+    "history.mark.app_run": {"text": "Ejecución desde la app", "src": "711c56ba"},
+    "history.mark.waited": {"text": "Esperó {minutes} min", "src": "cfd7f471"},
+    "history.mark.attention": {"text": "Requiere atención", "src": "ae139315"},
+    "history.sources.title": {"text": "Puntos por tarea", "src": "b6410bb5"},
+    "history.tasks.not_run": {"plural": "count", "forms": {"one": "{count} tarea sin ejecutar", "many": "{count} tareas sin ejecutar", "other": "{count} tareas sin ejecutar"}, "src": "631bacc5"},
+    "history.tasks.no_points": {"plural": "count", "forms": {"one": "{count} tarea sin puntos", "many": "{count} tareas sin puntos", "other": "{count} tareas sin puntos"}, "src": "4a7d171c"},
+    "history.deferred.waited": {"plural": "count", "forms": {"one": "Se inició con {count} minuto de retraso porque había una aplicación a pantalla completa o una presentación abierta.", "many": "Se inició con {count} minutos de retraso porque había una aplicación a pantalla completa o una presentación abierta.", "other": "Se inició con {count} minutos de retraso porque había una aplicación a pantalla completa o una presentación abierta."}, "src": "a21280fe"},
+    "history.deferred.gave_up": {"text": "Tras 40 minutos, seguía abierta una aplicación a pantalla completa o una presentación. La ejecución se inició de todos modos.", "src": "681c93d3"},
+    "history.technical.title": {"text": "Detalles técnicos", "src": "9b9dc17e"},
+    "history.technical.task": {"text": "{task}", "src": "920380b0"},
+    "history.checks.day_count": {"plural": "count", "forms": {"one": "{count} comprobación", "many": "{count} comprobaciones", "other": "{count} comprobaciones"}, "src": "a83a3c90"}
+  }
+}

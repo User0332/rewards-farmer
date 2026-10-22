@@ -1,0 +1,5 @@
+{
+  "synthetic": true,
+  "methods": {"list_accounts": {"ok": false, "error": {"code": "internal", "message_key": "errors.app.internal", "params": {}, "detail": "Synthetic load error", "fields": null}}},
+  "pushes": []
+}

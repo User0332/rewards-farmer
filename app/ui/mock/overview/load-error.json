@@ -1,0 +1,1 @@
+{"synthetic":true,"note":"Synthetic rejected get_overview request, mapped bridge error and recovery without a real bridge.","methods":{"get_overview":{"ok":false,"error":{"code":"internal","message_key":"errors.app.internal","params":{},"detail":"Synthetic overview load failure","fields":null}}},"pushes":[]}

@@ -379,5 +379,57 @@ class VisualSearchPanel(unittest.TestCase):
 		self.assertFalse(selectors.visual_search_done_today())
 
 
+class PointsBalance(unittest.TestCase):
+	"""The spendable balance is in the header profile button, not the earn panel."""
+
+	def _button(self, text, label="View profile", displayed=True):
+		return FakeElement(text=text, attributes={"aria-label": label}, displayed=displayed)
+
+	def _driver(self, *buttons):
+		header = FakeElement(children={(By.TAG_NAME, "button"): list(buttons)})
+		return FakeDriver(children={
+			(By.TAG_NAME, "header"): [header],
+			(By.TAG_NAME, "button"): [self._button("999,999")],
+		})
+
+	def test_reads_a_synthetic_header_profile_balance(self):
+		self.assertEqual(selectors_for(self._driver(self._button("12,345"))).get_points_balance(), 12345)
+
+	def test_reads_zero_without_treating_it_as_missing(self):
+		self.assertEqual(selectors_for(self._driver(self._button("0"))).get_points_balance(), 0)
+
+	def test_label_is_case_insensitive(self):
+		self.assertEqual(selectors_for(self._driver(self._button("123", "VIEW PROFILE"))).get_points_balance(), 123)
+
+	def test_skips_a_hidden_responsive_copy(self):
+		self.assertEqual(selectors_for(self._driver(
+			self._button("987,654", displayed=False), self._button("12,345"),
+		)).get_points_balance(), 12345)
+
+	def test_skips_a_stale_responsive_copy(self):
+		class StaleButton(FakeElement):
+			def get_dom_attribute(self, name):
+				raise element_selectors.StaleElementReferenceException("re-rendered")
+
+		self.assertEqual(selectors_for(self._driver(
+			StaleButton(), self._button("42"),
+		)).get_points_balance(), 42)
+
+	def test_does_not_read_today_or_streak_values_as_the_balance(self):
+		with self.assertRaises(NoSuchElementException):
+			selectors_for(self._driver(
+				self._button("246", "Today's points"), self._button("8", "Daily streak"),
+			)).get_points_balance()
+
+	def test_missing_profile_control_is_not_zero(self):
+		with self.assertRaises(NoSuchElementException):
+			selectors_for(FakeDriver()).get_points_balance()
+
+	def test_loading_text_and_malformed_numbers_are_not_balances(self):
+		for text in ("", "Loading...", "12,34", "12/345", "-1", "246 points today", "12,345\n987", "Level 2"):
+			with self.subTest(text=text), self.assertRaises(NoSuchElementException):
+				selectors_for(self._driver(self._button(text))).get_points_balance()
+
+
 if __name__ == "__main__":
 	unittest.main()

@@ -1,0 +1,16 @@
+{
+  "namespace": "live",
+  "messages": {
+    "live.title": {"text": "実行状況", "src": "81326d0d"},
+    "live.points_earned": {"text": "今回の獲得ポイント", "src": "9dfeaf4b"},
+    "live.search_progress": {"text": "{earned}/{max}", "src": "f9dc0854"},
+    "live.stop": {"text": "実行を停止", "src": "72200071"},
+    "live.stop_waiting": {"text": "停止しています", "src": "3d6e4670"},
+    "live.stop_note": {"text": "ブラウザーの停止を待っています。少し時間がかかる場合があります。", "src": "d757bf3d"},
+    "live.history": {"text": "履歴で実行を開く", "src": "52466e7c"},
+    "live.overview": {"text": "概要を開く", "src": "e2d35e84"},
+    "live.last_run": {"text": "前回の実行", "src": "0b828e5b"},
+    "live.more_details": {"text": "詳しい情報", "src": "7bb83408"},
+    "live.idle.title": {"text": "現在、実行していません", "src": "0888f8c6"}
+  }
+}

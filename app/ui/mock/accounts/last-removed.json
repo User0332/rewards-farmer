@@ -1,0 +1,5 @@
+{
+  "synthetic": true,
+  "methods": {"remove_account": {"ok": true, "data": {"accounts": [], "warnings": []}}},
+  "pushes": []
+}

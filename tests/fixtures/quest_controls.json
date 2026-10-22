@@ -1,0 +1,12 @@
+{
+  "activate_button": "<main><button data-react-aria-pressable>Activate quest</button><a href='https://www.bing.com/search?q=later#step' aria-disabled='true'>Start searching</a><a href='https://www.bing.com/images' aria-disabled='true'>Download wallpaper</a></main>",
+  "rewards_link": "<main><a role='button' href='https://rewards.bing.com/earn/quest/activate?token=not-for-log#next'>Activate quest</a></main>",
+  "relative_link": "<main><a href='/earn/quest/activate?token=not-for-log#next'>Activate quest</a></main>",
+  "locked": "<main><a href='https://www.bing.com/search?q=later' aria-disabled='true'>Start searching</a><button disabled aria-disabled='true'>Try it</button></main>",
+  "footer": "<main><h1>Activities</h1></main><footer><a href='https://www.bing.com/?rwgbopen=1'>Open Bing footer</a></footer>",
+  "clickable": "<main><a href='https://www.bing.com/search?q=existing'>Search now</a><button>Activate quest</button></main>",
+  "masked": "<main><button role='user@example.test' aria-disabled='a@b' disabled='a@b'>Activate user@example.test quest</button><a href='https://user@example.test/activate?private=1'>Address check</a><a href='/private/user@example.test?secret=1'>Private path</a></main>",
+  "hidden_and_empty": "<main><button hidden>Hidden action</button><a aria-disabled='true' href='https://www.bing.com/search'></a><div role='button'>Activate quest</div></main>",
+  "native_disabled_link": "<main><a disabled href='https://www.bing.com/search?q=existing'>Search now</a></main>",
+  "literal_href_filter": "<main><a href='https://example.test/path?next=bing.com'>Existing substring match</a></main>"
+}

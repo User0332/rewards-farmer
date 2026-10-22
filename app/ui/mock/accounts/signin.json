@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "methods": {
+    "get_overview": {"ok": true, "data": {"generated_at": "2026-10-14T20:00:00Z", "accounts": [], "totals": {"balance": null, "earned_today": null, "open_points": null}, "schedule": {"mode": "manual", "task_name": "RewardsFarmerApp_test0000", "task_exists": false, "in_sync": true, "next_at": null, "next_is_check": false, "legacy_task": null, "error_code": null}, "active_run": null, "signin_active": {"account_id": "jamie"}, "last_run": null}},
+    "get_signin_status": {"ok": true, "data": {"account_id": "jamie", "state": "waiting", "error_code": null, "message_key": "accounts.signin.waiting", "detail": null, "at": "2026-10-14T20:00:00Z"}},
+    "sign_in_again": {"ok": true, "data": {"signin": {"account_id": "jamie", "state": "starting", "error_code": null, "message_key": "accounts.signin.starting", "detail": null, "at": "2026-10-14T20:00:00Z"}}},
+    "cancel_signin": {"ok": true, "data": {}}
+  },
+  "pushes": [{"after_ms": 0, "topic": "signin.status", "data": {"account_id": "jamie", "state": "waiting", "error_code": null, "message_key": "accounts.signin.waiting", "detail": null, "at": "2026-10-14T20:00:01Z"}}]
+}

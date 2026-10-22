@@ -1,0 +1,78 @@
+.setup-screen { max-inline-size: 1100px; margin-inline: auto; display: grid; gap: var(--sp-4); padding-block: var(--sp-2); }
+.setup-screen .screen-header { margin-block-end: 0; align-items: center; }
+.setup-heading { padding-inline: var(--sp-1); }
+.setup-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.setup-sidebar { display: grid; gap: var(--sp-5); padding-block-start: var(--sp-3); }
+.setup-content { display: grid; gap: var(--sp-4); min-inline-size: 0; }
+.setup-copy { color: var(--c-text-2); }
+.setup-copy { max-inline-size: 78ch; font-size: var(--fs-2); line-height: var(--lh-normal); }
+.setup-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); list-style: none; padding: 0; }
+.setup-steps li { display: flex; align-items: center; gap: var(--sp-2); padding-block: var(--sp-2); color: var(--c-text-2); font-size: var(--fs-2); overflow-wrap: anywhere; }
+.setup-steps li[aria-current="step"] { color: var(--c-text); font-weight: var(--fw-medium); }
+.setup-step-number { display: grid; place-items: center; flex: 0 0 32px; inline-size: 32px; block-size: 32px; border: 1px solid var(--c-border); border-radius: 50%; font-variant-numeric: tabular-nums; }
+.setup-steps li[aria-current="step"] .setup-step-number { border-color: var(--c-accent); background: color-mix(in srgb, var(--c-accent) 17%, transparent); }
+.setup-steps li.is-complete { color: var(--c-text-2); }
+.setup-screen .card { padding: var(--sp-4); }
+.setup-screen .card-body, .setup-status, .setup-import { display: grid; gap: var(--sp-4); }
+.setup-screen .card-header { margin-block-end: var(--sp-4); }
+.setup-screen .card-header h2 { font-size: var(--fs-4); }
+.setup-screen .segmented-options, .setup-screen .time-range-inputs { max-inline-size: 760px; }
+.setup-screen .field-label, .setup-screen .switch-row { font-size: var(--fs-3); }
+.setup-screen .field-description { max-inline-size: 78ch; font-size: var(--fs-2); }
+.setup-screen .segment { min-inline-size: 0; overflow-wrap: anywhere; }
+.setup-screen .banner { flex-wrap: wrap; }
+.setup-screen .banner-message { flex-basis: 60%; }
+.setup-screen .banner .control-actions { max-inline-size: 100%; }
+.setup-screen .switch-control { margin-inline-start: var(--sp-5); }
+.setup-schedule-grid { display: grid; gap: var(--sp-5); grid-template-columns: minmax(0, 1fr); }
+.setup-schedule-main { display: grid; align-content: start; gap: var(--sp-4); min-inline-size: 0; }
+.setup-screen .account-row:last-child { border-block-end: 0; }
+.setup-actions { display: flex; align-items: center; justify-content: start; flex-wrap: wrap; gap: var(--sp-3); padding-block-start: var(--sp-2); }
+.setup-actions .button { inline-size: auto; }
+.setup-screen .card-body > .button { justify-self: start; }
+.setup-first-run-choice { border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-4); }
+.setup-background { display: grid; align-content: start; gap: var(--sp-4); border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-4); min-inline-size: 0; }
+.setup-background .switch-row { align-items: start; }
+.setup-background .switch-control { margin-inline-start: var(--sp-2); }
+.setup-summary { margin: 0; display: grid; min-inline-size: 0; }
+.setup-summary-row { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: var(--sp-5); align-items: start; padding-block: var(--sp-4); border-block-start: 1px solid var(--c-border); }
+.setup-summary-row dt { color: var(--c-text-2); padding-block-start: var(--sp-1); }
+.setup-summary-row dd { margin: 0; font-size: var(--fs-3); min-inline-size: 0; overflow-wrap: anywhere; }
+.setup-summary-row .account-row { padding-block: 0; }
+.setup-summary-row .account-row-balance { display: none; }
+.setup-summary-detail { color: var(--c-text-2); font-size: var(--fs-2); margin-block-start: var(--sp-2); }
+.setup-import { border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-5); }
+.setup-import > .button, .setup-status > .button { justify-self: start; }
+.setup-days summary { list-style: none; cursor: pointer; color: var(--c-text-2); border: 1px solid var(--c-border); border-radius: var(--r-s); }
+.setup-days summary::-webkit-details-marker { display: none; }
+.setup-days[open] summary { margin-block-end: var(--sp-2); }
+.setup-field-error { color: var(--c-danger); font-size: var(--fs-2); }
+.setup-content > .risk-notice { border-block-end: 1px solid var(--c-border); padding-block-end: var(--sp-4); }
+.setup-screen .banner { flex-wrap: wrap; }
+.setup-screen .banner-message { flex-basis: 60%; }
+.setup-recovery { display: grid; gap: var(--sp-3); border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-4); }
+@media (max-width: 1279px) {
+  .setup-screen { padding-block: var(--sp-2); gap: var(--sp-4); }
+  .setup-layout { grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
+  .setup-sidebar { padding-block-start: 0; gap: var(--sp-2); }
+  .setup-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+  .setup-steps li { font-size: var(--fs-2); }
+  .setup-schedule-grid { grid-template-columns: minmax(0, 1.7fr) minmax(240px, 0.9fr); }
+  .setup-background { border-block-start: 0; padding-block-start: 0; border-inline-start: 1px solid var(--c-border); padding-inline-start: var(--sp-5); }
+}
+@media (max-width: 999px) {
+  .setup-schedule-grid { grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
+  .setup-background { border-inline-start: 0; padding-inline-start: 0; border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-4); }
+}
+@media (min-width: 1440px) {
+  .setup-schedule-grid { grid-template-columns: minmax(0, 1.7fr) minmax(240px, 0.9fr); }
+  .setup-background { border-block-start: 0; padding-block-start: 0; border-inline-start: 1px solid var(--c-border); padding-inline-start: var(--sp-5); }
+}
+@media (max-width: 959px) {
+  .setup-heading { flex-wrap: wrap; }
+  .setup-screen .card-header h2 { font-size: var(--fs-4); }
+  .setup-copy, .setup-screen .field-label, .setup-screen .switch-row { font-size: var(--fs-2); }
+  .setup-steps { gap: var(--sp-2); }
+  .setup-screen .card { padding: var(--sp-4); }
+  .setup-summary-row { grid-template-columns: 110px minmax(0, 1fr); gap: var(--sp-4); }
+}

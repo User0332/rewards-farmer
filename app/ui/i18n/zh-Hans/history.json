@@ -1,0 +1,28 @@
+{
+  "namespace": "history",
+  "messages": {
+    "history.title": {"text": "历史记录", "src": "ee7ea2a7"},
+    "history.loading": {"text": "正在打开历史记录", "src": "1b51a0b8"},
+    "history.checks.latest": {"text": "查看最近一次检查", "src": "240765be"},
+    "history.empty.title": {"text": "尚无运行记录", "src": "cfd9586c"},
+    "history.empty.body": {"text": "运行记录会显示在这里。准备好后，可在“概览”中启动一次运行。", "src": "b8385610"},
+    "history.empty.overview": {"text": "打开概览", "src": "e2d35e84"},
+    "history.more": {"text": "加载更早的运行记录", "src": "5a071c67"},
+    "history.refresh": {"text": "刷新历史记录", "src": "209bea6f"},
+    "history.back": {"text": "返回历史记录", "src": "802d1fd2"},
+    "history.detail.title": {"text": "运行详情", "src": "96852a87"},
+    "history.day.today": {"text": "今天", "src": "9fc3002e"},
+    "history.day.yesterday": {"text": "昨天", "src": "4e2fdb08"},
+    "history.mark.app_run": {"text": "应用发起的运行", "src": "711c56ba"},
+    "history.mark.waited": {"text": "已等待 {minutes} 分钟", "src": "cfd7f471"},
+    "history.mark.attention": {"text": "需要关注", "src": "ae139315"},
+    "history.sources.title": {"text": "各任务积分", "src": "b6410bb5"},
+    "history.tasks.not_run": {"plural": "count", "forms": {"other": "{count} 项任务未运行"}, "src": "631bacc5"},
+    "history.tasks.no_points": {"plural": "count", "forms": {"other": "{count} 项未获得积分的任务"}, "src": "4a7d171c"},
+    "history.deferred.waited": {"plural": "count", "forms": {"other": "因当时有全屏应用或演示文稿，本次运行延迟了 {count} 分钟才开始。"}, "src": "a21280fe"},
+    "history.deferred.gave_up": {"text": "等待 40 分钟后，仍有全屏应用或演示文稿，因此本次运行不再等待，直接开始。", "src": "681c93d3"},
+    "history.technical.title": {"text": "技术详情", "src": "9b9dc17e"},
+    "history.technical.task": {"text": "{task}", "src": "920380b0"},
+    "history.checks.day_count": {"plural": "count", "forms": {"other": "{count} 次检查"}, "src": "a83a3c90"}
+  }
+}

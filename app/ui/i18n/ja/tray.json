@@ -1,0 +1,22 @@
+{
+  "namespace": "tray",
+  "messages": {
+    "tray.tooltip.running": {"text": "Rewards Farmer が実行中です", "src": "c6fb48f3"},
+    "tray.tooltip.today": {"plural": "total", "forms": {"other": "今日の獲得分 {earned}/{total} ポイント"}, "src": "5dcdaac0"},
+    "tray.tooltip.idle": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "tray.menu.open": {"text": "Rewards Farmer を開く", "src": "6a15e6b4"},
+    "tray.menu.run_now": {"text": "今すぐ実行", "src": "d716b60f"},
+    "tray.menu.stop": {"text": "実行を停止", "src": "72200071"},
+    "tray.menu.next_check": {"text": "次の確認は {time}", "src": "bbd1573b"},
+    "tray.menu.next_run": {"text": "次の実行は {time}", "src": "0435d4c1"},
+    "tray.menu.manual": {"text": "手動での実行のみ", "src": "0ea06527"},
+    "tray.menu.quit": {"text": "終了", "src": "235b8aa6"},
+    "tray.notify.done.title": {"text": "Rewards Farmer の実行が完了しました", "src": "971ff610"},
+    "tray.notify.done.body": {"plural": "points", "forms": {"other": "+{points} ポイント、残高 {balance}"}, "src": "98f0a8ee"},
+    "tray.notify.done.body_no_balance": {"plural": "points", "forms": {"other": "+{points} ポイント"}, "src": "e1bd8366"},
+    "tray.notify.done.body_no_points": {"text": "実行が終了しました。詳細は Rewards Farmer を開いて確認してください。", "src": "83691a74"},
+    "tray.notify.problem.title": {"text": "Rewards Farmer の状態を確認してください", "src": "bbd38c09"},
+    "tray.notify.signed_out": {"text": "{account} にもう一度サインインしてください。", "src": "161cf976"},
+    "tray.notify.closed_to_tray": {"text": "Rewards Farmer は通知領域に常駐しています。閉じるには、そこのメニューで [終了] を選んでください。", "src": "50ddf2a7"}
+  }
+}

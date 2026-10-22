@@ -1,0 +1,16 @@
+{
+  "synthetic": true,
+  "methods": {
+    "get_run":{"ok":true,"data":{"run_id":"synthetic-failed","trigger":"scheduled","kind":"run","started_at":"2026-10-12T19:45:00Z","ended_at":"2026-10-12T19:45:10Z","duration_ms":10000,"active":false,"result":"failed","result_key":"errors.run.failed","points_earned":null,"stop_requested":false,"deferred":{"state":2,"waited_s":2400,"gave_up":true},"accounts":[{"account_id":"jamie","label":"Jamie (synthetic)","status":"failed","decision":null,"state_before":null,"state_after":null,"points_now":null,"points_earned":null,"search":null,"error":{"code":"driver_mismatch","message_key":"errors.browser.driver_mismatch","detail":"Synthetic driver mismatch; no real browser was opened"},"tasks":[
+      {"task":"daily_set","name_key":"common.task.daily_set","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+      {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+      {"task":"visual_search","name_key":"common.task.visual_search","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+      {"task":"misc_cards","name_key":"common.task.misc_cards","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+      {"task":"quests","name_key":"common.task.quests","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+      {"task":"searches","name_key":"common.task.searches","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+      {"task":"bonus","name_key":"common.task.bonus","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null}
+    ]}],"warnings":[],"log_size":0}},
+    "get_run_log":{"ok":true,"data":{"text":"","next_offset":0,"eof":true,"size":0}}
+  },
+  "pushes": []
+}

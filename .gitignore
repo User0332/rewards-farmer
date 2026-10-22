@@ -9,3 +9,13 @@ data-dir/
 __pycache__/
 .env
 .venv*
+/runs/
+app.log*
+app-prefs.json
+!app/**/*.png
+!app/**/*.jpg
+!app/**/*.txt
+!tests/fixtures/*.txt
+app/packaging/build/
+app/packaging/dist/
+/stats-ledger*

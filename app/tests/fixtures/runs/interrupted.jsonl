@@ -1,0 +1,3 @@
+{"v":1,"ts":"2026-10-14T10:00:00.000Z","run":"20261014T100000Z-0002","type":"run_start","trigger":"scheduled","accounts":["default"],"plan":{"check_only":false}}
+{"v":1,"ts":"2026-10-14T10:00:01.000Z","run":"20261014T100000Z-0002","type":"account_start","account":"default","profile":"profiles"}
+{"v":1,"ts":"2026-10-14T10:00:02.000Z","run":"20261014T100000Z-0002","type":"task_start","account":"default","task":"daily_set","points_before":null}

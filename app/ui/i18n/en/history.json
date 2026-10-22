@@ -1,0 +1,28 @@
+{
+  "namespace":"history",
+  "messages": {
+    "history.title":{"text":"History","note":"Page and document title for the run history and its run details."},
+    "history.refresh":{"text":"Refresh history","note":"Reload the current history after new records have arrived."},
+    "history.more":{"text":"Load earlier runs","note":"History pagination button; fetches with next_before, not a numeric offset."},
+    "history.back":{"text":"Back to history","note":"Run-detail action that returns to the full History list."},
+    "history.loading":{"text":"Opening history","note":"Screen-reader label while history or a run detail is loading."},
+    "history.empty.title":{"text":"No runs recorded yet","note":"Empty history heading before any run has a record."},
+    "history.empty.body":{"text":"Your runs will appear here. Start one from Overview when you are ready.","note":"Friendly empty history guidance. Overview is the page name."},
+    "history.empty.overview":{"text":"Open Overview","note":"Empty history action leading to the Overview page."},
+    "history.detail.title":{"text":"Run details","note":"Main heading when a particular run is open."},
+    "history.checks.day_count":{"plural":"count","forms":{"one":"{count} check","other":"{count} checks"},"note":"One quiet, initially folded row per local day for all automatic check records, including single checks. count is numeric; never call checks successful runs."},
+    "history.checks.latest":{"text":"Open latest check","note":"Button that opens the newest check within a grouped day."},
+    "history.technical.title":{"text":"Technical details","note":"Collapsed disclosure title for exact task and browser error detail, never the primary error message."},
+    "history.technical.task":{"text":"{task}","note":"Heading for a task's technical detail. task is the translated shared task name."},
+    "history.tasks.not_run":{"plural":"count","forms":{"one":"{count} task not run","other":"{count} tasks not run"},"note":"Initially folded run-detail disclosure replacing primary rows for tasks recorded as off, not_run or skip with unknown points. count is numeric. Opening it retains every task name and its recorded status; it never hides a known point value or a failed task."},
+    "history.deferred.waited":{"plural":"count","forms":{"one":"Started {count} minute late because a full-screen app or presentation was open.","other":"Started {count} minutes late because a full-screen app or presentation was open."},"note":"Run-detail delay notice after a full-screen app or presentation ended. count is the numeric minutes waited, rounded up from deferred.waited_s. A delay is not a run failure."},
+    "history.deferred.gave_up":{"text":"A full-screen app or presentation was still open after 40 minutes, so the run started anyway.","note":"Run-detail delay notice when deferred.gave_up is true. The scheduled run waited at most 40 minutes and then proceeded. Do not imply a failure or blame the user."},
+    "history.day.today":{"text":"Today","note":"Above the date in History's date list and beside the day heading, for the current local day"},
+    "history.day.yesterday":{"text":"Yesterday","note":"Above the date in History's date list and beside the day heading, for the previous local day"},
+    "history.mark.app_run":{"text":"App run","note":"On a run he started from the app, trigger app, and on its day in the date list; it does not say which button"},
+    "history.mark.waited":{"text":"Waited {minutes} min","note":"On a run that waited for a full-screen app or presentation; minutes is numeric, the wait rounded up from deferred.waited_s, 40 when it gave up; translators may use the locale's short form for minutes"},
+    "history.mark.attention":{"text":"Needs attention","note":"On a day in the date list and on a folded check group or run, when a record failed, was partial or interrupted, could not read the Rewards page or found the account signed out"},
+    "history.sources.title":{"text":"Points by task","note":"Heading over a run's band and tiles; they cover only the points the tasks brought"},
+    "history.tasks.no_points":{"plural":"count","forms":{"one":"{count} task without points","other":"{count} tasks without points"},"note":"Folded disclosure in a History run block, under the task tiles, for the tasks that brought no points in this run: done with 0 points, skipped, off or not run. Opening it lists each task with its status and, when known, its points. count is numeric."}
+  }
+}

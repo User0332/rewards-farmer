@@ -771,3 +771,115 @@ class ProgressInsideTasks(unittest.TestCase):
 
 if __name__ == "__main__":
 	unittest.main()
+
+
+class RecordedTaskOutcomes(unittest.TestCase):
+	def test_short_search_quota_is_not_a_selenium_error_and_preserves_measurement(self):
+		error = rewards_tasks.SearchQuotaShort(27, 60)
+		self.assertNotIsInstance(error, WebDriverException)
+		self.assertEqual((error.earned, error.maximum), (27, 60))
+		self.assertEqual(rewards_tasks.classify_task_failure(error, "sent 11 searches"),
+			("FAIL", "sent 11 searches, then the search points stayed at 27/60", "quota_short"))
+
+	def test_short_quota_rule_precedes_selenium_rules_even_for_an_overlapping_type(self):
+		# The production type is not a Selenium error. This overlap makes rule
+		# order observable rather than testing two equivalent reorderings.
+		class QuotaAlsoTimedOut(rewards_tasks.SearchQuotaShort, TimeoutException):
+			pass
+		self.assertEqual(rewards_tasks.classify_task_failure(QuotaAlsoTimedOut(27, 60), "sent 11 searches"),
+			("FAIL", "sent 11 searches, then the search points stayed at 27/60", "quota_short"))
+
+	def test_classification_preserves_console_text_and_adds_keys(self):
+		for exc, progress, expected in (
+			(ElementNeverAppeared("missing"), None, "not_available"),
+			(ElementNeverAppeared("missing"), "opened 1 card", "element_missing"),
+			(NoSuchElementException("missing"), "opened", "element_missing"),
+			(ElementNotReady("loading"), None, "not_ready"),
+			(TimeoutException("timeout"), None, "not_ready"),
+			(WebDriverException("invalid session id"), None, "browser_closed"),
+			(WebDriverException("net::ERR_NAME_NOT_RESOLVED"), None, "offline"),
+			(ValueError("bad"), None, "error"),
+		):
+			with self.subTest(expected=expected):
+				result = rewards_tasks.classify_task_failure(exc, progress)
+				self.assertEqual(result[:2], task_failure_report(exc, progress))
+				self.assertEqual(result[2], expected)
+
+	def test_task_switches_drop_unknown_ids_and_emit_off_without_invocation(self):
+		with mock.patch.dict(os.environ, {rewards_tasks.SKIP_TASKS_ENV: " DAILY_SET,visual_search,not_a_task "}):
+			self.assertEqual(rewards_tasks.skipped_tasks(), frozenset({"daily_set", "visual_search"}))
+			loop = TaskLoop()
+			loop.ran = []
+			tasks = loop._tasks()
+			with mock.patch.object(rewards_tasks.run_record, "emit") as emit, self.assertLogs(rewards_tasks.logger, level="INFO"):
+				tasks.complete_all_tasks()
+			self.assertNotIn("complete_bing_daily_set", loop.ran)
+			self.assertNotIn("complete_visual_search", loop.ran)
+			off = [call.kwargs for call in emit.call_args_list if call.args == ("task_end",) and call.kwargs.get("outcome") == "off"]
+			self.assertEqual([event["task"] for event in off], ["daily_set", "visual_search"])
+			self.assertTrue(all(event["reason_key"] == "turned_off" for event in off))
+
+	def test_measurements_are_optional_exception_safe_and_shared_at_task_boundaries(self):
+		loop = TaskLoop()
+		loop.ran = []
+		tasks = loop._tasks()
+		readings = iter(range(8))
+		tasks.balance_reader = lambda: next(readings)
+		with mock.patch.object(rewards_tasks.run_record, "emit") as emit, self.assertLogs(rewards_tasks.logger, level="INFO"):
+			tasks.complete_all_tasks(clock=lambda: 0, sleep=lambda _: self.fail("readable boundary slept"))
+		ends = [call.kwargs for call in emit.call_args_list if call.args == ("task_end",)]
+		self.assertEqual([(event["points_before"], event["points_after"]) for event in ends], [(n, n + 1) for n in range(7)])
+		tasks.balance_reader = lambda: (_ for _ in ()).throw(ValueError("unreadable"))
+		self.assertIsNone(tasks._read_balance(timeout=0, clock=lambda: 0, sleep=lambda _: self.fail("zero-bound reading slept")))
+
+	def test_search_points_emitted_at_round_zero_and_each_measured_round(self):
+		tasks = make_tasks()
+		values = iter([(0, 60), (30, 60), (60, 60)])
+		tasks.read_search_points = lambda: next(values)
+		tasks.run_search_batch = lambda count, already_sent=0: count
+		with mock.patch.object(rewards_tasks.run_record, "emit") as emit:
+			tasks.complete_required_searches()
+		self.assertEqual([call.kwargs for call in emit.call_args_list], [
+			{"earned": 0, "max": 60, "round": 0}, {"earned": 30, "max": 60, "round": 1}, {"earned": 60, "max": 60, "round": 2},
+		])
+
+	def test_sticky_positive_cards_emit_description_in_account_context(self):
+		helper = ProgressInsideTasks()
+		tasks = helper._tasks(get_all_misc_cards=lambda: ["Sticky"], card_is_complete=lambda card: False,
+			get_card_point_value=lambda card: 10, extract_card_descriptions=lambda card: card)
+		tasks.wait_for_element = wait_once
+		with mock.patch.object(rewards_tasks.time, "sleep", lambda _: None), mock.patch.object(rewards_tasks.run_record, "emit") as emit, self.assertLogs(rewards_tasks.logger, level="WARNING"):
+			tasks.complete_misc_cards()
+		emit.assert_called_once_with("card_left_open", description="Sticky")
+
+	def test_signed_out_warning_is_emitted_without_extra_console_text(self):
+		tasks = make_tasks()
+		tasks.driver.current_url = "https://login.live.com/"
+		with mock.patch.object(rewards_tasks.time, "sleep", lambda _: None), mock.patch.object(rewards_tasks.run_record, "emit") as emit, self.assertLogs(rewards_tasks.logger, level="WARNING") as logs:
+			tasks.verify_signed_in_state()
+		self.assertEqual(len(logs.output), 2)
+		self.assertEqual(emit.call_args.kwargs["code"], "signed_out")
+
+	def test_daily_set_partial_warning_is_recorded_next_to_old_warning(self):
+		helper = ProgressInsideTasks()
+		tasks = helper._tasks(get_open_daily_set_button=lambda: "panel", get_daily_set_elements=lambda: ["activity"], get_daily_set_element_by_index=lambda index: "activity")
+		tasks.wait_for_then_click = lambda getter, timeout=10: None
+		tasks.wait_for_element = lambda getter, timeout=10: (_ for _ in ()).throw(TimeoutException("partial"))
+		with mock.patch.object(rewards_tasks.time, "sleep", lambda _: None), mock.patch.object(rewards_tasks.run_record, "emit") as emit, self.assertLogs(rewards_tasks.logger, level="WARNING"):
+			tasks.complete_bing_daily_set()
+		emit.assert_called_once_with("warning", code="daily_set_partial", detail="Daily set panel only shows 1 of 3 activities")
+
+
+def setUpModule():
+	import tempfile
+	import constants
+	global _module_temp, _module_stack
+	_module_temp = tempfile.TemporaryDirectory()
+	_module_stack = __import__("contextlib").ExitStack()
+	_module_stack.enter_context(mock.patch.object(constants, "RUNS_DIR", os.path.join(_module_temp.name, "runs")))
+	_module_stack.enter_context(mock.patch.dict(os.environ, {"USER_DATA_DIR": os.path.join(_module_temp.name, "profiles")}))
+
+
+def tearDownModule():
+	_module_stack.close()
+	_module_temp.cleanup()

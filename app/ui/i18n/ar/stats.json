@@ -1,0 +1,32 @@
+{
+  "namespace": "stats",
+  "messages": {
+    "stats.title": {"text": "الإحصاءات", "src": "352f245c"},
+    "stats.loading": {"text": "جارٍ تحميل إحصاءاتك", "src": "64b042b8"},
+    "stats.empty.title": {"text": "تبدأ محفوظاتك من هنا", "src": "3410ef28"},
+    "stats.empty.body": {"text": "بعد تشغيلك الأول، ستظهر نقاطك وتقدمك اليومي هنا.", "src": "327fad2d"},
+    "stats.account": {"text": "الحساب", "src": "fb2a1c8f"},
+    "stats.account.all": {"text": "كل الحسابات", "src": "e1cce800"},
+    "stats.range": {"text": "الفترة الزمنية", "src": "54581cd2"},
+    "stats.range.7": {"text": "7 أيام", "src": "714f2c4e"},
+    "stats.range.30": {"text": "30 يومًا", "src": "d9645efa"},
+    "stats.range.90": {"text": "90 يومًا", "src": "0470550f"},
+    "stats.week": {"text": "هذا الأسبوع", "src": "a7691b11"},
+    "stats.month": {"text": "هذا الشهر", "src": "94356504"},
+    "stats.streak.title": {"text": "سلسلة الإنجاز", "src": "981264d4"},
+    "stats.calendar.title": {"text": "تقدمك اليومي", "src": "c6348b21"},
+    "stats.calendar.day": {"text": "{date}: {state}", "src": "85afee76"},
+    "stats.state.done": {"text": "مكتمل", "src": "2b4a262c"},
+    "stats.state.today_open": {"text": "لم يكتمل اليوم بعد", "src": "c82a738a"},
+    "stats.state.missed": {"text": "غير مكتمل", "src": "3e29bb56"},
+    "stats.state.no_check": {"text": "لم يُتحقق منه", "src": "b81b8356"},
+    "stats.state.before_tracking": {"text": "قبل بدء التتبع", "src": "cfea3b78"},
+    "stats.warning.ledger_rebuilt": {"text": "أُعيد إنشاء إحصاءاتك من تفاصيل التشغيل التي ما زالت متاحة. قد تكون بعض الأيام السابقة مفقودة.", "src": "047d2674"},
+    "stats.warning.ledger_newer": {"text": "حُفظت هذه الإحصاءات بإصدار أحدث من التطبيق. تظهر تفاصيل التشغيل المتاحة فقط إلى أن تحدّث التطبيق.", "src": "4522304f"},
+    "stats.chart.help": {"text": "استخدم سهمَي اليسار واليمين لاستعراض التواريخ، وHome لأول يوم وEnd لآخر يوم. القيم المفقودة تبقى غير معروفة.", "src": "132b973e"},
+    "stats.sources.day": {"text": "المهام في {date}", "src": "cbfc1381"},
+    "stats.sources.day_empty": {"text": "لا توجد إجماليات للمهام لهذا اليوم", "src": "1da981d8"},
+    "stats.day.points": {"text": "{earned} / {possible}", "src": "bba4a015"},
+    "stats.day.runs": {"text": "عمليات التشغيل في {date}", "src": "d299af23"}
+  }
+}

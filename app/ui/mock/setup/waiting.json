@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "methods": {
+    "list_accounts": {"ok": true, "data": {"accounts": []}},
+    "get_settings": {"ok": true, "data": {"secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "values": {"schedule.mode": "automatic", "schedule.window_start": "09:45", "schedule.window_end": "21:45", "schedule.checks": 4, "schedule.time": "09:45", "schedule.days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}, "schedule": {"mode": "automatic", "task_name": "RewardsFarmerApp_test0000", "task_exists": false, "in_sync": true, "next_at": null, "next_is_check": true, "legacy_task": null, "error_code": null}}},
+    "get_legacy_install": {"ok": true, "data": {"found": false, "path": null, "accounts": []}},
+    "cancel_signin": {"ok": true, "data": {}}
+  },
+  "pushes": [{"after_ms": 0, "topic": "signin.status", "data": {"account_id": "account-1", "state": "waiting", "error_code": null, "message_key": "accounts.signin.waiting", "detail": null, "at": "2026-10-14T20:00:01Z"}}]
+}

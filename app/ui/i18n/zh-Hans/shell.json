@@ -1,0 +1,26 @@
+{
+  "namespace": "shell",
+  "messages": {
+    "shell.window.title": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "shell.nav.label": {"text": "主导航", "src": "38213473"},
+    "shell.nav.overview": {"text": "概览", "src": "fb6819e9"},
+    "shell.nav.stats": {"text": "统计", "src": "352f245c"},
+    "shell.route.stats.title": {"text": "统计", "src": "352f245c"},
+    "shell.nav.live": {"text": "实时运行", "src": "81326d0d"},
+    "shell.nav.history": {"text": "历史记录", "src": "ee7ea2a7"},
+    "shell.nav.accounts": {"text": "帐户", "src": "dd0f0ab0"},
+    "shell.nav.settings": {"text": "设置", "src": "f89b44f5"},
+    "shell.route.setup.title": {"text": "设置 Rewards Farmer", "src": "35c12547"},
+    "shell.route.overview.title": {"text": "概览", "src": "fb6819e9"},
+    "shell.route.live.title": {"text": "实时运行", "src": "81326d0d"},
+    "shell.route.history.title": {"text": "历史记录", "src": "ee7ea2a7"},
+    "shell.route.accounts.title": {"text": "帐户", "src": "dd0f0ab0"},
+    "shell.route.settings.title": {"text": "设置", "src": "f89b44f5"},
+    "shell.nav.live_active": {"text": "当前正在运行", "src": "8cca6b0b"},
+    "shell.update.available": {"text": "版本 {version} 已发布", "src": "c36d6e09"},
+    "shell.update.download": {"text": "下载", "src": "c996a8b4"},
+    "shell.account.none": {"text": "尚无帐户", "src": "9a947bee"},
+    "shell.error.title": {"text": "无法打开此页面", "src": "8b9732cc"},
+    "shell.error.body": {"text": "请重试。如果问题持续出现，请重启应用。", "src": "378b46f2"}
+  }
+}

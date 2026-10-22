@@ -1,0 +1,20 @@
+INFO     main: === account: one ===
+INFO     rewards_tasks: [OK] Bing daily set
+WARNING  rewards_tasks: [SKIP] Explore on Bing: not available in this UI variant (NoSuchElementException)
+ERROR    rewards_tasks: [FAIL] Visual search: opened the sidebar, then the next element never appeared (ElementNeverAppeared)
+ERROR    rewards_tasks: [FAIL] Misc cards: WebDriverException: Message: chrome not reachable
+INFO     rewards_tasks: [OK] Quests
+ERROR    rewards_tasks: [FAIL] Required searches: on the page but not ready in time (TimeoutException)
+INFO     rewards_tasks: [OK] Bonus points
+INFO     main: === account: two ===
+ERROR    main: [FAIL] two: ValueError: first page did not load
+INFO     main: === account: three ===
+INFO     rewards_tasks: [OK] Bing daily set
+WARNING  rewards_tasks: [SKIP] Explore on Bing: not available in this UI variant (NoSuchElementException)
+ERROR    rewards_tasks: [FAIL] Visual search: opened the sidebar, then the next element never appeared (ElementNeverAppeared)
+ERROR    rewards_tasks: [FAIL] Misc cards: WebDriverException: Message: chrome not reachable
+INFO     rewards_tasks: [OK] Quests
+ERROR    rewards_tasks: [FAIL] Required searches: on the page but not ready in time (TimeoutException)
+INFO     rewards_tasks: [OK] Bonus points
+WARNING  main: three: the driver did not shut down cleanly: Message: browser already gone
+INFO     main: 2/3 accounts ran

@@ -1,0 +1,13 @@
+{
+  "synthetic":true,
+  "note":"F79 R2 synthetic day list with partial87point run, successful run, failed run and a folded skipped check.",
+  "methods":{
+    "get_history":{"ok":true,"data":{"runs":[
+      {"run_id":"synthetic-partial","trigger":"scheduled","kind":"run","started_at":"2026-10-17T07:18:00Z","ended_at":"2026-10-17T07:22:00Z","duration_ms":240000,"active":false,"result":"partial","result_key":"errors.run.partial","points_earned":87,"stop_requested":false,"deferred":null,"warnings":[],"log_size":0,"accounts":[{"account_id":"alex","label":"Alex","status":"done","task_counts":{"ok":4,"fail":1,"skip":2,"off":0},"points_earned":87,"search":null,"decision":null,"error":null}]},
+      {"run_id":"synthetic-ok","trigger":"app","kind":"run","started_at":"2026-10-17T06:00:00Z","ended_at":"2026-10-17T06:04:00Z","duration_ms":240000,"active":false,"result":"ok","result_key":"errors.run.ok","points_earned":105,"stop_requested":false,"deferred":null,"warnings":[],"log_size":0,"accounts":[{"account_id":"alex","label":"Alex","status":"done","task_counts":{"ok":7,"fail":0,"skip":0,"off":0},"points_earned":105,"search":null,"decision":null,"error":null}]},
+      {"run_id":"synthetic-failed","trigger":"app","kind":"run","started_at":"2026-10-17T05:00:00Z","ended_at":"2026-10-17T05:00:10Z","duration_ms":10000,"active":false,"result":"failed","result_key":"errors.run.failed","points_earned":null,"stop_requested":false,"deferred":null,"warnings":[],"log_size":0,"accounts":[{"account_id":"alex","label":"Alex","status":"failed","task_counts":{"ok":0,"fail":0,"skip":0,"off":0},"points_earned":null,"search":null,"decision":null,"error":{"code":"error","message_key":"errors.run.failed","detail":"Synthetic account exception before tasks."}}]},
+      {"run_id":"synthetic-check","trigger":"scheduled","kind":"check","started_at":"2026-10-17T04:00:00Z","ended_at":"2026-10-17T04:00:10Z","duration_ms":10000,"active":false,"result":"skipped","result_key":"errors.run.skipped","points_earned":null,"stop_requested":false,"deferred":null,"warnings":[],"log_size":0,"accounts":[{"account_id":"alex","label":"Alex","status":"skipped","task_counts":{"ok":0,"fail":0,"skip":0,"off":0},"points_earned":null,"search":null,"decision":{"run":false,"reason":"nothing_open","reason_key":"errors.decision.nothing_open","open_points":0,"min_points":30},"error":null}]}
+    ],"next_before":null}}
+  },
+  "pushes":[]
+}

@@ -1,0 +1,3 @@
+{"v":1,"ts":"2026-10-14T13:00:00.000Z","run":"20261014T130000Z-0005","type":"run_start","trigger":"app","accounts":["default"],"plan":{"check_only":false}}
+{"v":1,"ts":"2026-10-14T13:00:01.000Z","run":"20261014T130000Z-0005","type":"account_start","account":"default","profile":"profiles"}
+{"v":1,"ts":"2026-10-14T13:00:02.000Z","run":"20261014T130000Z-0005","type":"run_end","result":"crashed","exit_code":9,"accounts_started":0,"accounts_ran":0,"duration_ms":2000,"written_by":"supervisor","detail":"synthetic crash"}

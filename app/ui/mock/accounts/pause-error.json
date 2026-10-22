@@ -1,0 +1,5 @@
+{
+  "synthetic": true,
+  "methods": {"set_account_paused": {"ok": false, "error": {"code": "accounts.last_active", "message_key": "errors.app.accounts_last_active", "params": {}, "detail": null, "fields": null}}},
+  "pushes": []
+}

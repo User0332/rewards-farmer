@@ -1,0 +1,27 @@
+.accounts-screen { display: grid; gap: var(--sp-5); }
+.accounts-screen .screen-header { margin-block-end: 0; }
+.accounts-help { color: var(--c-text-2); max-inline-size: 70ch; }
+.accounts-list { border-block-start: 1px solid var(--c-border); }
+.accounts-entry { min-inline-size: 0; }
+.accounts-help { padding-block: var(--sp-3); font-size: var(--fs-2); }
+.accounts-editor { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-3); padding: var(--sp-4); margin-block-end: var(--sp-4); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-s); }
+.accounts-editor .field { max-inline-size: 440px; }
+.accounts-signin { display: grid; gap: var(--sp-3); }
+.accounts-signin > .button { justify-self: start; }
+.accounts-list > .accounts-disclosure p { color: var(--c-text); font-size: var(--fs-2); max-inline-size: 75ch; }
+.accounts-screen .banner { flex-wrap: wrap; }
+.accounts-screen .banner-message { flex-basis: 60%; }
+.accounts-screen .account-row .control-actions { flex: 1 1 100%; align-items: start; padding-inline-start: calc(var(--sp-7) + var(--sp-3)); }
+.accounts-entry .account-row { align-items: start; padding-block: var(--sp-4); }
+.accounts-entry .account-row-status { color: var(--c-text-2); }
+.accounts-disclosure { min-inline-size: 0; }
+.accounts-disclosure > summary { list-style: none; cursor: pointer; border: 1px solid var(--c-border); border-radius: var(--r-s); }
+.accounts-disclosure > summary::-webkit-details-marker { display: none; }
+.accounts-disclosure-body { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding-block: var(--sp-3); }
+.accounts-entry .accounts-disclosure { inline-size: max-content; max-inline-size: 100%; }
+.accounts-entry .accounts-disclosure > summary { inline-size: max-content; min-block-size: 40px; padding: var(--sp-2) var(--sp-4); gap: var(--sp-2); align-items: center; font-weight: var(--fw-medium); line-height: var(--lh-normal); }
+.accounts-entry .accounts-disclosure > summary > .icon { inline-size: var(--sp-4); block-size: var(--sp-4); }
+.accounts-entry .accounts-disclosure-body { contain: inline-size; flex-direction: column; align-items: start; }
+.accounts-list > .accounts-disclosure { margin-block-start: var(--sp-4); }
+.accounts-list > .accounts-disclosure .accounts-disclosure-body { display: grid; justify-items: start; }
+@media (min-width: 1200px) { .accounts-screen .account-row .control-actions { flex: 0 1 auto; margin-inline-start: auto; padding-inline-start: 0; } }

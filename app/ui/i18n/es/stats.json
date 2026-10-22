@@ -1,0 +1,32 @@
+{
+  "namespace": "stats",
+  "messages": {
+    "stats.title": {"text": "Estadísticas", "src": "352f245c"},
+    "stats.loading": {"text": "Cargando tus estadísticas", "src": "64b042b8"},
+    "stats.empty.title": {"text": "Tu historial empieza aquí", "src": "3410ef28"},
+    "stats.empty.body": {"text": "Después de tu primera ejecución, aquí verás tus puntos y tu progreso diario.", "src": "327fad2d"},
+    "stats.account": {"text": "Cuenta", "src": "fb2a1c8f"},
+    "stats.account.all": {"text": "Todas las cuentas", "src": "e1cce800"},
+    "stats.range": {"text": "Período", "src": "54581cd2"},
+    "stats.range.7": {"text": "7 días", "src": "714f2c4e"},
+    "stats.range.30": {"text": "30 días", "src": "d9645efa"},
+    "stats.range.90": {"text": "90 días", "src": "0470550f"},
+    "stats.week": {"text": "Esta semana", "src": "a7691b11"},
+    "stats.month": {"text": "Este mes", "src": "94356504"},
+    "stats.streak.title": {"text": "Racha de días completados", "src": "981264d4"},
+    "stats.calendar.title": {"text": "Tu progreso diario", "src": "c6348b21"},
+    "stats.calendar.day": {"text": "{date}: {state}", "src": "85afee76"},
+    "stats.state.done": {"text": "Día completado", "src": "2b4a262c"},
+    "stats.state.today_open": {"text": "Pendiente hoy", "src": "c82a738a"},
+    "stats.state.missed": {"text": "Día incompleto", "src": "3e29bb56"},
+    "stats.state.no_check": {"text": "Sin comprobar", "src": "b81b8356"},
+    "stats.state.before_tracking": {"text": "Antes del seguimiento", "src": "cfea3b78"},
+    "stats.warning.ledger_rebuilt": {"text": "Se reconstruyeron tus estadísticas con los detalles de ejecuciones que aún están disponibles. Puede que falten algunos días anteriores.", "src": "047d2674"},
+    "stats.warning.ledger_newer": {"text": "Estas estadísticas se guardaron con una versión más reciente de la aplicación. Hasta que la actualices, solo se muestran los detalles de ejecuciones disponibles.", "src": "4522304f"},
+    "stats.chart.help": {"text": "Usa las flechas izquierda y derecha para consultar las fechas, Inicio para el primer día y Fin para el más reciente. Los valores sin datos siguen como no disponibles.", "src": "132b973e"},
+    "stats.sources.day": {"text": "Tareas del {date}", "src": "cbfc1381"},
+    "stats.sources.day_empty": {"text": "No hay totales por tarea para este día", "src": "1da981d8"},
+    "stats.day.points": {"text": "{earned} / {possible}", "src": "bba4a015"},
+    "stats.day.runs": {"text": "Ejecuciones del {date}", "src": "d299af23"}
+  }
+}

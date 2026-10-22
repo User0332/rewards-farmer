@@ -1,0 +1,32 @@
+{
+  "namespace": "stats",
+  "messages": {
+    "stats.title": {"text": "Statistiques", "src": "352f245c"},
+    "stats.loading": {"text": "Chargement de vos statistiques", "src": "64b042b8"},
+    "stats.empty.title": {"text": "Votre historique commence ici", "src": "3410ef28"},
+    "stats.empty.body": {"text": "Après votre première exécution, vos points et votre progression quotidienne apparaîtront ici.", "src": "327fad2d"},
+    "stats.account": {"text": "Compte", "src": "fb2a1c8f"},
+    "stats.account.all": {"text": "Tous les comptes", "src": "e1cce800"},
+    "stats.range": {"text": "Période", "src": "54581cd2"},
+    "stats.range.7": {"text": "7 jours", "src": "714f2c4e"},
+    "stats.range.30": {"text": "30 jours", "src": "d9645efa"},
+    "stats.range.90": {"text": "90 jours", "src": "0470550f"},
+    "stats.week": {"text": "Cette semaine", "src": "a7691b11"},
+    "stats.month": {"text": "Ce mois-ci", "src": "94356504"},
+    "stats.streak.title": {"text": "Série de jours consécutifs", "src": "981264d4"},
+    "stats.calendar.title": {"text": "Votre progression au quotidien", "src": "c6348b21"},
+    "stats.calendar.day": {"text": "{date}\u00a0: {state}", "src": "85afee76"},
+    "stats.state.done": {"text": "Terminé", "src": "2b4a262c"},
+    "stats.state.today_open": {"text": "Encore à faire aujourd’hui", "src": "c82a738a"},
+    "stats.state.missed": {"text": "Manqué", "src": "3e29bb56"},
+    "stats.state.no_check": {"text": "Non vérifié", "src": "b81b8356"},
+    "stats.state.before_tracking": {"text": "Avant le suivi", "src": "cfea3b78"},
+    "stats.warning.ledger_rebuilt": {"text": "Vos statistiques ont été reconstituées à partir des détails d’exécution encore disponibles. Certains jours plus anciens peuvent manquer.", "src": "047d2674"},
+    "stats.warning.ledger_newer": {"text": "Ces statistiques ont été enregistrées par une version plus récente de l’application. Seuls les détails d’exécution disponibles s’affichent tant que l’application n’est pas mise à jour.", "src": "4522304f"},
+    "stats.chart.help": {"text": "Utilisez les flèches gauche et droite pour consulter les dates, Origine pour le premier jour et Fin pour le dernier. Les valeurs manquantes restent non disponibles.", "src": "132b973e"},
+    "stats.sources.day": {"text": "Tâches du {date}", "src": "cbfc1381"},
+    "stats.sources.day_empty": {"text": "Pas de totaux par tâche pour ce jour", "src": "1da981d8"},
+    "stats.day.points": {"text": "{earned} / {possible}", "src": "bba4a015"},
+    "stats.day.runs": {"text": "Exécutions du {date}", "src": "d299af23"}
+  }
+}

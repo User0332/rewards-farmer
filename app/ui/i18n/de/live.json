@@ -1,0 +1,16 @@
+{
+  "namespace": "live",
+  "messages": {
+    "live.title": {"text": "Live-Durchlauf", "src": "81326d0d"},
+    "live.points_earned": {"text": "In diesem Durchlauf gesammelt", "src": "9dfeaf4b"},
+    "live.search_progress": {"text": "{earned} von {max}", "src": "f9dc0854"},
+    "live.stop": {"text": "Durchlauf stoppen", "src": "72200071"},
+    "live.stop_waiting": {"text": "Wird gestoppt", "src": "3d6e4670"},
+    "live.stop_note": {"text": "Der Browser wird beendet. Das kann einen Moment dauern.", "src": "d757bf3d"},
+    "live.history": {"text": "Durchlauf im Verlauf öffnen", "src": "52466e7c"},
+    "live.overview": {"text": "Übersicht öffnen", "src": "e2d35e84"},
+    "live.last_run": {"text": "Letzter Durchlauf", "src": "0b828e5b"},
+    "live.more_details": {"text": "Weitere Details", "src": "7bb83408"},
+    "live.idle.title": {"text": "Kein Durchlauf aktiv", "src": "0888f8c6"}
+  }
+}

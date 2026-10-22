@@ -16,8 +16,10 @@ that two profiles hold two independent, persistent identities, so it is opt in:
 import logging
 import os
 import shutil
+import subprocess
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -194,6 +196,50 @@ class TestRunLoop(RunLoopTestCase):
 		self.assertEqual(self.calls, ["default"])
 
 
+class TestUnattendedRun(RunLoopTestCase):
+	"""A scheduled run has nobody to press Enter, so it has to end on its own.
+
+	Waiting for Enter holds the scheduled task open until the scheduler's time
+	limit ends it.
+	"""
+
+	def setUp(self):
+		super().setUp()
+
+		main.HEADLESS = False
+
+		real = main.run_account
+		self.addCleanup(setattr, main, "run_account", real)
+		main.run_account = lambda account: True
+
+		accounts_for(None)
+
+		# Shadows the builtin inside main only, and is removed again afterwards.
+		self.prompts = []
+		prompt = mock.patch.object(main, "input", create=True, new=self.prompts.append)
+		prompt.start()
+		self.addCleanup(prompt.stop)
+
+	def test_an_unattended_run_does_not_wait_for_enter(self):
+		self.assertEqual(main.main(unattended=True), 0)
+		self.assertEqual(self.prompts, [])
+
+	def test_a_run_from_a_terminal_still_waits(self):
+		self.assertEqual(main.main(), 0)
+		self.assertEqual(len(self.prompts), 1)
+
+	def test_the_scheduled_command_line_is_accepted(self):
+		result = subprocess.run(
+			[sys.executable, main.__file__, "--help"],
+			capture_output=True,
+			text=True,
+			timeout=120,
+		)
+
+		self.assertEqual(result.returncode, 0, result.stderr)
+		self.assertIn("--unattended", result.stdout)
+
+
 class TestFailureIsolation(RunLoopTestCase):
 	"""One account failing, every way it can, without ending the batch.
 
@@ -341,3 +387,41 @@ class TestTwoRealProfiles(EnvironmentTestCase):
 
 if __name__ == "__main__":
 	unittest.main()
+
+
+class RecordedBrowserFailures(unittest.TestCase):
+	def test_start_failure_codes_follow_contract_order(self):
+		for exc, expected in (
+			(NoSuchDriverException("cannot find binary"), "driver_missing"),
+			(WebDriverException("cannot find Edge binary"), "edge_missing"),
+			(WebDriverException("still attached to a running profile"), "profile_in_use"),
+			(WebDriverException("only supports Microsoft Edge version 1"), "driver_mismatch"),
+			(WebDriverException("cannot create default profile directory"), "profile_unwritable"),
+			(WebDriverException("chrome instance exited"), "edge_exited"),
+			(WebDriverException("other"), "unknown"),
+		):
+			with self.subTest(expected=expected):
+				self.assertEqual(browser.start_failure_code(exc), expected)
+
+	def test_failed_start_emits_account_and_detail_without_changing_cli(self):
+		account = accounts.Account("synthetic", "temporary", "Default")
+		error = NoSuchDriverException("missing")
+		with mock.patch.object(browser.webdriver, "Edge", side_effect=error), mock.patch.object(browser.run_record, "emit") as emit, self.assertLogs(browser.logger, level="ERROR") as logs:
+			self.assertIsNone(browser.start_driver(account))
+		self.assertTrue(any("could not start Edge" in line for line in logs.output))
+		emit.assert_called_once_with("browser_failed", account="synthetic", code="driver_missing", detail=browser.log_utils.exception_summary(error))
+
+
+def setUpModule():
+	import tempfile
+	import constants
+	global _module_temp, _module_stack
+	_module_temp = tempfile.TemporaryDirectory()
+	_module_stack = __import__("contextlib").ExitStack()
+	_module_stack.enter_context(mock.patch.object(constants, "RUNS_DIR", os.path.join(_module_temp.name, "runs")))
+	_module_stack.enter_context(mock.patch.dict(os.environ, {"USER_DATA_DIR": os.path.join(_module_temp.name, "profiles")}))
+
+
+def tearDownModule():
+	_module_stack.close()
+	_module_temp.cleanup()

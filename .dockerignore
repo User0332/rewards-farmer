@@ -13,3 +13,7 @@ __pycache__/
 poetry.lock
 README.md
 docs/
+app/
+runs/
+app.log*
+app-prefs.json

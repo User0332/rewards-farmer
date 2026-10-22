@@ -1,0 +1,10 @@
+{
+  "synthetic": true,
+  "methods": {
+    "get_settings": {"ok": true, "data": {"secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "values": {"schedule.mode": "automatic", "schedule.window_start": "09:45", "schedule.window_end": "21:45", "schedule.checks": 4, "schedule.time": "09:45", "schedule.days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}, "schedule": {"mode": "automatic", "task_name": "RewardsFarmerApp_test0000", "task_exists": true, "in_sync": true, "next_at": "2026-10-15T09:45:00Z", "next_is_check": true, "legacy_task": {"name": "rewards-farmer", "time": "09:45", "command": "C:\\Synthetic\\earlier-install\\run.cmd"}, "error_code": null}}},
+    "get_legacy_install": {"ok": true, "data": {"found": false, "path": null, "accounts": []}},
+    "replace_legacy_task": {"ok": true, "data": {"mode": "automatic", "task_name": "RewardsFarmerApp_test0000", "task_exists": true, "in_sync": true, "next_at": "2026-10-15T09:45:00Z", "next_is_check": true, "legacy_task": null, "error_code": null}},
+    "save_settings": {"ok": true, "data": {"secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "values": {"schedule.mode": "automatic", "schedule.window_start": "09:45", "schedule.window_end": "21:45", "schedule.checks": 4, "schedule.time": "09:45", "schedule.days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}, "schedule": {"mode": "automatic", "task_name": "RewardsFarmerApp_test0000", "task_exists": true, "in_sync": true, "next_at": "2026-10-15T09:45:00Z", "next_is_check": true, "legacy_task": null, "error_code": null}, "warnings": []}}
+  },
+  "pushes": []
+}

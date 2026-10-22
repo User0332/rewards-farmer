@@ -179,6 +179,20 @@ class TestDriverEnvironment(EnvTestCase):
 
 		self.assertIn(f"--user-data-dir={os.environ.get(accounts.DATA_DIR_ENV_VAR, accounts.DEFAULT_ROOT_DATA_DIR)}", self.seen["options"].arguments)
 
+	def test_local_page_loads_are_bounded_and_rendered_on_the_cpu(self):
+		# Ollama and the renderer must not compete for the same GPU during searches.
+		browser.start_driver(ACCOUNT)
+		options = self.seen["options"]
+		self.assertEqual(options.to_capabilities().get("timeouts"), {"pageLoad": 60_000, "script": 30_000})
+		self.assertIn("--disable-gpu", options.arguments)
+
+	def test_headless_sessions_get_the_same_startup_limits_and_cpu_rendering(self):
+		with mock.patch.object(browser, "HEADLESS", True):
+			browser.start_driver(ACCOUNT)
+		options = self.seen["options"]
+		self.assertEqual(options.to_capabilities().get("timeouts"), {"pageLoad": 60_000, "script": 30_000})
+		self.assertIn("--disable-gpu", options.arguments)
+
 	def test_pages_are_asked_for_in_english(self):
 		# #91: a browser set to Spanish got Rewards in Spanish, and none of the
 		# English labels the selectors look for were on the page.
@@ -210,7 +224,7 @@ class TestPathsIgnoreTheWorkingDirectory(unittest.TestCase):
 			result = subprocess.run(
 				[sys.executable, "-c", self.PROBE],
 				cwd=cwd,
-				env={**os.environ, "PYTHONPATH": os.path.abspath(SRC)},
+				env={**os.environ, "PYTHONPATH": os.pathsep.join(filter(None, (os.environ.get("PYTHONPATH"), os.path.abspath(SRC))))},
 				capture_output=True,
 				text=True,
 			)

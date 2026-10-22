@@ -1,0 +1,28 @@
+{
+  "namespace": "history",
+  "messages": {
+    "history.title": {"text": "المحفوظات", "src": "ee7ea2a7"},
+    "history.loading": {"text": "جارٍ فتح المحفوظات", "src": "1b51a0b8"},
+    "history.checks.latest": {"text": "فتح آخر تحقق", "src": "240765be"},
+    "history.empty.title": {"text": "لا توجد عمليات تشغيل مسجلة بعد", "src": "cfd9586c"},
+    "history.empty.body": {"text": "ستظهر عمليات التشغيل هنا. ابدأ تشغيلًا من «نظرة عامة» عندما يناسبك.", "src": "b8385610"},
+    "history.empty.overview": {"text": "فتح نظرة عامة", "src": "e2d35e84"},
+    "history.more": {"text": "تحميل عمليات تشغيل أقدم", "src": "5a071c67"},
+    "history.refresh": {"text": "تحديث المحفوظات", "src": "209bea6f"},
+    "history.back": {"text": "العودة إلى المحفوظات", "src": "802d1fd2"},
+    "history.detail.title": {"text": "تفاصيل التشغيل", "src": "96852a87"},
+    "history.day.today": {"text": "اليوم", "src": "9fc3002e"},
+    "history.day.yesterday": {"text": "أمس", "src": "4e2fdb08"},
+    "history.mark.app_run": {"text": "تشغيل من التطبيق", "src": "711c56ba"},
+    "history.mark.waited": {"text": "انتظار {minutes} د", "src": "cfd7f471"},
+    "history.mark.attention": {"text": "يتطلب الانتباه", "src": "ae139315"},
+    "history.sources.title": {"text": "النقاط حسب المهمة", "src": "b6410bb5"},
+    "history.tasks.not_run": {"plural": "count", "forms": {"zero": "لا توجد مهام لم تُنفّذ ({count})", "one": "مهمة واحدة لم تُنفّذ ({count})", "two": "مهمتان لم تُنفّذا ({count})", "few": "{count} مهام لم تُنفّذ", "many": "{count} مهمة لم تُنفّذ", "other": "{count} مهمة لم تُنفّذ"}, "src": "631bacc5"},
+    "history.tasks.no_points": {"plural": "count", "forms": {"zero": "لا توجد مهام بلا نقاط ({count})", "one": "مهمة واحدة بلا نقاط ({count})", "two": "مهمتان بلا نقاط ({count})", "few": "{count} مهام بلا نقاط", "many": "{count} مهمة بلا نقاط", "other": "{count} مهمة بلا نقاط"}, "src": "4a7d171c"},
+    "history.deferred.waited": {"plural": "count", "forms": {"zero": "بدأ التشغيل متأخرًا بمقدار {count} دقيقة لأن تطبيقًا بملء الشاشة أو عرضًا تقديميًا كان مفتوحًا.", "one": "بدأ التشغيل متأخرًا بدقيقة واحدة ({count}) لأن تطبيقًا بملء الشاشة أو عرضًا تقديميًا كان مفتوحًا.", "two": "بدأ التشغيل متأخرًا بدقيقتين ({count}) لأن تطبيقًا بملء الشاشة أو عرضًا تقديميًا كان مفتوحًا.", "few": "بدأ التشغيل متأخرًا بمقدار {count} دقائق لأن تطبيقًا بملء الشاشة أو عرضًا تقديميًا كان مفتوحًا.", "many": "بدأ التشغيل متأخرًا بمقدار {count} دقيقة لأن تطبيقًا بملء الشاشة أو عرضًا تقديميًا كان مفتوحًا.", "other": "بدأ التشغيل متأخرًا بمقدار {count} دقيقة لأن تطبيقًا بملء الشاشة أو عرضًا تقديميًا كان مفتوحًا."}, "src": "a21280fe"},
+    "history.deferred.gave_up": {"text": "ظل تطبيق بملء الشاشة أو عرض تقديمي مفتوحًا بعد مرور 40 دقيقة، فبدأ التشغيل رغم ذلك.", "src": "681c93d3"},
+    "history.technical.title": {"text": "تفاصيل تقنية", "src": "9b9dc17e"},
+    "history.technical.task": {"text": "{task}", "src": "920380b0"},
+    "history.checks.day_count": {"plural": "count", "forms": {"zero": "لا عمليات تحقق ({count})", "one": "عملية تحقق واحدة ({count})", "two": "عمليتا تحقق ({count})", "few": "{count} عمليات تحقق", "many": "{count} عملية تحقق", "other": "{count} عملية تحقق"}, "src": "a83a3c90"}
+  }
+}

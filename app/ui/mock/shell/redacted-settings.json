@@ -1,0 +1,7 @@
+{
+  "methods": {
+    "get_settings":{"ok":true,"data":{"values":{"app.language":"en","notify.policy":"always"},"secrets_set":{"run.openrouter_key":false,"notify.webhook_url":false},"schedule":{"mode":"manual","task_name":"RewardsFarmerApp","task_exists":false,"in_sync":true,"next_at":null,"next_is_check":false,"legacy_task":null,"error_code":null}}},
+    "save_settings":{"ok":true,"data":{"values":{"app.language":"en","notify.policy":"errors"},"secrets_set":{"run.openrouter_key":true,"notify.webhook_url":true},"schedule":{"mode":"manual","task_name":"RewardsFarmerApp","task_exists":false,"in_sync":true,"next_at":null,"next_is_check":false,"legacy_task":null,"error_code":null},"warnings":[]}}
+  },
+  "pushes":[]
+}

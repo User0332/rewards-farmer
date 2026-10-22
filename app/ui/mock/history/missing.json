@@ -1,0 +1,7 @@
+{
+  "synthetic": true,
+  "methods": {
+    "get_run":{"ok":false,"error":{"code":"run.unknown","message_key":"errors.app.run_unknown","params":{},"detail":"Synthetic pruned run","fields":null}}
+  },
+  "pushes": []
+}

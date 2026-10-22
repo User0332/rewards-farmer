@@ -3,6 +3,7 @@ import importlib.util
 import io
 import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -84,6 +85,60 @@ class TestPathInput(QuietOutputTestCase):
 
 
 class TestAccountConfiguration(QuietOutputTestCase):
+	def test_manage_accounts_dotenv_retries_and_preserves_environment_override(self):
+		with tempfile.TemporaryDirectory() as folder:
+			path = Path(folder) / ".env"
+			path.write_text("REWARDS_ACCOUNTS=file-account\nF61_NEW=file\nF61_EXISTING=file\n", encoding="utf-8")
+			real_open = open
+			attempts = []
+			def open_file(name, *args, **kwargs):
+				if Path(name) == path:
+					attempts.append(True)
+					if len(attempts) == 1:
+						raise PermissionError("delete-pending")
+				return real_open(name, *args, **kwargs)
+			with mock.patch.dict(os.environ, {"REWARDS_ACCOUNTS": "existing-account", "F61_EXISTING": "environment"}, clear=True), mock.patch.object(init_config, "path_input", return_value=path), mock.patch.object(init_config, "one_of_with_default", return_value="exit"), mock.patch.object(init_config.dotenv, "set_key") as save, mock.patch("file_replace.builtins.open", side_effect=open_file):
+				init_config.manage_accounts()
+				self.assertEqual(os.environ["F61_NEW"], "file")
+				self.assertEqual(os.environ["F61_EXISTING"], "environment")
+				save.assert_called_once_with(str(path), "REWARDS_ACCOUNTS", "existing-account")
+			self.assertEqual(len(attempts), 2)
+
+	def test_profile_data_key_read_retries_with_dotenv_interpolation(self):
+		with tempfile.TemporaryDirectory() as folder:
+			path = Path(folder) / ".env"
+			path.write_text("F61_ROOT=profiles\nUSER_DATA_DIR=${F61_ROOT}/custom\n", encoding="utf-8")
+			real_open = open
+			attempts = []
+			def open_file(*args, **kwargs):
+				attempts.append(True)
+				if len(attempts) == 1:
+					raise PermissionError("delete-pending")
+				return real_open(*args, **kwargs)
+			with mock.patch("file_replace.builtins.open", side_effect=open_file):
+				self.assertEqual(init_config._env_key(path, "USER_DATA_DIR"), "profiles/custom")
+			self.assertEqual(len(attempts), 2)
+
+	def test_add_and_signin_profile_paths_each_retry_their_fresh_key_read(self):
+		for action in ("add", "signin"):
+			with self.subTest(action=action), tempfile.TemporaryDirectory() as folder:
+				path = Path(folder) / ".env"
+				profiles = Path(folder) / "profiles"
+				path.write_text("USER_DATA_DIR='" + str(profiles) + "'\nREWARDS_ACCOUNTS=" + ("account-1" if action == "signin" else "") + "\n", encoding="utf-8")
+				real_open = open
+				attempts = []
+				def open_file(name, *args, **kwargs):
+					if Path(name) == path:
+						attempts.append(True)
+						if len(attempts) == 2:
+							raise PermissionError("profile key delete-pending")
+					return real_open(name, *args, **kwargs)
+				choices = ["add", "exit"] if action == "add" else ["signin", "account-1", "<none>", "exit"]
+				with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(init_config, "path_input", return_value=path), mock.patch.object(init_config, "one_of_with_default", side_effect=choices), mock.patch.object(init_config, "positive_integer_with_default", return_value=1), mock.patch.object(init_config, "nonempty_input", return_value="account-1"), mock.patch.object(init_config, "boolean_with_default", return_value=True), mock.patch.object(init_config.dotenv, "set_key"), mock.patch.object(init_config, "start_driver", return_value=object()) as start, mock.patch("file_replace.builtins.open", side_effect=open_file):
+					init_config.manage_accounts()
+				self.assertEqual(Path(start.call_args.args[0].user_data_dir), profiles / "account-1")
+				self.assertEqual(len(attempts), 3)
+
 	def test_single_account_writes_root_and_account_without_launching_browser(self):
 		root = Path("<mock-data>")
 		output = io.StringIO()

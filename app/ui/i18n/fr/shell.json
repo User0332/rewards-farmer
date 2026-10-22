@@ -1,0 +1,26 @@
+{
+  "namespace": "shell",
+  "messages": {
+    "shell.window.title": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "shell.nav.label": {"text": "Navigation principale", "src": "38213473"},
+    "shell.nav.overview": {"text": "Vue d’ensemble", "src": "fb6819e9"},
+    "shell.nav.stats": {"text": "Statistiques", "src": "352f245c"},
+    "shell.route.stats.title": {"text": "Statistiques", "src": "352f245c"},
+    "shell.nav.live": {"text": "En direct", "src": "81326d0d"},
+    "shell.nav.history": {"text": "Historique", "src": "ee7ea2a7"},
+    "shell.nav.accounts": {"text": "Comptes", "src": "dd0f0ab0"},
+    "shell.nav.settings": {"text": "Paramètres", "src": "f89b44f5"},
+    "shell.route.setup.title": {"text": "Configurer Rewards Farmer", "src": "35c12547"},
+    "shell.route.overview.title": {"text": "Vue d’ensemble", "src": "fb6819e9"},
+    "shell.route.live.title": {"text": "En direct", "src": "81326d0d"},
+    "shell.route.history.title": {"text": "Historique", "src": "ee7ea2a7"},
+    "shell.route.accounts.title": {"text": "Comptes", "src": "dd0f0ab0"},
+    "shell.route.settings.title": {"text": "Paramètres", "src": "f89b44f5"},
+    "shell.nav.live_active": {"text": "Exécution en cours", "src": "8cca6b0b"},
+    "shell.update.available": {"text": "La version {version} est disponible", "src": "c36d6e09"},
+    "shell.update.download": {"text": "Télécharger", "src": "c996a8b4"},
+    "shell.account.none": {"text": "Aucun compte pour le moment", "src": "9a947bee"},
+    "shell.error.title": {"text": "Impossible d’ouvrir cette page", "src": "8b9732cc"},
+    "shell.error.body": {"text": "Réessayez. Si le problème persiste, redémarrez l’application.", "src": "378b46f2"}
+  }
+}

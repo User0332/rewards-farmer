@@ -1,0 +1,12 @@
+{
+  "synthetic":true,
+  "methods": {
+    "get_settings":{"ok":true,"data":{"values":{
+      "schedule.mode":"automatic","schedule.window_start":"09:45","schedule.window_end":"21:45","schedule.checks":4,"schedule.time":"09:45","schedule.days":["mon","tue","wed","thu","fri","sat","sun"],"schedule.random_delay":15,"schedule.catch_up":true,"schedule.on_battery":true,"schedule.min_points":15,
+      "run.browser_mode":"visible","run.tasks_off":["visual_search","bonus"],"run.search_source":"ollama","run.ollama_url":"http://localhost:11434/v1","run.ollama_model":"gemma3:4b","run.openrouter_model":"openrouter/free","notify.policy":"errors",
+      "app.autostart":true,"app.close_to_tray":true,"app.language":"system","app.update_check":true,"advanced.edge_path":"","advanced.driver_path":"","advanced.log_level":"INFO","advanced.data_folder":""
+    },"secrets_set":{"run.openrouter_key":false,"notify.webhook_url":false},"schedule":{"mode":"automatic","task_name":"RewardsFarmerApp_synthetic","task_exists":true,"in_sync":true,"next_at":"2026-10-15T07:45:00Z","next_is_check":true,"legacy_task":null,"error_code":null}}},
+    "list_ollama_models":{"ok":true,"data":{"models":["gemma3:4b","qwen3:4b"]}}
+  },
+  "pushes":[]
+}

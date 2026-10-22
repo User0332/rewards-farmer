@@ -1,0 +1,21 @@
+{
+  "synthetic":true,"note":"Synthetic unreadable fixed-time check that ran anyway, then could not start Edge. Unknown earned points stay unknown.",
+  "methods":{
+    "get_live":{"ok":true,"data":{
+      "run":{"run_id":"synthetic-failed","trigger":"scheduled","kind":"check","started_at":"2026-10-14T19:45:00Z","ended_at":"2026-10-14T19:46:00Z","duration_ms":60000,"active":false,"result":"failed","result_key":"errors.run.failed","points_earned":null,"stop_requested":false,"deferred":null,
+        "accounts":[{"account_id":"jamie","label":"Jamie","status":"failed","decision":{"run":true,"reason":"unreadable_run_anyway","reason_key":"errors.decision.unreadable_run_anyway","open_points":0,"min_points":1},"state_before":{"at":"2026-10-14T19:45:00Z","balance":null,"earned_today":null,"searches_earned":null,"searches_max":null,"daily_set_open":0,"cards_open":0,"quests_open":0,"open_points":0,"unreadable":"page_blank"},"state_after":null,"points_now":null,"points_earned":null,"search":null,"error":{"code":"edge_missing","message_key":"errors.browser.edge_missing","detail":"Synthetic missing browser"},
+          "tasks":[
+            {"task":"daily_set","name_key":"common.task.daily_set","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"visual_search","name_key":"common.task.visual_search","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"misc_cards","name_key":"common.task.misc_cards","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"quests","name_key":"common.task.quests","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"searches","name_key":"common.task.searches","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null},
+            {"task":"bonus","name_key":"common.task.bonus","status":"not_run","reason_key":"errors.task.not_run","detail":null,"progress":null,"points_before":null,"points_after":null,"duration_ms":null}
+          ]
+        }],"warnings":[{"code":"signed_out","message_key":"errors.warning.signed_out","account_id":"jamie"}],"log_size":14
+      },"log":{"text":"Synthetic log\n","next_offset":14}
+    }},
+    "get_run_log":{"ok":true,"data":{"text":"Synthetic log\n","next_offset":14,"eof":true,"size":14}}
+  },"pushes":[]
+}

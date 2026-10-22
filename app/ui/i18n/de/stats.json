@@ -1,0 +1,32 @@
+{
+  "namespace": "stats",
+  "messages": {
+    "stats.title": {"text": "Statistik", "src": "352f245c"},
+    "stats.loading": {"text": "Deine Statistik wird geladen", "src": "64b042b8"},
+    "stats.empty.title": {"text": "Hier beginnt dein Verlauf", "src": "3410ef28"},
+    "stats.empty.body": {"text": "Nach deinem ersten Durchlauf siehst du hier deine Punkte und täglichen Fortschritte.", "src": "327fad2d"},
+    "stats.account": {"text": "Konto", "src": "fb2a1c8f"},
+    "stats.account.all": {"text": "Alle Konten", "src": "e1cce800"},
+    "stats.range": {"text": "Zeitraum", "src": "54581cd2"},
+    "stats.range.7": {"text": "7 Tage", "src": "714f2c4e"},
+    "stats.range.30": {"text": "30 Tage", "src": "d9645efa"},
+    "stats.range.90": {"text": "90 Tage", "src": "0470550f"},
+    "stats.week": {"text": "Diese Woche", "src": "a7691b11"},
+    "stats.month": {"text": "Dieser Monat", "src": "94356504"},
+    "stats.streak.title": {"text": "Erfolgsserie", "src": "981264d4"},
+    "stats.calendar.title": {"text": "Dein täglicher Fortschritt", "src": "c6348b21"},
+    "stats.calendar.day": {"text": "{date}: {state}", "src": "85afee76"},
+    "stats.state.done": {"text": "Erledigt", "src": "2b4a262c"},
+    "stats.state.today_open": {"text": "Heute noch offen", "src": "c82a738a"},
+    "stats.state.missed": {"text": "Verpasst", "src": "3e29bb56"},
+    "stats.state.no_check": {"text": "Nicht geprüft", "src": "b81b8356"},
+    "stats.state.before_tracking": {"text": "Vor der Erfassung", "src": "cfea3b78"},
+    "stats.warning.ledger_rebuilt": {"text": "Deine Statistik wurde aus den noch vorhandenen Durchlaufdetails wiederhergestellt. Einige frühere Tage können fehlen.", "src": "047d2674"},
+    "stats.warning.ledger_newer": {"text": "Diese Statistik wurde mit einer neueren App gespeichert. Bis du die App aktualisierst, werden nur vorhandene Durchlaufdetails angezeigt.", "src": "4522304f"},
+    "stats.chart.help": {"text": "Mit den Pfeiltasten links und rechts wechselst du den Tag, mit Pos1 zum ersten und mit Ende zum neuesten. Fehlende Werte bleiben nicht verfügbar.", "src": "132b973e"},
+    "stats.sources.day": {"text": "Aufgaben am {date}", "src": "cbfc1381"},
+    "stats.sources.day_empty": {"text": "Keine Aufgabensummen für diesen Tag", "src": "1da981d8"},
+    "stats.day.points": {"text": "{earned} / {possible}", "src": "bba4a015"},
+    "stats.day.runs": {"text": "Durchläufe am {date}", "src": "d299af23"}
+  }
+}

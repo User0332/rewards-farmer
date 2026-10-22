@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -13,6 +15,7 @@ jobs:
   desktop-utils:
     name: Desktop utility tests
     runs-on: windows-latest
+    if: github.event_name != 'release'
 
     steps:
       - name: Check out repository
@@ -41,3 +44,173 @@ jobs:
           SWITCH_BACK_TO_MAIN_DESKTOP: "false"
         run: |
           poetry run python -m unittest discover -s tests -p "test_desktop_utils.py" -v
+
+  installer:
+    name: Installer
+    runs-on: windows-latest
+    if: github.event_name != 'release'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Downloads what this push or pull request holds, the way the one line
+      # install does, into a folder nothing else has touched. Windows
+      # PowerShell 5.1 on purpose, since that is what a fresh Windows has.
+      - name: Install into a fresh folder
+        shell: powershell
+        env:
+          SOURCE_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          SOURCE_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -InstallDir "$env:RUNNER_TEMP\rewards-farmer" -Repo $env:SOURCE_REPO -Branch $env:SOURCE_BRANCH -NoConfig -DailyAt 03:00 -TaskName rewards-farmer-ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check what it installed
+        shell: powershell
+        run: |
+          $root = "$env:RUNNER_TEMP\rewards-farmer"
+          $python = "$root\.venv\Scripts\python.exe"
+
+          & $python -c "import selenium, matplotlib, pygetwindow, keyboard, pygame, ollama, requests, dotenv, PIL"
+          if ($LASTEXITCODE -ne 0) { throw "the installed environment is missing a dependency" }
+
+          & $python "$root\src\main.py" --help
+          if ($LASTEXITCODE -ne 0) { throw "main.py does not take the command line the task uses" }
+
+          if (-not (Test-Path "$root\visual_search.jpg")) { throw "there is no visual search image" }
+
+          $task = Get-ScheduledTask -TaskName rewards-farmer-ci
+          $action = $task.Actions[0]
+          if ($action.Execute -ne $python) { throw "the task starts $($action.Execute)" }
+          if ($action.Arguments -notmatch '--unattended$') { throw "the task would wait for Enter: $($action.Arguments)" }
+          if (-not $task.Settings.StartWhenAvailable) { throw "a missed run would not catch up" }
+          if ($task.Settings.DisallowStartIfOnBatteries) { throw "the task would not start on battery" }
+          if ($task.Settings.Priority -ne 5) { throw "the task runs at priority $($task.Settings.Priority)" }
+
+          $link = (New-Object -ComObject WScript.Shell).CreateShortcut("$([Environment]::GetFolderPath('Programs'))\Rewards Farmer.lnk")
+          if ($link.TargetPath -ne $python) { throw "the Start menu entry starts '$($link.TargetPath)'" }
+
+  app:
+    name: App unit and UI tests
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Install app dependencies
+        shell: powershell
+        run: |
+          python -m pip install poetry==2.4.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          poetry install --with app --no-interaction
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run app unit tests
+        shell: powershell
+        run: |
+          poetry run python -m unittest discover -s app/tests -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run app UI tests on synthetic fixtures
+        shell: powershell
+        env:
+          REWARDS_APP_UI_TESTS: "1"
+        run: |
+          $env:REWARDS_APP_SCREENSHOT_DIR = Join-Path $env:RUNNER_TEMP 'ui-shots'
+          poetry run python -m unittest discover -s app/tests/ui -t app/tests -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Retain UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ui-screenshots
+          path: ${{ runner.temp }}/ui-shots
+          if-no-files-found: warn
+
+  package:
+    name: Build and test unsigned Windows Setup
+    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: app
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Install locked build dependencies
+        shell: powershell
+        run: |
+          python -m pip install poetry==2.4.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          poetry install --with app,build --no-interaction
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install Inno Setup 6.7.3
+        shell: powershell
+        run: |
+          $download = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
+          Invoke-WebRequest -UseBasicParsing 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe' -OutFile $download
+          $signature = Get-AuthenticodeSignature -LiteralPath $download
+          if ($signature.Status -ne 'Valid') { throw 'The Inno installer has no valid signature.' }
+          $compilerRoot = Join-Path $env:RUNNER_TEMP 'Inno Setup 6.7.3'
+          $proc = Start-Process -FilePath $download -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/SP-', '/CURRENTUSER', "/DIR=`"$compilerRoot`"") -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Inno installation failed ($($proc.ExitCode))." }
+          "RF_ISCC=$(Join-Path $compilerRoot 'ISCC.exe')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Build from the release commit
+        shell: powershell
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          $python = (poetry env info --executable).Trim()
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $scratch = Join-Path $env:RUNNER_TEMP 'rf-package'
+          & .\app\packaging\build.ps1 -Commit $env:SOURCE_SHA -ScratchRoot $scratch -Python $python -Iscc $env:RF_ISCC
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $builds = @(Get-ChildItem -LiteralPath $scratch -Directory)
+          if ($builds.Count -ne 1) { throw 'Expected one clean build workspace.' }
+          "RF_PACKAGE_WORK=$($builds[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Frozen non-window smoke
+        shell: powershell
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $result = Get-Content -LiteralPath (Join-Path $env:RF_PACKAGE_WORK 'build-result.json') -Raw | ConvertFrom-Json
+          $tag = $env:RELEASE_TAG -replace '^v', ''
+          if ($tag -ne $result.version) { throw 'The release tag differs from rfapp.__version__.' }
+          $exe = Join-Path $env:RF_PACKAGE_WORK 'dist\RewardsFarmer\RewardsFarmer.exe'
+          poetry run python app/packaging/smoke.py --exe $exe --version $result.version --scratch (Join-Path $env:RUNNER_TEMP 'rf-smoke')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Installed app task and uninstall lifecycle
+        shell: powershell
+        run: |
+          $result = Get-Content -LiteralPath (Join-Path $env:RF_PACKAGE_WORK 'build-result.json') -Raw | ConvertFrom-Json
+          & .\app\packaging\ci_lifecycle.ps1 -Setup $result.setup -Scratch (Join-Path $env:RUNNER_TEMP 'rf-installed-proof')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Retain unsigned installer and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: RewardsFarmer-windows-x64-unsigned
+          path: |
+            ${{ runner.temp }}/rf-package/*/installer/*Setup.exe
+            ${{ runner.temp }}/rf-package/*/installer/*.sha256
+            ${{ runner.temp }}/rf-package/*/bundle-manifest.json
+            ${{ runner.temp }}/rf-package/*/build-result.json
+            ${{ runner.temp }}/rf-package/*/installer-tool-identity.json
+            ${{ runner.temp }}/rf-package/*/source-identity.json
+            ${{ runner.temp }}/rf-package/*/build.log
+            ${{ runner.temp }}/rf-installed-proof/**
+            ${{ runner.temp }}/rf-smoke/**
+          if-no-files-found: error

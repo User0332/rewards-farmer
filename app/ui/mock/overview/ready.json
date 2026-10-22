@@ -1,0 +1,52 @@
+{
+  "synthetic": true,
+  "note": "Operator-approved Overview composition with synthetic measurements on 2026-10-15. UI tests freeze only their own browser clock to this snapshot so Today remains deterministic. No production render path depends on preview mode.",
+  "methods": {
+    "start_run": {"ok":true,"data":{"started":true}},
+    "get_overview": {"ok":true,"data":{
+      "generated_at":"2026-10-15T20:00:00Z",
+      "streaks":{"captured_at":"2026-10-15T19:55:41Z","account_id":"jamie","big_bonus":{"points":1000,"stamps_total":12,"stamps_collected":null},"items":[
+        {"id":"bing_search","day":6,"length":7,"today_done":1,"today_total":1,"next_points":100,"day_points":3,"day_points_earned":true,"end_points":100},
+        {"id":"daily_set","day":6,"length":7,"today_done":3,"today_total":3,"next_points":100,"day_points":30,"day_points_earned":true,"end_points":100},
+        {"id":"bing_app","day":0,"length":7,"today_done":0,"today_total":1,"next_points":5,"day_points":5,"day_points_earned":false,"end_points":50},
+        {"id":"visual_search","day":2,"length":7,"today_done":0,"today_total":1,"next_points":5,"day_points":5,"day_points_earned":false,"end_points":100}
+      ]},
+      "accounts":[{
+        "account_id":"jamie","label":"Jamie","paused":false,
+        "state":{"at":"2026-10-15T20:00:00Z","balance":12340,"earned_today":150,"searches_earned":45,"searches_max":60,"daily_set_open":0,"cards_open":1,"quests_open":1,"open_points":35,"unreadable":null},
+        "state_is_today":true,
+        "tasks_today":[
+          {"task":"daily_set","status":"ok","reason_key":null,"still_open":false,"at":"2026-10-15T19:45:00Z"},
+          {"task":"explore_on_bing","status":"ok","reason_key":null,"still_open":null,"at":"2026-10-15T19:45:00Z"},
+          {"task":"visual_search","status":"skip","reason_key":"errors.task.not_available","still_open":null,"at":"2026-10-15T19:45:00Z"},
+          {"task":"misc_cards","status":"none","reason_key":null,"still_open":true,"at":null},
+          {"task":"quests","status":"none","reason_key":null,"still_open":true,"at":null},
+          {"task":"searches","status":"none","reason_key":null,"still_open":true,"at":null},
+          {"task":"bonus","status":"none","reason_key":null,"still_open":null,"at":null}
+        ],
+        "chart":[
+          {"date":"2026-09-16","balance":9000,"earned":110},{"date":"2026-09-17","balance":9000,"earned":0},
+          {"date":"2026-09-18","balance":9100,"earned":100},{"date":"2026-09-19","balance":9200,"earned":100},
+          {"date":"2026-09-20","balance":9240,"earned":40},{"date":"2026-09-21","balance":9300,"earned":60},
+          {"date":"2026-09-22","balance":9400,"earned":100},{"date":"2026-09-23","balance":9440,"earned":40},
+          {"date":"2026-09-24","balance":9540,"earned":100},{"date":"2026-09-25","balance":9600,"earned":60},
+          {"date":"2026-09-26","balance":9730,"earned":130},{"date":"2026-09-27","balance":9840,"earned":110},
+          {"date":"2026-09-28","balance":9880,"earned":40},{"date":"2026-09-29","balance":10020,"earned":140},
+          {"date":"2026-09-30","balance":10060,"earned":40},{"date":"2026-10-01","balance":10100,"earned":40},
+          {"date":"2026-10-02","balance":10210,"earned":110},{"date":"2026-10-03","balance":10210,"earned":0},
+          {"date":"2026-10-04","balance":10360,"earned":150},{"date":"2026-10-05","balance":10460,"earned":100},
+          {"date":"2026-10-06","balance":10530,"earned":70},{"date":"2026-10-07","balance":10560,"earned":30},
+          {"date":"2026-10-08","balance":10720,"earned":160},{"date":"2026-10-09","balance":10870,"earned":150},
+          {"date":"2026-10-10","balance":10870,"earned":0},{"date":"2026-10-11","balance":11040,"earned":170},
+          {"date":"2026-10-12","balance":11100,"earned":60},{"date":"2026-10-13","balance":11500,"earned":400},
+          {"date":"2026-10-14","balance":12190,"earned":690},{"date":"2026-10-15","balance":12340,"earned":150}
+        ],
+        "goal":{"target":14640,"remaining":2300,"avg_per_day":191.7,"days":12}
+      }],
+      "totals":{"balance":12340,"earned_today":150,"open_points":35},
+      "schedule":{"mode":"automatic","task_name":"RewardsFarmerApp_synthetic","task_exists":true,"in_sync":true,"next_at":"2026-10-15T21:45:00Z","next_is_check":true,"legacy_task":null,"error_code":null},
+      "active_run":null,"signin_active":null,"last_run":null
+    }}
+  },
+  "pushes": []
+}

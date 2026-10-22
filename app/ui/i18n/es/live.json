@@ -1,0 +1,16 @@
+{
+  "namespace": "live",
+  "messages": {
+    "live.title": {"text": "Ejecución en vivo", "src": "81326d0d"},
+    "live.points_earned": {"text": "Puntos ganados en esta ejecución", "src": "9dfeaf4b"},
+    "live.search_progress": {"text": "{earned} de {max}", "src": "f9dc0854"},
+    "live.stop": {"text": "Detener ejecución", "src": "72200071"},
+    "live.stop_waiting": {"text": "Deteniendo", "src": "3d6e4670"},
+    "live.stop_note": {"text": "Esperando a que se detenga el navegador. Puede tardar un momento.", "src": "d757bf3d"},
+    "live.history": {"text": "Ver ejecución en el historial", "src": "52466e7c"},
+    "live.overview": {"text": "Abrir Resumen", "src": "e2d35e84"},
+    "live.last_run": {"text": "Última ejecución", "src": "0b828e5b"},
+    "live.more_details": {"text": "Más detalles", "src": "7bb83408"},
+    "live.idle.title": {"text": "No hay ninguna ejecución en curso", "src": "0888f8c6"}
+  }
+}

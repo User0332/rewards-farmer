@@ -1,0 +1,10 @@
+{
+  "methods": {
+    "get_history": [
+      {"when":{"before":"second","filter":{"meta":{"b":2,"a":1},"ids":["x","y"]}},"ok":true,"data":{"runs":[],"next_before":"matched-second"}},
+      {"when":{"before":"third"},"ok":true,"data":{"runs":[],"next_before":"matched-third"}},
+      {"ok":true,"data":{"runs":[],"next_before":"default-first"}}
+    ]
+  },
+  "pushes": []
+}

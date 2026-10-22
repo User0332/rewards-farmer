@@ -1,0 +1,8 @@
+{
+  "synthetic": true,
+  "methods": {
+    "list_accounts": {"ok": true, "data": {"accounts": [{"id": "account-1", "label": "Alex (synthetic)", "dir": "C:\\Synthetic\\account-1", "paused": true, "is_root": false, "signed_in": null, "balance": null, "balance_at": null, "last_run_at": null, "last_result": null, "email": "alex@example.com", "name": "Alex Synthetic", "picture_rev": null}]}},
+    "set_account_paused": {"ok": true, "data": {"account": {"id": "account-1", "label": "Alex (synthetic)", "dir": "C:\\Synthetic\\account-1", "paused": false, "is_root": false, "signed_in": null, "balance": null, "balance_at": null, "last_run_at": null, "last_result": null, "email": "alex@example.com", "name": "Alex Synthetic", "picture_rev": null}}}
+  },
+  "pushes": []
+}

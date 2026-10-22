@@ -5,9 +5,12 @@ Automation for MS Rewards based on [https://youtu.be/4qdPcMNaioA](https://youtu.
 ## Table of Contents
 
 - [Core Setup & Running Instructions](#core-setup--running-instructions)
+	- [Quick install on Windows](#quick-install-on-windows)
 	- [Where search queries come from](#where-search-queries-come-from)
 	- [Installing Dependencies](#installing-dependencies)
 	- [Profile Setup](#profile-setup)
+- [Windows desktop app](#windows-desktop-app)
+- [Read state before running](#read-state-before-running)
 - [If Edge will not start](#if-edge-will-not-start)
 - [Running more than one account](#running-more-than-one-account)
 - [Docker](#docker)
@@ -19,7 +22,27 @@ Automation for MS Rewards based on [https://youtu.be/4qdPcMNaioA](https://youtu.
 
 IMPORTANT: Use at your own risk. Microsoft may take action against your account for using automated scripts to gain rewards points. The YouTube video contains more details about the techniques implemented to avoid detection of this script.
 
-Clone the repository.
+### Quick install on Windows
+
+Paste this into PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/User0332/rewards-farmer/main/install.ps1 | iex
+```
+
+It installs Python 3.13 through winget when no Python 3.12 or newer is installed, downloads the code into `%LOCALAPPDATA%\rewards-farmer`, puts the dependencies in a `.venv` there and fetches the visual search image. Then it runs the configuration script described below, which also signs your accounts in, and asks whether to run the farmer every day at a time you pick. You can read [install.ps1](install.ps1) before running it.
+
+The daily run is a Task Scheduler task. A time missed while the computer was off runs once it is back on, and since Edge opens a visible window, the task only runs while you are logged in. It starts `main.py --unattended`, which exits at the end instead of waiting for Enter. For a run by hand there is a Rewards Farmer entry in the Start menu.
+
+Run the same line again to update. Your `.env`, `data-dir` and image stay as they are. To remove it, delete the folder, the task and the Start menu entry:
+
+```powershell
+Remove-Item -Recurse "$env:LOCALAPPDATA\rewards-farmer"
+Unregister-ScheduledTask -TaskName rewards-farmer
+Remove-Item "$([Environment]::GetFolderPath('Programs'))\Rewards Farmer.lnk"
+```
+
+To set it up by hand instead, or on Linux and macOS, clone the repository.
 
 ```sh
 git clone https://github.com/User0332/rewards-farmer
@@ -109,6 +132,56 @@ EU Users: you may have to accept a consent banner once on `rewards.bing.com` and
 The bot finds buttons by their English labels, so it starts Edge with `--accept-lang=en-US` and Rewards and Bing load in English whatever language Edge is set to. Edge saves this setting in the profile, so Bing and Rewards also show up in English when you open that profile yourself.
 
 Close all webdriver browser instances. Run `main.py` again; the automation should start working.
+
+## Windows desktop app
+
+The desktop app adds setup, account status, run progress, history and settings on Windows 10/11 x64. The CLI and Docker instructions above still work. Automation carries the same account risk
+
+When a desktop release is available, take `RewardsFarmer-<version>-windows-x64-Setup.exe` and its SHA256 file from the release page. Setup installs for the current user without admin access and adds a Start menu entry, not a desktop icon. Python and Git are not needed. Microsoft Edge is needed for automation; Setup offers Microsoft's official Evergreen WebView2 download only when that runtime is missing
+
+These builds are unsigned. Windows may show an unknown-publisher or SmartScreen warning, and managed machines may block them. Checksums verify the downloaded file, not a trusted publisher
+
+Settings, profiles, logs and the Selenium driver cache live in `%LOCALAPPDATA%\RewardsFarmer`; binaries live in `%LOCALAPPDATA%\Programs\RewardsFarmer`. Uninstall removes the app's task and startup entry but keeps the data folder. Quit the app and wait for any run to finish before updating with another Setup
+
+The app has its own schedule. `install.ps1` configures the separate CLI task; do not enable both schedules for the same profile. A new Edge profile can sign in with your Windows Microsoft account automatically, so the app currently adds only the first account. Existing CLI account lists stay supported
+
+For a source run, use `poetry install --with app`, then `.venv\Scripts\pythonw.exe app\launcher.py`. Source runs share the repository's `.env` and `data-dir`. For packaging, install the `app,build` groups on Python 3.12 x64 and run `app\packaging\build.ps1 -Commit <commit>` with Inno Setup available. The script archives that commit into temporary build storage and produces an unsigned installer and bundle manifest
+
+### App settings in .env
+
+The app edits the same keys as the CLI without removing comments or unrelated settings. App-only language, window, tray and update preferences are in `app-prefs.json`; startup is an HKCU Run entry
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `REWARDS_SCHEDULE_MODE` | `automatic` | `automatic` checks before running, `fixed` checks at one daily time, `manual` disables the app task |
+| `REWARDS_SCHEDULE_WINDOW` | `09:45-21:45` | Local-time window for automatic checks |
+| `REWARDS_SCHEDULE_CHECKS` | `4` | Checks per automatic window, 1 to 12 |
+| `REWARDS_SCHEDULE_TIME` | `09:45` | Local time for fixed mode |
+| `REWARDS_SCHEDULE_DAYS` | `mon,tue,wed,thu,fri,sat,sun` | Days to check |
+| `REWARDS_SCHEDULE_RANDOM_DELAY` | `15` | Maximum random delay in minutes, one of 0, 5, 15, 30 or 60 |
+| `REWARDS_SCHEDULE_CATCH_UP` | `true` | Catch up a missed check when the computer is available |
+| `REWARDS_SCHEDULE_ON_BATTERY` | `true` | Allow scheduled checks on battery |
+| `REWARDS_MIN_POINTS` | `15` | Estimated open-points threshold, 1 to 500 |
+| `REWARDS_SKIP_TASKS` | empty | Comma-separated task ids to leave off: `daily_set`, `explore_on_bing`, `visual_search`, `misc_cards`, `quests`, `searches`, `bonus` |
+| `REWARDS_NOTIFY` | `always` | Completion notifications: `always`, `errors` or `never` |
+| `REWARDS_WEBHOOK_URL` | empty | Optional HTTPS completion webhook, treated as a secret |
+| `REWARDS_PAUSED_ACCOUNTS` | empty | Comma-separated account ids paused in the app |
+
+Existing `REWARDS_HEADLESS` and `USE_VIRTUAL_DESKTOP` choose the browser mode. `QUERY_SOURCE`, `LLM_PROVIDER`, `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_MODEL`, `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` keep their meanings above. `USER_DATA_DIR`, `EDGE_BINARY`, `MSEDGEDRIVER_PATH` and the logging keys stay available. New app setups choose `QUERY_SOURCE=trends`; source CLI defaults do not change
+
+## Read state before running
+
+`python src/main.py` accepts these optional flags. Without them, normal CLI output and task behavior stay the same
+
+| Flag | Effect |
+| --- | --- |
+| `--read-state` | Record Rewards state before and after each account's tasks |
+| `--only-if-open` | Read state and skip accounts with nothing worth running |
+| `--min-points N` | Threshold for `--only-if-open`, defaulting to `REWARDS_MIN_POINTS` or 15 |
+| `--run-if-unreadable` | With `--only-if-open`, run even when state could not be read |
+| `--check-only` | Read and record state without running tasks |
+
+An unlocked quest can make a run worthwhile below the points threshold. `--check-only` still starts Edge and reads Microsoft pages. Runs write structured records under `runs/`, and a profile-root lock prevents overlapping runs
 
 ## If Edge will not start
 

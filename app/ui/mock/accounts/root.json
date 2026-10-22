@@ -1,0 +1,5 @@
+{
+  "synthetic": true,
+  "methods": {"list_accounts": {"ok": true, "data": {"accounts": [{"id": "@root", "label": "Older account (synthetic)", "dir": "C:\\Synthetic\\root", "paused": false, "is_root": true, "signed_in": null, "balance": null, "balance_at": null, "last_run_at": null, "last_result": null, "email": null, "name": null, "picture_rev": null}]}}},
+  "pushes": []
+}

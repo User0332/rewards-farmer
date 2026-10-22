@@ -1,0 +1,28 @@
+{
+  "namespace": "history",
+  "messages": {
+    "history.title": {"text": "Verlauf", "src": "ee7ea2a7"},
+    "history.loading": {"text": "Verlauf wird geöffnet", "src": "1b51a0b8"},
+    "history.checks.latest": {"text": "Letzte Prüfung öffnen", "src": "240765be"},
+    "history.empty.title": {"text": "Noch keine Durchläufe erfasst", "src": "cfd9586c"},
+    "history.empty.body": {"text": "Deine Durchläufe erscheinen hier. Starte einen in der Übersicht, wenn du bereit bist.", "src": "b8385610"},
+    "history.empty.overview": {"text": "Übersicht öffnen", "src": "e2d35e84"},
+    "history.more": {"text": "Ältere Durchläufe laden", "src": "5a071c67"},
+    "history.refresh": {"text": "Verlauf aktualisieren", "src": "209bea6f"},
+    "history.back": {"text": "Zurück zum Verlauf", "src": "802d1fd2"},
+    "history.detail.title": {"text": "Durchlaufdetails", "src": "96852a87"},
+    "history.day.today": {"text": "Heute", "src": "9fc3002e"},
+    "history.day.yesterday": {"text": "Gestern", "src": "4e2fdb08"},
+    "history.mark.app_run": {"text": "App-Durchlauf", "src": "711c56ba"},
+    "history.mark.waited": {"text": "{minutes} Min. gewartet", "src": "cfd7f471"},
+    "history.mark.attention": {"text": "Handlungsbedarf", "src": "ae139315"},
+    "history.sources.title": {"text": "Punkte pro Aufgabe", "src": "b6410bb5"},
+    "history.tasks.not_run": {"plural": "count", "forms": {"one": "{count} Aufgabe nicht ausgeführt", "other": "{count} Aufgaben nicht ausgeführt"}, "src": "631bacc5"},
+    "history.tasks.no_points": {"plural": "count", "forms": {"one": "{count} Aufgabe ohne Punkte", "other": "{count} Aufgaben ohne Punkte"}, "src": "4a7d171c"},
+    "history.deferred.waited": {"plural": "count", "forms": {"one": "Mit {count} Minute Verzögerung gestartet, weil eine App im Vollbild oder eine Präsentation offen war.", "other": "Mit {count} Minuten Verzögerung gestartet, weil eine App im Vollbild oder eine Präsentation offen war."}, "src": "a21280fe"},
+    "history.deferred.gave_up": {"text": "Nach 40 Minuten war noch eine App im Vollbild oder eine Präsentation offen. Der Durchlauf startete trotzdem.", "src": "681c93d3"},
+    "history.technical.title": {"text": "Technische Details", "src": "9b9dc17e"},
+    "history.technical.task": {"text": "{task}", "src": "920380b0"},
+    "history.checks.day_count": {"plural": "count", "forms": {"one": "{count} Prüfung", "other": "{count} Prüfungen"}, "src": "a83a3c90"}
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "namespace": "history",
+  "messages": {
+    "history.title": {"text": "Cronologia", "src": "ee7ea2a7"},
+    "history.loading": {"text": "Apertura della cronologia", "src": "1b51a0b8"},
+    "history.checks.latest": {"text": "Apri l'ultimo controllo", "src": "240765be"},
+    "history.empty.title": {"text": "Nessuna esecuzione ancora registrata", "src": "cfd9586c"},
+    "history.empty.body": {"text": "Le tue esecuzioni appariranno qui. Quando vuoi, avviane una da Panoramica.", "src": "b8385610"},
+    "history.empty.overview": {"text": "Apri Panoramica", "src": "e2d35e84"},
+    "history.more": {"text": "Carica esecuzioni precedenti", "src": "5a071c67"},
+    "history.refresh": {"text": "Aggiorna la cronologia", "src": "209bea6f"},
+    "history.back": {"text": "Torna alla cronologia", "src": "802d1fd2"},
+    "history.detail.title": {"text": "Dettagli dell'esecuzione", "src": "96852a87"},
+    "history.day.today": {"text": "Oggi", "src": "9fc3002e"},
+    "history.day.yesterday": {"text": "Ieri", "src": "4e2fdb08"},
+    "history.mark.app_run": {"text": "Esecuzione dall'app", "src": "711c56ba"},
+    "history.mark.waited": {"text": "Attesa di {minutes} min", "src": "cfd7f471"},
+    "history.mark.attention": {"text": "Da verificare", "src": "ae139315"},
+    "history.sources.title": {"text": "Punti per attività", "src": "b6410bb5"},
+    "history.tasks.not_run": {"plural": "count", "forms": {"one": "{count} attività non eseguita", "many": "{count} attività non eseguite", "other": "{count} attività non eseguite"}, "src": "631bacc5"},
+    "history.tasks.no_points": {"plural": "count", "forms": {"one": "{count} attività senza punti", "many": "{count} attività senza punti", "other": "{count} attività senza punti"}, "src": "4a7d171c"},
+    "history.deferred.waited": {"plural": "count", "forms": {"one": "Avviata con {count} minuto di ritardo perché era aperta un'app a schermo intero o una presentazione.", "many": "Avviata con {count} minuti di ritardo perché era aperta un'app a schermo intero o una presentazione.", "other": "Avviata con {count} minuti di ritardo perché era aperta un'app a schermo intero o una presentazione."}, "src": "a21280fe"},
+    "history.deferred.gave_up": {"text": "Dopo 40 minuti era ancora aperta un'app a schermo intero o una presentazione, quindi l'esecuzione è iniziata comunque.", "src": "681c93d3"},
+    "history.technical.title": {"text": "Dettagli tecnici", "src": "9b9dc17e"},
+    "history.technical.task": {"text": "{task}", "src": "920380b0"},
+    "history.checks.day_count": {"plural": "count", "forms": {"one": "{count} controllo", "many": "{count} controlli", "other": "{count} controlli"}, "src": "a83a3c90"}
+  }
+}

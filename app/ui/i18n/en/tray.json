@@ -1,0 +1,22 @@
+{
+  "namespace": "tray",
+  "messages": {
+    "tray.tooltip.running": {"text": "Rewards Farmer is running", "note": "Tray tooltip while a run is active. Windows limits the tooltip to 127 characters."},
+    "tray.tooltip.today": {"plural": "total", "forms": {"one": "Today: {earned} of {total} point", "other": "Today: {earned} of {total} points"}, "note": "Tray tooltip for today's progress. earned is formatted points earned today. total is earned plus still-open points and selects the plural. Keep below 127 characters where possible."},
+    "tray.tooltip.idle": {"text": "Rewards Farmer", "note": "Tray tooltip when today's points could not be read. Keep below 127 characters."},
+    "tray.menu.open": {"text": "Open Rewards Farmer", "note": "First tray menu item and default left-click action. Shows and focuses the window."},
+    "tray.menu.run_now": {"text": "Run now", "note": "Tray menu action when no run is active. Starts the configured active accounts."},
+    "tray.menu.stop": {"text": "Stop run", "note": "Tray menu action while a run is active. Requests a graceful stop."},
+    "tray.menu.next_check": {"text": "Next check at {time}", "note": "Disabled tray menu line in automatic mode. time is the next scheduled local time, already formatted for Windows regional settings."},
+    "tray.menu.next_run": {"text": "Next run at {time}", "note": "Disabled tray menu line in fixed mode. time is the next scheduled local time, already formatted for Windows regional settings."},
+    "tray.menu.manual": {"text": "Manual runs only", "note": "Disabled tray menu line when no check or run is scheduled."},
+    "tray.menu.quit": {"text": "Quit", "note": "Last tray menu item. Stops the window app and tray but never stops an active farmer run."},
+    "tray.notify.done.title": {"text": "Rewards Farmer finished", "note": "Windows notification title after a run that completed without a problem."},
+    "tray.notify.done.body": {"plural": "points", "forms": {"one": "+{points} point, balance {balance}", "other": "+{points} points, balance {balance}"}, "note": "Completion notification body. points is points gained in this run and selects the plural. balance is the total known current account balance, already formatted."},
+    "tray.notify.done.body_no_balance": {"plural": "points", "forms": {"one": "+{points} point", "other": "+{points} points"}, "note": "Completion notification body when the balance is unknown but points gained are known. points selects the plural."},
+    "tray.notify.done.body_no_points": {"text": "The run finished. Open Rewards Farmer to see the details.", "note": "Completion notification body when points gained could not be measured. Never replace an unknown count with zero."},
+    "tray.notify.problem.title": {"text": "Rewards Farmer needs attention", "note": "Windows notification title for a run problem or an account that needs sign-in. Body comes from the matching error key."},
+    "tray.notify.signed_out": {"text": "{account} needs you to sign in again.", "note": "Windows notification body for a signed-out account. account is its user-chosen label or localized default label."},
+    "tray.notify.closed_to_tray": {"text": "Rewards Farmer is still in the tray. Choose Quit there to close it.", "note": "Shown once after the first window close that hides to the tray. Closing the app does not stop runs."}
+  }
+}

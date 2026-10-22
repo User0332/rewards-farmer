@@ -16,7 +16,9 @@ it navigated. No browser, so they run anywhere.
 import logging
 import os
 import sys
+import types
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -271,6 +273,84 @@ class ReturnToRewardsHomeTests(unittest.TestCase):
 			tasks.complete_all_tasks()
 
 		self.assertEqual(tasks.ran, ALL_TASKS)
+
+
+class UnhydratedPageRecoveryTests(unittest.TestCase):
+	def setUp(self):
+		self.tasks = rewards_tasks.RewardsTaskUtils.__new__(rewards_tasks.RewardsTaskUtils)
+		self.tasks.driver = RecordingDriver()
+		self.tasks.tab_utils = RecordingTabUtils()
+		self.tasks.switch_to_earn_page = mock.Mock()
+		self.tasks.switch_to_dashboard = mock.Mock()
+		self.tasks.move_to_and_click = mock.Mock()
+		self.tasks.main_window = MAIN_TAB
+		self.tasks.progress = None
+
+	def test_earn_page_timeout_reloads_once_and_retries_the_same_marker(self):
+		marker = mock.Mock(return_value="breakdown")
+		self.tasks.wait_for_element = mock.Mock(side_effect=[TimeoutException("SPA not hydrated"), "breakdown"])
+		with self.assertLogs(rewards_tasks.logger, level="WARNING"):
+			self.assertEqual(self.tasks.reach_earn_page(marker, timeout=30), "breakdown")
+		self.tasks.switch_to_earn_page.assert_called_once_with()
+		self.assertEqual(self.tasks.driver.visited, ["https://rewards.bing.com/earn"])
+		self.assertEqual(self.tasks.tab_utils.focuses, 1)
+		self.assertEqual(self.tasks.wait_for_element.call_args_list, [mock.call(marker, timeout=30), mock.call(marker, timeout=30)])
+
+	def test_earn_page_that_is_ready_is_not_reloaded(self):
+		marker = mock.Mock()
+		self.tasks.wait_for_element = mock.Mock(return_value="breakdown")
+		self.assertEqual(self.tasks.reach_earn_page(marker), "breakdown")
+		self.tasks.wait_for_element.assert_called_once_with(marker, timeout=20)
+		self.assertEqual(self.tasks.driver.visited, [])
+		self.assertEqual(self.tasks.tab_utils.focuses, 0)
+
+	def test_earn_retry_timeout_propagates_without_a_second_reload(self):
+		self.tasks.wait_for_element = mock.Mock(side_effect=TimeoutException("still not hydrated"))
+		with self.assertLogs(rewards_tasks.logger, level="WARNING"), self.assertRaises(TimeoutException):
+			self.tasks.reach_earn_page(mock.Mock())
+		self.assertEqual(self.tasks.wait_for_element.call_count, 2)
+		self.assertEqual(self.tasks.driver.visited, ["https://rewards.bing.com/earn"])
+
+	def test_read_search_points_uses_recovered_earn_marker_then_reads_row(self):
+		button = object()
+		marker, row, close = mock.Mock(), mock.Mock(), mock.Mock(return_value="close")
+		self.tasks.elements = types.SimpleNamespace(get_points_breakdown_button=marker,
+			get_points_earned_from_searches_on_points_breakdown=row, get_generic_sidebar_close_button=close)
+		self.tasks.wait_for_element = mock.Mock(side_effect=[TimeoutException("SPA not hydrated"), button, (9, 60)])
+		with self.assertLogs(rewards_tasks.logger, level="WARNING"):
+			self.assertEqual(self.tasks.read_search_points(), (9, 60))
+		self.assertEqual(self.tasks.driver.visited, ["https://rewards.bing.com/earn"])
+		self.assertEqual(self.tasks.wait_for_element.call_args_list, [mock.call(marker, timeout=30), mock.call(marker, timeout=30), mock.call(row, timeout=30)])
+		self.assertEqual(self.tasks.move_to_and_click.call_args_list, [mock.call(button), mock.call("close")])
+
+	def test_dashboard_timeout_reloads_once_and_still_claims_bonus(self):
+		bonus, claim = mock.Mock(), mock.Mock()
+		self.tasks.elements = types.SimpleNamespace(get_bonus_button_on_dashboard=bonus, get_claim_bonus_points_button=claim)
+		self.tasks.wait_for_then_click = mock.Mock(side_effect=[TimeoutException("SPA not hydrated"), None, None])
+		with self.assertLogs(rewards_tasks.logger, level="WARNING"):
+			self.tasks.claim_bonus_points()
+		self.tasks.switch_to_dashboard.assert_called_once_with()
+		self.assertEqual(self.tasks.driver.visited, ["https://rewards.bing.com/dashboard"])
+		self.assertEqual(self.tasks.tab_utils.focuses, 1)
+		self.assertEqual(self.tasks.wait_for_then_click.call_args_list, [mock.call(bonus, timeout=20), mock.call(bonus, timeout=20), mock.call(claim)])
+		self.assertEqual(self.tasks.progress, "opened the bonus panel")
+
+	def test_dashboard_that_is_ready_is_not_reloaded(self):
+		self.tasks.elements = types.SimpleNamespace(get_bonus_button_on_dashboard=mock.Mock(), get_claim_bonus_points_button=mock.Mock())
+		self.tasks.wait_for_then_click = mock.Mock()
+		self.tasks.claim_bonus_points()
+		self.assertEqual(self.tasks.wait_for_then_click.call_count, 2)
+		self.assertEqual(self.tasks.driver.visited, [])
+		self.assertEqual(self.tasks.tab_utils.focuses, 0)
+
+	def test_dashboard_retry_timeout_propagates_without_claiming_or_reloading_again(self):
+		self.tasks.elements = types.SimpleNamespace(get_bonus_button_on_dashboard=mock.Mock(), get_claim_bonus_points_button=mock.Mock())
+		self.tasks.wait_for_then_click = mock.Mock(side_effect=TimeoutException("still not hydrated"))
+		with self.assertLogs(rewards_tasks.logger, level="WARNING"), self.assertRaises(TimeoutException):
+			self.tasks.claim_bonus_points()
+		self.assertEqual(self.tasks.wait_for_then_click.call_count, 2)
+		self.assertEqual(self.tasks.driver.visited, ["https://rewards.bing.com/dashboard"])
+		self.assertIsNone(self.tasks.progress)
 
 
 if __name__ == "__main__":

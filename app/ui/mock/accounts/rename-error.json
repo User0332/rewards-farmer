@@ -1,0 +1,5 @@
+{
+  "synthetic": true,
+  "methods": {"rename_account": {"ok": false, "error": {"code": "bad_request", "message_key": "errors.app.bad_request", "params": {}, "detail": "Synthetic invalid label", "fields": null}}},
+  "pushes": []
+}

@@ -1,0 +1,16 @@
+{
+  "namespace": "live",
+  "messages": {
+    "live.title": {"text": "实时运行", "src": "81326d0d"},
+    "live.points_earned": {"text": "本次获得的积分", "src": "9dfeaf4b"},
+    "live.search_progress": {"text": "{earned}/{max}", "src": "f9dc0854"},
+    "live.stop": {"text": "停止运行", "src": "72200071"},
+    "live.stop_waiting": {"text": "正在停止", "src": "3d6e4670"},
+    "live.stop_note": {"text": "正在等待浏览器停止，可能需要一点时间。", "src": "d757bf3d"},
+    "live.history": {"text": "在历史记录中查看本次运行", "src": "52466e7c"},
+    "live.overview": {"text": "打开概览", "src": "e2d35e84"},
+    "live.last_run": {"text": "上次运行", "src": "0b828e5b"},
+    "live.more_details": {"text": "更多详情", "src": "7bb83408"},
+    "live.idle.title": {"text": "当前没有运行", "src": "0888f8c6"}
+  }
+}

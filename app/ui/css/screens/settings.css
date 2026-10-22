@@ -1,0 +1,31 @@
+.settings-screen > * { inline-size: 100%; max-inline-size: 820px; justify-self: start; }
+.settings-sections { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.settings-sections a { color: var(--c-text-2); padding: var(--sp-2) var(--sp-3); text-decoration: none; border-radius: var(--r-s); overflow-wrap: anywhere; }
+.settings-sections a:hover { background: var(--c-surface-hover); }
+.settings-sections a[aria-current="page"] { color: var(--c-text); background: var(--c-surface-2); box-shadow: inset 0 -2px var(--c-accent); font-weight: var(--fw-medium); }
+.settings-screen .settings-panel { min-inline-size: 0; }
+.settings-form { border: 0; margin: 0; padding: 0; min-inline-size: 0; }
+.settings-rows { display: grid; gap: var(--sp-4); min-inline-size: 0; }
+.settings-row { display: grid; gap: var(--sp-2); min-inline-size: 0; }
+.settings-row .field-description { max-inline-size: 70ch; }
+.settings-mode-help { margin-block-start: calc(var(--sp-2) * -1); }
+.settings-input-actions { display: flex; align-items: start; flex-wrap: wrap; gap: var(--sp-2); min-inline-size: 0; }
+.settings-input-actions .field { flex: 1 1 230px; min-inline-size: 0; }
+.settings-path-field { grid-template-columns: minmax(0, 1fr) max-content; }
+.settings-path-field > .field-label, .settings-path-field > .field-description, .settings-path-field > .field-error { grid-column: 1 / -1; }
+.settings-path-field > input { grid-column: 1; grid-row: 3; }
+.settings-path-field > .button { grid-column: 2; grid-row: 3; align-self: center; }
+.settings-schedule-next { display: grid; gap: var(--sp-1); margin: 0; }
+.settings-schedule-next dd { margin: 0; }
+.settings-field-error { color: var(--c-danger); font-size: var(--fs-2); overflow-wrap: anywhere; }
+.settings-row [aria-invalid="true"] { border-color: var(--c-danger); }
+.settings-task-options { display: grid; gap: var(--sp-2); border: 0; margin: 0; padding: 0; min-inline-size: 0; }
+.settings-task-options legend { margin-block-end: var(--sp-2); }
+.settings-task-options .switch-row { padding-block: var(--sp-2); }
+.settings-task-options .switch-copy > .field-label { font-size: var(--fs-3); font-weight: var(--fw-regular); }
+.settings-export { display: grid; justify-items: start; gap: var(--sp-2); }
+.settings-screen .settings-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--sp-3); border-block-start: 1px solid var(--c-border); padding-block-start: var(--sp-4); }
+.settings-screen .banner { flex-wrap: wrap; }
+.settings-screen .banner .control-actions { max-inline-size: 100%; }
+.settings-screen .segmented-options { min-inline-size: 0; }
+.settings-screen .segment { min-inline-size: 0; overflow-wrap: anywhere; }

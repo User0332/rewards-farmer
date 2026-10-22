@@ -1,0 +1,14 @@
+{
+  "synthetic": true,
+  "methods": {
+    "list_accounts": {"ok": true, "data": {"accounts": [
+      {"id": "account-1", "label": "Alex (synthetic)", "dir": "C:\\Synthetic\\account-1", "paused": false, "is_root": false, "signed_in": true, "balance": 4200, "balance_at": "2026-10-14T20:00:00Z", "last_run_at": "2026-10-14T19:00:00Z", "last_result": "ok", "email": "alex@example.com", "name": "Taylor Synthetic", "picture_rev": null},
+      {"id": "account-2", "label": "Robin (synthetic)", "dir": "C:\\Synthetic\\account-2", "paused": false, "is_root": false, "signed_in": false, "balance": null, "balance_at": null, "last_run_at": null, "last_result": null, "email": "casey@example.com", "name": null, "picture_rev": null},
+      {"id": "account-3", "label": "Sam (synthetic)", "dir": "C:\\Synthetic\\account-3", "paused": true, "is_root": false, "signed_in": null, "balance": 1800, "balance_at": "2026-10-13T20:00:00Z", "last_run_at": null, "last_result": null, "email": null, "name": null, "picture_rev": null}
+    ]}},
+    "sign_in_again": {"ok": true, "data": {"signin": {"account_id": "account-1", "state": "starting", "error_code": null, "message_key": "accounts.signin.starting", "detail": null, "at": "2026-10-14T20:00:00Z"}}},
+    "set_account_paused": {"ok": true, "data": {"account": {"id": "account-1", "label": "Alex (synthetic)", "dir": "C:\\Synthetic\\account-1", "paused": true, "is_root": false, "signed_in": true, "balance": 4200, "balance_at": "2026-10-14T20:00:00Z", "last_run_at": null, "last_result": null, "email": "alex@example.com", "name": "Taylor Synthetic", "picture_rev": null}}},
+    "rename_account": {"ok": true, "data": {"account": {"id": "account-1", "label": "New name (synthetic)", "dir": "C:\\Synthetic\\account-1", "paused": false, "is_root": false, "signed_in": true, "balance": 4200, "balance_at": "2026-10-14T20:00:00Z", "last_run_at": null, "last_result": null, "email": "alex@example.com", "name": "Taylor Synthetic", "picture_rev": null}}}
+  },
+  "pushes": []
+}

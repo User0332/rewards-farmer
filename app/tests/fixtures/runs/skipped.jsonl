@@ -1,0 +1,5 @@
+{"v":1,"ts":"2026-10-14T12:00:00.000Z","run":"20261014T120000Z-0004","type":"run_start","trigger":"scheduled","accounts":["default"],"plan":{"check_only":false,"only_if_open":true}}
+{"v":1,"ts":"2026-10-14T12:00:01.000Z","run":"20261014T120000Z-0004","type":"account_start","account":"default","profile":"profiles"}
+{"v":1,"ts":"2026-10-14T12:00:02.000Z","run":"20261014T120000Z-0004","type":"decision","account":"default","should_run":false,"reason":"nothing_open","open_points":0,"min_points":15}
+{"v":1,"ts":"2026-10-14T12:00:03.000Z","run":"20261014T120000Z-0004","type":"account_end","account":"default","started":true,"ran_tasks":false,"error_code":null,"detail":null,"duration_ms":2000}
+{"v":1,"ts":"2026-10-14T12:00:04.000Z","run":"20261014T120000Z-0004","type":"run_end","result":"skipped","exit_code":0,"accounts_started":1,"accounts_ran":0,"duration_ms":4000,"written_by":"farmer","detail":null}

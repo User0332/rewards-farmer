@@ -1,0 +1,28 @@
+{
+  "namespace": "history",
+  "messages": {
+    "history.title": {"text": "Historique", "src": "ee7ea2a7"},
+    "history.loading": {"text": "Ouverture de l’historique", "src": "1b51a0b8"},
+    "history.checks.latest": {"text": "Ouvrir la dernière vérification", "src": "240765be"},
+    "history.empty.title": {"text": "Aucune exécution enregistrée pour le moment", "src": "cfd9586c"},
+    "history.empty.body": {"text": "Vos exécutions apparaîtront ici. Lancez-en une depuis Vue d’ensemble quand vous serez prêt.", "src": "b8385610"},
+    "history.empty.overview": {"text": "Ouvrir Vue d’ensemble", "src": "e2d35e84"},
+    "history.more": {"text": "Charger les exécutions précédentes", "src": "5a071c67"},
+    "history.refresh": {"text": "Actualiser l’historique", "src": "209bea6f"},
+    "history.back": {"text": "Retour à l’historique", "src": "802d1fd2"},
+    "history.detail.title": {"text": "Détails de l’exécution", "src": "96852a87"},
+    "history.day.today": {"text": "Aujourd’hui", "src": "9fc3002e"},
+    "history.day.yesterday": {"text": "Hier", "src": "4e2fdb08"},
+    "history.mark.app_run": {"text": "Exécution depuis l’app", "src": "711c56ba"},
+    "history.mark.waited": {"text": "Attente de {minutes} min", "src": "cfd7f471"},
+    "history.mark.attention": {"text": "À vérifier", "src": "ae139315"},
+    "history.sources.title": {"text": "Points par tâche", "src": "b6410bb5"},
+    "history.tasks.not_run": {"plural": "count", "forms": {"one": "{count} tâche non exécutée", "many": "{count} tâches non exécutées", "other": "{count} tâches non exécutées"}, "src": "631bacc5"},
+    "history.tasks.no_points": {"plural": "count", "forms": {"one": "{count} tâche sans points", "many": "{count} tâches sans points", "other": "{count} tâches sans points"}, "src": "4a7d171c"},
+    "history.deferred.waited": {"plural": "count", "forms": {"one": "L’exécution a démarré avec {count} minute de retard car une application en plein écran ou une présentation était ouverte.", "many": "L’exécution a démarré avec {count} minutes de retard car une application en plein écran ou une présentation était ouverte.", "other": "L’exécution a démarré avec {count} minutes de retard car une application en plein écran ou une présentation était ouverte."}, "src": "a21280fe"},
+    "history.deferred.gave_up": {"text": "Après 40 minutes, une application en plein écran ou une présentation était encore ouverte. L’exécution a donc démarré quand même.", "src": "681c93d3"},
+    "history.technical.title": {"text": "Détails techniques", "src": "9b9dc17e"},
+    "history.technical.task": {"text": "{task}", "src": "920380b0"},
+    "history.checks.day_count": {"plural": "count", "forms": {"one": "{count} vérification", "many": "{count} vérifications", "other": "{count} vérifications"}, "src": "a83a3c90"}
+  }
+}

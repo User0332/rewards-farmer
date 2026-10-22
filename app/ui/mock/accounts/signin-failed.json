@@ -1,0 +1,5 @@
+{
+  "synthetic": true,
+  "methods": {"sign_in_again": {"ok": false, "error": {"code": "accounts.signin_active", "message_key": "errors.app.accounts_signin_active", "params": {}, "detail": null, "fields": null}}},
+  "pushes": [{"after_ms": 0, "topic": "signin.status", "data": {"account_id": "jamie", "state": "failed", "error_code": "profile_in_use", "message_key": "errors.browser.profile_in_use", "detail": "Synthetic locked profile", "at": "2026-10-14T20:00:01Z"}}]
+}

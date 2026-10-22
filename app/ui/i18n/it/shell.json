@@ -1,0 +1,26 @@
+{
+  "namespace": "shell",
+  "messages": {
+    "shell.window.title": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "shell.nav.label": {"text": "Navigazione principale", "src": "38213473"},
+    "shell.nav.overview": {"text": "Panoramica", "src": "fb6819e9"},
+    "shell.nav.stats": {"text": "Statistiche", "src": "352f245c"},
+    "shell.nav.live": {"text": "Esecuzione live", "src": "81326d0d"},
+    "shell.nav.history": {"text": "Cronologia", "src": "ee7ea2a7"},
+    "shell.nav.accounts": {"text": "Account", "src": "dd0f0ab0"},
+    "shell.nav.settings": {"text": "Impostazioni", "src": "f89b44f5"},
+    "shell.route.setup.title": {"text": "Configura Rewards Farmer", "src": "35c12547"},
+    "shell.route.overview.title": {"text": "Panoramica", "src": "fb6819e9"},
+    "shell.route.stats.title": {"text": "Statistiche", "src": "352f245c"},
+    "shell.route.live.title": {"text": "Esecuzione live", "src": "81326d0d"},
+    "shell.route.history.title": {"text": "Cronologia", "src": "ee7ea2a7"},
+    "shell.route.accounts.title": {"text": "Account", "src": "dd0f0ab0"},
+    "shell.route.settings.title": {"text": "Impostazioni", "src": "f89b44f5"},
+    "shell.nav.live_active": {"text": "Esecuzione in corso", "src": "8cca6b0b"},
+    "shell.update.available": {"text": "È disponibile la versione {version}", "src": "c36d6e09"},
+    "shell.update.download": {"text": "Scarica", "src": "c996a8b4"},
+    "shell.account.none": {"text": "Ancora nessun account", "src": "9a947bee"},
+    "shell.error.title": {"text": "Non è stato possibile aprire questa pagina", "src": "8b9732cc"},
+    "shell.error.body": {"text": "Riprova. Se il problema continua, riavvia l'app.", "src": "378b46f2"}
+  }
+}

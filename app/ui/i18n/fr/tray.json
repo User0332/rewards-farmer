@@ -1,0 +1,22 @@
+{
+  "namespace": "tray",
+  "messages": {
+    "tray.tooltip.running": {"text": "Rewards Farmer est en cours d’exécution", "src": "c6fb48f3"},
+    "tray.tooltip.today": {"plural": "total", "forms": {"one": "Aujourd’hui\u00a0: {earned} sur {total} point", "many": "Aujourd’hui\u00a0: {earned} sur {total} points", "other": "Aujourd’hui\u00a0: {earned} sur {total} points"}, "src": "5dcdaac0"},
+    "tray.tooltip.idle": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "tray.menu.open": {"text": "Ouvrir Rewards Farmer", "src": "6a15e6b4"},
+    "tray.menu.run_now": {"text": "Exécuter maintenant", "src": "d716b60f"},
+    "tray.menu.stop": {"text": "Arrêter l’exécution", "src": "72200071"},
+    "tray.menu.next_check": {"text": "Prochaine vérification à {time}", "src": "bbd1573b"},
+    "tray.menu.next_run": {"text": "Prochaine exécution à {time}", "src": "0435d4c1"},
+    "tray.menu.manual": {"text": "Exécutions manuelles uniquement", "src": "0ea06527"},
+    "tray.menu.quit": {"text": "Quitter", "src": "235b8aa6"},
+    "tray.notify.done.title": {"text": "Rewards Farmer a terminé", "src": "971ff610"},
+    "tray.notify.done.body": {"plural": "points", "forms": {"one": "+{points} point, solde {balance}", "many": "+{points} points, solde {balance}", "other": "+{points} points, solde {balance}"}, "src": "98f0a8ee"},
+    "tray.notify.done.body_no_balance": {"plural": "points", "forms": {"one": "+{points} point", "many": "+{points} points", "other": "+{points} points"}, "src": "e1bd8366"},
+    "tray.notify.done.body_no_points": {"text": "L’exécution est terminée. Ouvrez Rewards Farmer pour voir les détails.", "src": "83691a74"},
+    "tray.notify.problem.title": {"text": "Rewards Farmer demande votre attention", "src": "bbd38c09"},
+    "tray.notify.signed_out": {"text": "{account}\u00a0: reconnectez-vous à ce compte.", "src": "161cf976"},
+    "tray.notify.closed_to_tray": {"text": "Rewards Farmer est toujours dans la zone de notification. Pour le fermer, choisissez Quitter dans son menu.", "src": "50ddf2a7"}
+  }
+}

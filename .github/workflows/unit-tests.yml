@@ -38,3 +38,7 @@ jobs:
         shell: bash
         run: |
           poetry run python -m unittest discover -s tests -v
+
+      - name: Run app unit tests
+        shell: bash
+        run: poetry run python -m unittest discover -s app/tests -v

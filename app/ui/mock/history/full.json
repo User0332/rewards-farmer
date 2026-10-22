@@ -1,0 +1,30 @@
+{
+  "synthetic": true,
+  "note": "F79 complete synthetic run, using load_run's task and account field names; no operator record or profile.",
+  "methods": {
+    "get_run": {"ok": true, "data": {
+      "run_id": "synthetic-full", "trigger": "app", "kind": "run",
+      "started_at": "2026-10-19T08:00:00Z", "ended_at": "2026-10-19T08:04:00Z", "duration_ms": 240000,
+      "active": false, "result": "ok", "result_key": "errors.run.ok", "points_earned": 105, "stop_requested": false, "deferred": null,
+      "accounts": [{
+        "account_id": "alex", "label": "Alex", "status": "done",
+        "decision": {"run": true, "reason": "enough_open", "reason_key": "errors.decision.enough_open", "open_points": 105, "min_points": 20},
+        "state_before": {"at": "2026-10-19T08:00:00Z", "balance": 1000, "earned_today": 0, "searches_earned": 0, "searches_max": 60, "daily_set_open": 3, "cards_open": 0, "quests_open": 1, "open_points": 105, "unreadable": null},
+        "state_after": {"at": "2026-10-19T08:04:00Z", "balance": 1105, "earned_today": 105, "searches_earned": 60, "searches_max": 60, "daily_set_open": 0, "cards_open": 0, "quests_open": 0, "open_points": 0, "unreadable": null},
+        "points_now": 1105, "points_earned": 105, "search": {"earned": 60, "max": 60}, "error": null,
+        "tasks": [
+          {"task":"daily_set","name_key":"common.task.daily_set","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":1000,"points_after":1030,"points":30,"duration_ms":30000},
+          {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":1030,"points_after":1030,"points":0,"duration_ms":10000},
+          {"task":"visual_search","name_key":"common.task.visual_search","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":1030,"points_after":1035,"points":5,"duration_ms":10000},
+          {"task":"misc_cards","name_key":"common.task.misc_cards","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":1035,"points_after":1035,"points":0,"duration_ms":10000},
+          {"task":"quests","name_key":"common.task.quests","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":1035,"points_after":1045,"points":10,"duration_ms":20000},
+          {"task":"searches","name_key":"common.task.searches","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":1045,"points_after":1105,"points":60,"duration_ms":120000},
+          {"task":"bonus","name_key":"common.task.bonus","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":1105,"points_after":1105,"points":0,"duration_ms":10000}
+        ]
+      }],
+      "warnings": [], "log_size": 24
+    }},
+    "get_run_log": {"ok": true, "data": {"text": "Synthetic complete run.\n", "next_offset": 24, "eof": true, "size": 24}}
+  },
+  "pushes": []
+}

@@ -1,0 +1,13 @@
+{"v":1,"ts":"2026-10-14T09:00:00.000Z","run":"20261014T090000Z-0001","type":"run_start","trigger":"app","accounts":["one","two"],"plan":{"check_only":false},"skip_tasks":[],"pid":1,"supervisor_pid":2,"app_version":"0.1.0"}
+{"v":1,"ts":"2026-10-14T09:00:01.000Z","run":"20261014T090000Z-0001","type":"account_start","account":"one","profile":"profiles/one"}
+{"v":1,"ts":"2026-10-14T09:00:02.000Z","run":"20261014T090000Z-0001","type":"state","account":"one","phase":"before","balance":100,"earned_today":0,"searches_earned":0,"searches_max":60,"daily_set_open":3,"cards_open":1,"quests_open":0,"open_points":100,"unreadable":null}
+{"v":1,"ts":"2026-10-14T09:00:03.000Z","run":"20261014T090000Z-0001","type":"task_start","account":"one","task":"searches","name":"Required searches","points_before":100}
+{"v":1,"ts":"2026-10-14T09:00:04.000Z","run":"20261014T090000Z-0001","type":"search_points","account":"one","earned":60,"max":60,"round":1}
+{"v":1,"ts":"2026-10-14T09:00:05.000Z","run":"20261014T090000Z-0001","type":"task_end","account":"one","task":"searches","name":"Required searches","outcome":"ok","reason_key":null,"detail":null,"progress":"sent 20 searches","points_before":100,"points_after":160,"duration_ms":2000}
+{"v":1,"ts":"2026-10-14T09:00:06.000Z","run":"20261014T090000Z-0001","type":"state","account":"one","phase":"after","balance":165,"earned_today":65,"searches_earned":60,"searches_max":60,"daily_set_open":0,"cards_open":0,"quests_open":0,"open_points":0,"unreadable":null}
+{"v":1,"ts":"2026-10-14T09:00:07.000Z","run":"20261014T090000Z-0001","type":"account_end","account":"one","started":true,"ran_tasks":true,"error_code":null,"detail":null,"duration_ms":6000}
+{"v":1,"ts":"2026-10-14T09:00:08.000Z","run":"20261014T090000Z-0001","type":"account_start","account":"two","profile":"profiles/two"}
+{"v":1,"ts":"2026-10-14T09:00:09.000Z","run":"20261014T090000Z-0001","type":"browser_failed","account":"two","code":"driver_missing","detail":"synthetic missing driver"}
+{"v":1,"ts":"2026-10-14T09:00:10.000Z","run":"20261014T090000Z-0001","type":"account_end","account":"two","started":false,"ran_tasks":false,"error_code":"browser_failed","detail":null,"duration_ms":2000}
+{"v":1,"ts":"2026-10-14T09:00:11.000Z","run":"20261014T090000Z-0001","type":"warning","account":"one","code":"daily_set_partial","detail":"synthetic partial"}
+{"v":1,"ts":"2026-10-14T09:00:12.000Z","run":"20261014T090000Z-0001","type":"run_end","result":"partial","exit_code":0,"accounts_started":1,"accounts_ran":1,"duration_ms":12000,"written_by":"farmer","detail":null}

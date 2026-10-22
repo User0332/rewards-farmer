@@ -1,0 +1,26 @@
+{
+  "namespace": "shell",
+  "messages": {
+    "shell.window.title": {"text": "Rewards Farmer", "src": "2db0ea9e"},
+    "shell.nav.label": {"text": "Hauptnavigation", "src": "38213473"},
+    "shell.nav.overview": {"text": "Übersicht", "src": "fb6819e9"},
+    "shell.nav.stats": {"text": "Statistik", "src": "352f245c"},
+    "shell.nav.live": {"text": "Live-Durchlauf", "src": "81326d0d"},
+    "shell.nav.history": {"text": "Verlauf", "src": "ee7ea2a7"},
+    "shell.nav.accounts": {"text": "Konten", "src": "dd0f0ab0"},
+    "shell.nav.settings": {"text": "Einstellungen", "src": "f89b44f5"},
+    "shell.route.setup.title": {"text": "Rewards Farmer einrichten", "src": "35c12547"},
+    "shell.route.overview.title": {"text": "Übersicht", "src": "fb6819e9"},
+    "shell.route.stats.title": {"text": "Statistik", "src": "352f245c"},
+    "shell.route.live.title": {"text": "Live-Durchlauf", "src": "81326d0d"},
+    "shell.route.history.title": {"text": "Verlauf", "src": "ee7ea2a7"},
+    "shell.route.accounts.title": {"text": "Konten", "src": "dd0f0ab0"},
+    "shell.route.settings.title": {"text": "Einstellungen", "src": "f89b44f5"},
+    "shell.nav.live_active": {"text": "Durchlauf läuft", "src": "8cca6b0b"},
+    "shell.update.available": {"text": "Version {version} ist verfügbar", "src": "c36d6e09"},
+    "shell.update.download": {"text": "Herunterladen", "src": "c996a8b4"},
+    "shell.account.none": {"text": "Noch keine Konten", "src": "9a947bee"},
+    "shell.error.title": {"text": "Diese Seite konnte nicht geöffnet werden", "src": "8b9732cc"},
+    "shell.error.body": {"text": "Versuche es erneut. Starte die App neu, falls es wieder passiert.", "src": "378b46f2"}
+  }
+}

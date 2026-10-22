@@ -1,0 +1,24 @@
+{
+  "synthetic":true,
+  "note":"F79 R2 synthetic older partial record: run-level earned points known, task readings unknown. No operator data.",
+  "methods":{
+    "get_run":{"ok":true,"data":{
+      "run_id":"synthetic-partial-unknown","trigger":"scheduled","kind":"run","started_at":"2026-10-17T07:18:00Z","ended_at":"2026-10-17T07:22:00Z","duration_ms":240000,
+      "active":false,"result":"partial","result_key":"errors.run.partial","points_earned":87,"stop_requested":false,"deferred":null,
+      "accounts":[{
+        "account_id":"alex","label":"Alex","status":"done","decision":null,
+        "state_before":null,"state_after":null,"points_now":null,"points_earned":87,"search":null,"error":null,
+        "tasks":[
+          {"task":"daily_set","name_key":"common.task.daily_set","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":30000},
+          {"task":"explore_on_bing","name_key":"common.task.explore_on_bing","status":"skip","reason_key":"errors.task.not_available","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null},
+          {"task":"visual_search","name_key":"common.task.visual_search","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":10000},
+          {"task":"misc_cards","name_key":"common.task.misc_cards","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":30000},
+          {"task":"quests","name_key":"common.task.quests","status":"ok","reason_key":null,"detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":20000},
+          {"task":"searches","name_key":"common.task.searches","status":"fail","reason_key":"errors.task.element_missing","detail":"Synthetic task stopped before completion.","progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":120000},
+          {"task":"bonus","name_key":"common.task.bonus","status":"skip","reason_key":"errors.task.not_available","detail":null,"progress":null,"points_before":null,"points_after":null,"points":null,"duration_ms":null}
+        ]
+      }],"warnings":[],"log_size":0
+    }}
+  },
+  "pushes":[]
+}

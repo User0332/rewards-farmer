@@ -1,9 +1,53 @@
 import re
+from urllib.parse import urljoin, urlsplit
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 from selenium import webdriver
+
+
+_BALANCE_NUMBER = r"(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?:\.\d{3})+|\d{1,3}(?:[ \u00a0\u202f]\d{3})+)"
+_BALANCE_PATTERNS = (
+	rf"\s*({_BALANCE_NUMBER})(?:\s+points)?\s*",
+	rf"\s*(?:available points|points balance)\s*:?\s*({_BALANCE_NUMBER})\s*",
+)
+_BALANCE_SNAPSHOT = """
+const patterns = arguments[0].map(pattern => new RegExp('^' + pattern + '$', 'i'));
+const shape = text => Array.from(text).map(c => /\\p{Number}/u.test(c) ? '9' : /\\p{Letter}/u.test(c) ? 'a' : c).join('');
+const parse = (text, excluded = new Set()) => {
+	const values = new Set();
+	for (const line of text.split(/\\r?\\n/)) {
+		for (const pattern of patterns) {
+			const match = line.match(pattern);
+			if (match) {
+				const value = Number(match[1].replace(/[, .\\u00a0\\u202f]/g, ''));
+				if (!excluded.has(value)) values.add(value);
+			}
+		}
+	}
+	return values.size === 1 && Number.isSafeInteger([...values][0]) ? [...values][0] : null;
+};
+const headers = [...document.querySelectorAll('header')];
+const host = window.location.hostname;
+const snapshot = {headers: headers.length, buttons: [], header_values: [], inner_size: [window.innerWidth, window.innerHeight], host: ['rewards.bing.com', 'www.bing.com', 'bing.com', 'login.live.com', 'account.microsoft.com'].includes(host) ? host : 'other'};
+for (const header of headers) {
+	const text = header.innerText || '';
+	const labelled = new RegExp('(?:^|\\\\n)\\\\s*(?:available points|points balance)\\\\s*:?\\\\s*(' + arguments[1] + ')(?:\\\\s+points)?\\\\s*(?=\\\\n|$)', 'gi');
+	for (const match of text.matchAll(labelled)) snapshot.header_values.push(parse(match[1]));
+	for (const button of header.querySelectorAll('button')) {
+		if ((button.getAttribute('aria-label') || '').trim().toLowerCase() !== 'view profile') continue;
+		const rect = button.getBoundingClientRect();
+		const style = getComputedStyle(button);
+		const displayed = rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' && button.getClientRects().length > 0 && !button.closest('[hidden], [aria-hidden="true"]');
+		const text = button.innerText || '', content = button.textContent || '';
+		// A numeric level badge is not a balance, even in its own child span.
+		const excluded = new Set([...((text + '\\n' + content).matchAll(/\\blevel\\s*(\\d+)\\b/gi))].map(match => Number(match[1])));
+		snapshot.buttons.push({displayed, text_shape: shape(text), content_shape: shape(content), text_value: parse(text, excluded), content_value: parse(content, excluded), part_values: [...button.querySelectorAll('span')].map(child => parse(child.innerText || child.textContent || '', excluded))});
+	}
+}
+return snapshot;
+"""
 
 
 class ElementNotReady(NoSuchElementException):
@@ -32,6 +76,7 @@ class Labels:
 	"""
 
 	POINTS_BREAKDOWN = "points breakdown"
+	VIEW_PROFILE = "view profile"        # aria-label of the header balance control
 	READY_TO_CLAIM = "ready to claim"
 	CLAIM = "claim"                      # exact label preferred, substring as fallback
 	DAILY_SET_STREAK = "daily set streak"
@@ -297,11 +342,35 @@ class ElementSelectionUtils:
 
 		return links
 
+	def _is_quest_start_link(self, link):
+		"""The observed card activation control, not a general dashboard link."""
+		try:
+			page = urlsplit(getattr(self.driver, "current_url", ""))
+			target = urlsplit(link.get_dom_attribute("href") or "")
+			label = " ".join((link.text or "").split()).casefold()
+			aria = " ".join((link.get_dom_attribute("aria-label") or "").split()).casefold()
+			return (
+				page.scheme == "https" and page.netloc == "rewards.bing.com"
+				and re.fullmatch(r"/earn/quest/[^/]+/?", page.path) is not None
+				and target.scheme == "https" and target.netloc == "rewards.bing.com" and target.path == "/dashboard"
+				and label == "activate quest" and aria.startswith("activate quest, ") and bool(aria[len("activate quest, "):].strip())
+				and link.get_dom_attribute("data-rac") is not None
+				and link.get_dom_attribute("data-react-aria-pressable") == "true"
+				and link.get_dom_attribute("target") == "_blank"
+				and {"noopener", "noreferrer"}.issubset((link.get_dom_attribute("rel") or "").lower().split())
+				and (link.get_dom_attribute("aria-disabled") or "").lower() != "true"
+				and link.get_dom_attribute("disabled") is None and link.get_dom_attribute("data-disabled") is None
+				and link.is_displayed()
+			)
+		except (ValueError, StaleElementReferenceException):
+			return False
+
 	def get_quest_activity_links(self):
 		"""Unlocked activity links on an open punch card page.
 
-		Not every activity points at `/search`, some link to the Bing home page
-		with tracking parameters, so this matches on the host. A card shows its
+		The observed Activate quest control links back to the Rewards dashboard;
+		only its specific activation signature may pass on that host. Search
+		activities keep their existing Bing-link filter. A card shows its
 		next activity before it unlocks and marks it `aria-disabled="true"`,
 		because it releases one punch per 24 hours, and that link must not be
 		clicked.
@@ -319,7 +388,9 @@ class ElementSelectionUtils:
 			try:
 				href = link.get_dom_attribute("href") or ""
 
-				if "bing.com" not in href or "rewards.bing.com" in href:
+				if "bing.com" not in href:
+					continue
+				if "rewards.bing.com" in href and not (containers and self._is_quest_start_link(link)):
 					continue
 
 				if not (link.text or "").strip():
@@ -333,6 +404,60 @@ class ElementSelectionUtils:
 				continue
 
 		return links
+
+	def describe_quest_controls(self):
+		"""Bounded evidence for a first quest load with no accepted activity."""
+		prefix = "Quest controls in main: "
+		def safe(value, limit):
+			text = " ".join(str(value).split()) if value is not None else "-"
+			return "[masked]" if "@" in text else text[:limit]
+		containers = self.driver.find_elements(By.TAG_NAME, "main")
+		if not containers:
+			return prefix + "none (main absent)"
+		rows = []
+		for control in containers[0].find_elements(By.CSS_SELECTOR, 'a, button, [role="button"]'):
+			try:
+				text = (control.text or "").strip()
+				if not text or not control.is_displayed():
+					continue
+				tag = control.tag_name.lower()
+				role = control.get_dom_attribute("role")
+				href = control.get_dom_attribute("href") or ""
+				aria = control.get_dom_attribute("aria-disabled")
+				disabled = control.get_dom_attribute("disabled")
+				# Describe the current filter exactly, including its raw-href
+				# substring test. Diagnostics must not silently repair clicking.
+				if tag != "a":
+					rule = "not a link"
+				elif "bing.com" not in href:
+					rule = "no bing host"
+				elif "rewards.bing.com" in href:
+					rule = "rewards host"
+				elif (aria or "").lower() == "true":
+					rule = "disabled"
+				else:
+					rule = "eligible"
+				if href and "@" not in href:
+					try:
+						url = urlsplit(urljoin(self.driver.current_url, href))
+						address = (url.hostname or "") + (url.path or "/")
+					except ValueError:
+						address = "unreadable"
+				else:
+					address = "[masked]" if href else "-"
+				rows.append(f"{safe(tag, 12)} role={safe(role, 20)} text={safe(text, 40)!r} href={safe(address, 96)} aria-disabled={safe(aria, 8)} disabled={safe(disabled, 8)} rule={rule}")
+				if len(rows) == 12:
+					break
+			except StaleElementReferenceException:
+				continue
+		line = prefix
+		for row in rows:
+			separator = "; " if line != prefix else ""
+			# Reserve room for the logger's prefix and an omission marker.
+			if len(line) + len(separator) + len(row) > 540:
+				return line + "; more not shown"
+			line += separator + row
+		return line + ("; at most 12 sampled" if len(rows) == 12 else "") if rows else prefix + "none with visible text"
 
 	# ------------------------------------------------------------------
 	# visual search
@@ -449,6 +574,52 @@ return (
 
 	def get_points_breakdown_button(self):
 		return self._button_containing(Labels.POINTS_BREAKDOWN)
+
+	def get_points_balance(self) -> int:
+		"""Available points in the header, not today's earnings in the earn page.
+
+		The observed control is labelled View profile. Its descendants can also
+		carry a name or badge, and WebDriver's text is empty on responsive copies.
+		Never take an unlabelled number elsewhere on the page as this balance.
+		"""
+		# One synchronous DOM snapshot avoids serial WebDriver element calls
+		# crossing a poll deadline. Mask before the response, so even Selenium's
+		# debug transport log cannot retain the profile name or unmasked text.
+		return self._balance_from_snapshot(self.driver.execute_script(_BALANCE_SNAPSHOT, list(_BALANCE_PATTERNS), _BALANCE_NUMBER))
+
+	def _balance_from_snapshot(self, packet):
+		self.balance_host = packet.get("host")
+		observation = {"headers": packet["headers"], "profile_buttons": len(packet["buttons"]),
+			"buttons": [], "inner_size": packet["inner_size"], "complete": True}
+		self.balance_observation = observation
+		visible, hidden = [], []
+		for button in packet["buttons"]:
+			observation["buttons"].append({"displayed": button["displayed"],
+				"text_shape": self._balance_text_shape(button["text_shape"]), "content_shape": self._balance_text_shape(button["content_shape"])})
+			value = button["text_value"]
+			if value is None:
+				value = button["content_value"]
+			if value is None:
+				parts = set(button["part_values"])
+				parts.discard(None)
+				if len(parts) == 1:
+					value = parts.pop()
+			if type(value) is int and value >= 0:
+				(visible if button["displayed"] else hidden).append(value)
+		# Do not substitute a stale hidden total for a visible control that is
+		# still loading. Only an entirely hidden responsive layout uses it.
+		values = set(visible if any(button["displayed"] for button in packet["buttons"]) else hidden)
+		if not values:
+			# A desktop-app variant can omit View profile. Only an explicit
+			# spendable-balance label in the header substitutes for that control.
+			values.update(value for value in packet["header_values"] if type(value) is int and value >= 0)
+		if len(values) == 1:
+			return values.pop()
+		raise NoSuchElementException("available points not found in the header profile button")
+
+	@staticmethod
+	def _balance_text_shape(text):
+		return "".join("9" if char.isdigit() else "a" if char.isalpha() else char for char in text)
 
 	def get_close_button_on_points_breakdown(self):
 		return self.get_generic_sidebar_close_button()

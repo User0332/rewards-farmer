@@ -1,0 +1,16 @@
+{
+  "synthetic": true,
+  "methods": {
+    "list_accounts": {"ok": true, "data": {"accounts": [{"id": "account-1", "label": "Alex (synthetic)", "name": "Alex Morgan", "email": "alex@example.com", "dir": "C:\\Synthetic\\account-1", "paused": false, "is_root": false, "signed_in": true, "balance": null, "balance_at": null, "last_run_at": null, "last_result": null, "picture_rev": "synthetic-portrait-1"}]}},
+    "get_account_picture": {"ok": true, "data": {"account_id": "account-1", "rev": "synthetic-portrait-1", "data_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAABP0lEQVR4nO2YwW0CMRBF/z5RAyc6ydaReyghUqqIlBKSZrYUCsk9QGR7xtgfeEdYzbzvMcjeZf/yKmeQOcgcZA4yB5mDzEHmIHOQObtOdU/fb+cfHo4/6Y2W9KPERfV+MbixfeEzYwKUmyVmIKtQrVNWBlKqtNmkZLD/GyVeIrKQp/AQnhMYDTIHmYPMQeYQLxE5nB3CB7vnBAILmXKuTptArU3WrQDlUe6UeKdBqZSY5d7Ilk5vp43vxDcGmYPMQebsehRdP9+vfbV9fM37I16ve/dLssQDVHmnJ2GsvcIV2icQV/9D2yiYxF6tNZnEvrky89i31Wcq+4YuzGZf28v+KMGEy1/VkTnty/s+zBYyDrAO2j+F3R9gAt4B1qH7p8Th3icwP8gcZA4yB5mDzEH3HWDLfhPYwPavg/0EfgGei1QRNJ338wAAAABJRU5ErkJggg=="}},
+    "get_settings": {"ok": true, "data": {"secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "values": {"schedule.mode": "automatic", "schedule.window_start": "09:45", "schedule.window_end": "21:45", "schedule.checks": 4, "schedule.time": "09:45", "schedule.days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "app.autostart": false}, "schedule": {"mode": "automatic", "task_name": "RewardsFarmerApp_synthetic", "task_exists": true, "in_sync": true, "next_at": "2026-10-16T09:45:00Z", "next_is_check": true, "legacy_task": null, "error_code": null}}},
+    "get_legacy_install": {"ok": true, "data": {"found": false, "path": null, "accounts": []}},
+    "save_settings": [
+      {"when": {"changes": {"schedule.mode": "automatic", "app.autostart": true, "schedule.days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "schedule.window_start": "09:45", "schedule.window_end": "21:45"}}, "ok": true, "data": {"secrets_set": {"run.openrouter_key": false, "notify.webhook_url": false}, "values": {"schedule.mode": "automatic", "schedule.window_start": "09:45", "schedule.window_end": "21:45", "schedule.checks": 4, "schedule.time": "09:45", "schedule.days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"], "app.autostart": true}, "schedule": {"mode": "automatic", "task_name": "RewardsFarmerApp_synthetic", "task_exists": true, "in_sync": true, "next_at": "2026-10-16T09:45:00Z", "next_is_check": true, "legacy_task": null, "error_code": null}, "warnings": []}},
+      {"ok": false, "error": {"code": "bad_request", "message_key": "errors.app.bad_request", "params": {}, "detail": "Synthetic review fixture accepts only the expected wizard save", "fields": null}}
+    ],
+    "complete_setup": {"ok": true, "data": {}},
+    "start_run": {"ok": true, "data": {"started": true}}
+  },
+  "pushes": []
+}
