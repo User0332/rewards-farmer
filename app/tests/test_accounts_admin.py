@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from itertools import permutations
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from unittest.mock import Mock, patch
@@ -358,22 +359,36 @@ class AccountsAdminTests(unittest.TestCase):
 
 	def test_root_migration_rollback_on_rename_failure(self):
 		self.root_tree()
-		before = (self.root / ".env").read_bytes()
+		before_env = (self.root / ".env").read_bytes()
+		before_prefs = prefs.load()
+		def tree():
+			return {path.relative_to(self.root): path.read_bytes() if path.is_file() else None for path in self.root.rglob("*")}
+		before_tree = tree()
+		entries = admin._root_entries()
+		self.assertCountEqual([entry.name for entry in entries], ["Default", "Local State", "lockfile"])
 		rename = os.rename
-		calls = []
-		def fail(source, target):
-			calls.append((Path(source), Path(target)))
-			if Path(source).name == "Local State":
-				raise PermissionError("Edge lockfile")
-			return rename(source, target)
-		with patch("rfapp.accounts_admin.os.rename", side_effect=fail):
-			self.assert_code("profile_in_use", admin._migrate_root_profile, "account-2")
-		self.assertEqual((self.root / ".env").read_bytes(), before)
-		self.assertTrue((self.profiles / "Local State").exists())
-		self.assertTrue((self.profiles / "Default" / "Cookies").exists())
-		self.assertFalse((self.profiles / "account-1").exists())
-		self.assertEqual(prefs.load()["goals"], {"@root": 5000})
-		self.assertTrue(any(source.parent.name == "account-1" for source, target in calls))
+		# Directory order is unspecified, including failure before any move.
+		for order in permutations(entries):
+			with self.subTest(order=[entry.name for entry in order]):
+				calls = []
+				def fail(source, target):
+					calls.append((Path(source), Path(target)))
+					if Path(source).name == "Local State":
+						raise PermissionError("Edge lockfile")
+					return rename(source, target)
+				with patch.object(admin, "_root_entries", return_value=list(order)) as root_entries, patch("rfapp.accounts_admin.os.rename", side_effect=fail):
+					self.assert_code("profile_in_use", admin._migrate_root_profile, "account-2")
+				root_entries.assert_called_once_with(exclude=("account-1",))
+				self.assertEqual((self.root / ".env").read_bytes(), before_env)
+				self.assertEqual(tree(), before_tree)
+				self.assertFalse((self.profiles / "account-1").exists())
+				self.assertEqual(prefs.load()["goals"], before_prefs["goals"])
+				self.assertEqual(prefs.load()["account_labels"], before_prefs["account_labels"])
+				failed_at = [entry.name for entry in order].index("Local State")
+				target = self.profiles / "account-1"
+				forward = [(entry, target / entry.name) for entry in order[:failed_at + 1]]
+				rollback = [(target / entry.name, entry) for entry in reversed(order[:failed_at])]
+				self.assertEqual(calls, forward + rollback)
 
 	def test_migration_refuses_without_owned_signin_lock(self):
 		(self.profiles / "Local State").touch()
