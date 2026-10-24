@@ -1,4 +1,4 @@
-"""F88 describes an unreadable skipped check without refreshing old ledgers."""
+"""F88 shares unreadable-check wording; F89 refreshes unmarked old ledgers."""
 
 from datetime import datetime, timedelta, timezone
 import json
@@ -148,8 +148,9 @@ class ResultKeyFoldTests(unittest.TestCase):
 			self.assertEqual((row["runs"][0]["result"], row["runs"][0]["result_key"]), ("skipped", "errors.run.unreadable"))
 			self.assertEqual(set(row["runs"][0]), {"run_id", "started_at", "kind", "trigger", "active", "result", "result_key", "points_earned", "problems"})
 
-	def test_unchanged_existing_v3_ledger_keeps_its_stored_summary_and_bytes(self):
+	def test_refreshed_v3_ledger_keeps_its_stored_summary_and_warm_bytes(self):
 		previous = self.old_ledger()
+		self.assertEqual(previous["result_key_refresh"], 1)
 		before = self.path.read_bytes()
 		with mock.patch.object(ledger, "_read_record", side_effect=AssertionError("unchanged record reread")), \
 			mock.patch.object(ledger, "replace_file", side_effect=AssertionError("unexpected refresh")), \

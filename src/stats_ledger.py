@@ -637,6 +637,31 @@ def _migrate(ledger, files, *, user_data_dir=None, now=None, zone=None):
 	return dict(ledger, v=VERSION, rows=rows, index=index)
 
 
+def _refresh_result_keys(ledger, files):
+	# Keep the v3 rows intact for rollback readers. Only this top-level
+	# marker is new; never replay a sealed day's accounting for a sentence.
+	if ledger.get("result_key_refresh") == 1:
+		return ledger
+	value = dict(ledger, rows=copy.deepcopy(ledger["rows"]))
+	read = {}
+	for row in value["rows"]:
+		for summary in row["runs"] or []:
+			run_id = summary["run_id"]
+			if run_id not in files:
+				continue
+			if run_id not in read:
+				try:
+					read[run_id] = _read_record(files[run_id][0])
+				except (OSError, ValueError, RecursionError):
+					read[run_id] = []
+				if not read[run_id]:
+					_log("ledger_result_key_refresh_unreadable:" + run_id)
+			if read[run_id]:
+				summary["result_key"] = result_key(summary["result"], read[run_id])
+	value["result_key_refresh"] = 1
+	return value
+
+
 def _fold(ledger, files, *, user_data_dir, now, zone, pending=None):
 	old_rows = {(row["date"], row["account_id"]): row for row in ledger["rows"]}
 	bounds = sorted({(row["date"], _at(row["_day_start"]), _at(row["_day_end"])) for row in ledger["rows"]})
@@ -724,9 +749,12 @@ def fold(directory=None, *, data_home=None, user_data_dir=None, now=None, zone=N
 			else:
 				migrated = False
 			pending = set()
-			value = _fold(ledger, files, user_data_dir=user_data_dir, now=now, zone=zone, pending=pending)
-			if migrated or value != ledger or not path.exists():
-				value["built_at"] = _iso(now)
+			refreshed = _refresh_result_keys(ledger, files)
+			value = _fold(refreshed, files, user_data_dir=user_data_dir, now=now, zone=zone, pending=pending)
+			folded = migrated or value != refreshed or not path.exists()
+			if folded or value != ledger:
+				if folded:
+					value["built_at"] = _iso(now)
 				temp = None
 				try:
 					with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=home, delete=False) as stream:

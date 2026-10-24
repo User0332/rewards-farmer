@@ -12,6 +12,7 @@ __pycache__/
 /runs/
 app.log*
 app-prefs.json
+quest-steps-today.json
 !app/**/*.png
 !app/**/*.jpg
 !app/**/*.txt
