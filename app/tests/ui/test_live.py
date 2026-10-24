@@ -5,18 +5,32 @@ import os
 import unittest
 from pathlib import Path
 
-from ui.harness import UI_DIR, UiHarness
+from ui.harness import UI_DIR, UiHarness, _Handler
 
 
 _harness = None
+_original_get = None
 _enabled = os.environ.get("REWARDS_APP_UI_TESTS") == "1"
 FIXTURES = sorted(path.stem for path in (UI_DIR / "mock/live").glob("*.json"))
 TASKS = "daily_set explore_on_bing visual_search misc_cards quests searches bonus".split()
 
 
 def setUpModule():
-	global _harness
+	global _harness, _original_get
 	if _enabled:
+		if os.environ.get('RF_LIVE_STATE_NOTICE_MUTATION'):
+			if os.environ['RF_LIVE_STATE_NOTICE_MUTATION']!='check-gate':raise ValueError('Unknown Live state-notice test mutation')
+			source=(UI_DIR/'js/screens/live.js').read_text(encoding='utf-8')
+			old='children.push(checkOnly ? decisionNotice(account) : null, errorNotice(account), stateNotice(state, account));'
+			if source.count(old)!=1:raise AssertionError('Live state mutation must target one actual account plan')
+			payload=source.replace(old,old.replace('stateNotice(state, account)','checkOnly ? null : stateNotice(state, account)')).encode('utf-8')
+			_original_get=_Handler.do_GET
+			def mutated_get(handler):
+				from urllib.parse import urlsplit
+				if urlsplit(handler.path).path=='/js/screens/live.js':
+					handler.send_response(200);handler.send_header('Content-Type','text/javascript');handler.send_header('Content-Length',str(len(payload)));handler.end_headers();handler.wfile.write(payload)
+				else:_original_get(handler)
+			_Handler.do_GET=mutated_get
 		_harness = UiHarness()
 		try:
 			_harness.start().wait_ready()
@@ -28,6 +42,7 @@ def setUpModule():
 def tearDownModule():
 	if _harness is not None:
 		_harness.stop()
+	if _original_get is not None:_Handler.do_GET=_original_get
 
 
 class LiveSourceTests(unittest.TestCase):
@@ -114,6 +129,48 @@ class LiveTests(unittest.TestCase):
 		""")
 		order = _harness.tab_order(len(expected) + 12)
 		self.assertTrue(set(expected).issubset(order), {"expected": expected, "order": order})
+
+	def _state_notice_cases(self,cases,lang,load_last=False):
+		_harness.viewport(1131,643);_harness.open('#/live','live/idle-last',lang=lang,reduced_motion=True).wait_ready()
+		from selenium.webdriver.support.ui import WebDriverWait
+		WebDriverWait(_harness.driver,8).until(lambda driver:driver.execute_script("return document.querySelector('.live-screen')?.dataset.run==='synthetic-check'"))
+		self.js('const cases='+json.dumps(cases)+',loadLast='+json.dumps(load_last)+';'+"""
+		 const fixture=await(await fetch('./mock/live/idle-last.json')).json(),finished=await(await fetch('./mock/live/finished.json')).json();
+		 const checkSeed=fixture.methods.get_run.data,runSeed=finished.methods.get_live.data.run,snapshot=checkSeed.accounts[0].state_before;
+		 let current;const calls=[],wait=async predicate=>{for(let n=0;n<300;n++){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,10))}throw Error('Live state notice last-check wait')};
+		 const router=await import('./js/router.js');window.pywebview.api.get_history=async()=>({ok:true,data:{runs:[],next_before:null}});
+		 window.pywebview.api.get_live=async()=>{calls.push('get_live');return{ok:true,data:{run:null,log:null}}};
+		 window.pywebview.api.get_run=async({run_id})=>{calls.push('get_run');assert(run_id===current.run_id,'Live state notice last-run identity');return{ok:true,data:structuredClone(current)}};
+		 window.liveStateNoticeReport=[];
+		 for(const [index,test] of cases.entries()){
+		  const {code,slot,kind}=test,isCheck=kind==='check';current=structuredClone(isCheck?checkSeed:runSeed);const account=current.accounts[0];
+		  Object.assign(current,{run_id:'state-notice-'+index,kind,trigger:'scheduled',log_size:0});account.label='Alex (synthetic)';account.error=null;
+		  const state=unreadable=>({...structuredClone(snapshot),unreadable});account.state_before=state(slot==='after'?'signed_out':code);account.state_after=slot==='after'?state(code):null;
+		  if(isCheck){account.decision={run:false,reason:code?'unreadable':'below_threshold',reason_key:code?'errors.decision.unreadable':'errors.decision.below_threshold',open_points:code?null:10,min_points:30};account.tasks.forEach((task,n)=>{task.status=n===6?'off':'not_run';task.reason_key=n===6?'errors.task.turned_off':'errors.task.not_run'});}
+		  if(loadLast){router.navigate('#/history');await wait(()=>document.getElementById('view').dataset.route==='#/history'&&document.querySelector('.history-screen')?.getAttribute('aria-busy')==='false');const start=calls.length;s.set('overview',{...s.get('overview'),last_run:{...current,accounts:[{...account,task_counts:{ok:0,skip:0,fail:0,off:1}}]}});s.set('live',{run:null,log:null,last:null});router.navigate('#/live');await wait(()=>s.get('live')?.run?.run_id===current.run_id&&document.querySelector('.live-account-plan'));assert(calls.slice(start).join(',')==='get_live,get_run','Live last check loaded through real refresh');}
+		  else s.set('live',{run:current,log:null,last:null});
+		  const plan=document.querySelector('.live-account-plan'),notices=[...plan.querySelectorAll('.banner.tone-warning .banner-message')],decision=plan.querySelector('.live-decision');
+		  const whole=['signed_out','terms_of_use','page_blank'].includes(code),key=whole?'errors.state.'+code:'errors.state.sections',params=whole?{account:account.label}:{sections:code?i.formatList(code.split(',').map(section=>i.t('common.section.'+section))):''};
+		  const expected=code?i.t(key,params):null,label='Live state notice '+String(code)+' '+slot+' '+kind+' '+document.documentElement.lang;
+		  assert(notices.length===(code?1:0),label+' expected='+String(expected)+' actual='+JSON.stringify(notices.map(node=>node.textContent))+' decision='+String(decision?.textContent));
+		  if(code){const notice=notices[0];assert(notice.textContent===expected&&notice.checkVisibility()&&!notice.closest('details:not([open])'),label+' exact visible notice');const rect=notice.getBoundingClientRect();assert(rect.left>=0&&rect.right<=innerWidth+1&&notice.scrollWidth<=notice.clientWidth+1,label+' notice fits');}
+		  if(isCheck){const expectedDecision=i.t(account.decision.reason_key,{points:account.decision.open_points,min_points:i.formatNumber(30)});assert(decision?.textContent===expectedDecision&&decision.checkVisibility(),label+' decision kept');assert(!plan.querySelector('.live-task-list,.live-task-row'),label+' no task attempts invented');if(code)assert(decision.nextElementSibling===notices[0].closest('.banner')&&decision.textContent!==expected,label+' separate decision and recovery notice');}
+		  else{assert(!decision&&plan.querySelectorAll('.live-task-row').length===7,label+' non-check task rows unchanged');}
+		  assert(document.documentElement.scrollWidth<=innerWidth+1&&document.getElementById('view').scrollWidth<=document.getElementById('view').clientWidth+1,label+' no sideways scroll');
+		  window.liveStateNoticeReport.push({...test,path:loadLast?'last-refresh':'store-run',language:document.documentElement.lang,notice:expected,decision:decision?.textContent||null,noHorizontalOverflow:true});
+		 }
+		 """)
+		self.assertEqual([],_harness.errors())
+		print('Live state notice cases '+json.dumps(_harness.driver.execute_script('return window.liveStateNoticeReport'),ensure_ascii=True),flush=True)
+
+	def test_check_only_signed_out_state_notice(self):
+		self._state_notice_cases([{'code':'signed_out','slot':'before','kind':'check'}],'en')
+
+	def test_check_only_state_notices_and_noncheck_controls(self):
+		cases=[{'code':code,'slot':slot,'kind':kind} for code in ('signed_out','terms_of_use','page_blank','daily_set,searches',None) for slot in ('before','after') for kind in ('check','run')]
+		for lang in ('en','de'):
+			for load_last in (False,True):
+				with self.subTest(lang=lang,load_last=load_last):self._state_notice_cases(cases,lang,load_last)
 
 	def test_f76_subtraction_and_known_values(self):
 		_harness.open("#/live", "live/failed").wait_ready()

@@ -256,10 +256,8 @@ export function mount(view, ctx) {
             const body = el("div", {}, [detail.accounts.length > 1 ? el("h2", {}, [el("bdi", { text: account.label })]) : null]);
             if (checkOnly && account.decision) body.append(el("p", { class: "muted history-decision", text: t(account.decision.reason_key, { points: account.decision.open_points, min_points: formatNumber(account.decision.min_points ?? 0) }) }));
             if (account.error && detail.result !== "failed") body.append(c.banner.create({ tone: "error", messageKey: account.error.message_key, params: { account: account.label } }));
-            if (!checkOnly) {
-                const unreadable = stateNotice(account);
-                if (unreadable) body.append(unreadable);
-            }
+            const unreadable = stateNotice(account);
+            if (unreadable) body.append(unreadable);
             const technical = technicalDetails(account);
             if (technical) body.append(technical);
             if (body.children.length) block.append(el("section", { class: "history-account" }, [body]));

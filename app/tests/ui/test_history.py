@@ -61,6 +61,11 @@ def setUpModule():
 				source=(UI_DIR/'js/screens/history.js').read_text(encoding='utf-8')
 				old='dayRuns.forEach(run => pageHost.append(runBlock(run, run !== expandedRun)));'
 				new='dayRuns.forEach((run, index) => pageHost.append(runBlock(run, index > 0)));'
+			elif mutation=="state-notice":
+				target='/js/screens/history.js'
+				source=(UI_DIR/'js/screens/history.js').read_text(encoding='utf-8')
+				old='            const unreadable = stateNotice(account);\n            if (unreadable) body.append(unreadable);'
+				new='            if (!checkOnly) {\n                const unreadable = stateNotice(account);\n                if (unreadable) body.append(unreadable);\n            }'
 			else:raise ValueError("Unknown F81 test mutation")
 			if source.count(old)!=1:raise AssertionError("F81 mutation must hit one actual production helper branch")
 			payload=source.replace(old,new).encode("utf-8")
@@ -163,6 +168,53 @@ class HistoryTests(unittest.TestCase):
 
 	def js(self,body):
 		result=_harness.driver.execute_async_script("const done=arguments[arguments.length-1];(async()=>{const assert=(v,m)=>{if(!v)throw Error(m)},pause=ms=>new Promise(r=>setTimeout(r,ms)),wait=async fn=>{for(let n=0;n<300;n++){if(fn())return;await pause(10)}throw Error('F81 wait timeout')},i=await import('./js/i18n.js'),r=await import('./js/router.js');"+body+";return{ok:true}})().then(done).catch(e=>done({ok:false,error:String(e),stack:e.stack}))");self.assertTrue(result["ok"],result)
+
+	def _state_notice_cases(self,cases,lang):
+		_harness.viewport(1131,643);self.open('#/history/day:2026-10-21',lang=lang,region='de-DE' if lang=='de' else 'en-AT')
+		self.js('const cases='+json.dumps(cases)+';'+"""
+		 const fixture=await(await fetch('./mock/history/week.json')).json(),clone=id=>structuredClone(fixture.methods.get_run.find(answer=>answer.data?.run_id===id).data);
+		 const checkSeed=clone('week-today-check'),runSeed=clone('week-app'),snapshot=clone('week-warning-check').accounts[0].state_before;
+		 let current;
+		 const summary=run=>{const {warnings,accounts,...rest}=structuredClone(run);return{...rest,accounts:accounts.map(({tasks,state_before,state_after,...account})=>({...account,task_counts:Object.fromEntries(['ok','skip','fail','off'].map(status=>[status,tasks.filter(task=>task.status===status).length]))}))}};
+		 window.pywebview.api.get_history=async()=>({ok:true,data:{runs:[summary(current)],next_before:null}});
+		 window.pywebview.api.get_run=async({run_id})=>{assert(run_id===current.run_id,'state notice synthetic run identity');return{ok:true,data:structuredClone(current)}};
+		 window.historyStateNoticeReport=[];
+		 for(const [index,test] of cases.entries()){
+		  const {code,slot,kind}=test,isCheck=kind==='check';current=structuredClone(isCheck?checkSeed:runSeed);
+		  Object.assign(current,{run_id:'state-notice-'+index,kind,trigger:'scheduled',started_at:'2026-10-21T09:00:00Z',ended_at:'2026-10-21T09:01:00Z',duration_ms:60000,log_size:0});
+		  const account=current.accounts[0];account.label='Alex (synthetic)';account.error=null;
+		  const state=unreadable=>({...structuredClone(snapshot),at:current.started_at,unreadable});
+		  account.state_before=state(slot==='after'?'signed_out':code);account.state_after=slot==='after'?state(code):null;
+		  if(isCheck){account.decision={run:false,reason:code?'unreadable':'below_threshold',reason_key:code?'errors.decision.unreadable':'errors.decision.below_threshold',open_points:code?null:10,min_points:30};account.tasks.forEach((task,n)=>{task.status=n===6?'off':'not_run';task.reason_key=n===6?'errors.task.turned_off':'errors.task.not_run'});}
+		  document.querySelector('.history-screen .screen-header button').click();
+		  await wait(()=>document.querySelector('.history-screen')?.getAttribute('aria-busy')==='false'&&document.querySelector('.history-day-page')?.dataset.date==='2026-10-21');
+		  const group=document.querySelector('.history-check-group');if(isCheck){assert(group&&!group.open,'History check group initially folded');group.querySelector('summary').click();}
+		  await wait(()=>document.querySelector('[data-run-id="'+current.run_id+'"]'));
+		  const block=document.querySelector('[data-run-id="'+current.run_id+'"]'),notices=[...block.querySelectorAll('.banner.tone-warning .banner-message')],decision=block.querySelector('.history-decision');
+		  const whole=['signed_out','terms_of_use','page_blank'].includes(code),key=whole?'errors.state.'+code:'errors.state.sections',params=whole?{account:account.label}:{sections:code?i.formatList(code.split(',').map(section=>i.t('common.section.'+section))):''};
+		  const expected=code?i.t(key,params):null,label='History state notice '+String(code)+' '+slot+' '+kind+' '+document.documentElement.lang;
+		  assert(notices.length===(code?1:0),label+' expected='+String(expected)+' actual='+JSON.stringify(notices.map(node=>node.textContent))+' decision='+String(decision?.textContent));
+		  if(code){const notice=notices[0];assert(notice.textContent===expected&&notice.checkVisibility()&&!notice.closest('details:not([open])'),label+' exact visible notice');const rect=notice.getBoundingClientRect();assert(rect.left>=0&&rect.right<=innerWidth+1&&notice.scrollWidth<=notice.clientWidth+1,label+' notice fits');}
+		  if(isCheck){const expectedDecision=i.t(account.decision.reason_key,{points:account.decision.open_points,min_points:i.formatNumber(30)});assert(decision?.textContent===expectedDecision&&decision.checkVisibility(),label+' decision kept');assert(!block.querySelector('.history-task-list,.history-no-points,.history-points-band'),label+' no task attempts invented');if(code)assert(decision.nextElementSibling===notices[0].closest('.banner')&&decision.textContent!==expected,label+' separate decision and recovery notice');}
+		  else{assert(!decision&&block.querySelector('[data-task="misc_cards"] .history-task-points')?.textContent===i.formatNumber(20),label+' non-check tiles unchanged');}
+		  const attention=Boolean(code),date=document.querySelector('.history-date[data-date="2026-10-21"]');
+		  assert(date.querySelectorAll('.history-attention').length===Number(attention)&&block.querySelectorAll('.history-run-marks .history-attention').length===Number(attention),label+' existing exception marks');
+		  if(isCheck)assert(group.querySelectorAll(':scope>summary .history-attention').length===Number(attention),label+' existing group attention');
+		  assert(!document.querySelector('.history-app-run,.history-wait-mark')&&!document.querySelector('.history-notices .banner'),label+' no new marks or fetch errors');
+		  assert(document.documentElement.scrollWidth<=innerWidth+1&&document.getElementById('view').scrollWidth<=document.getElementById('view').clientWidth+1,label+' no sideways scroll');
+		  window.historyStateNoticeReport.push({...test,language:document.documentElement.lang,notice:expected,decision:decision?.textContent||null,attention,noHorizontalOverflow:true});
+		 }
+		 """)
+		self.assertEqual([],_harness.errors())
+		print('History state notice cases '+json.dumps(_harness.driver.execute_script('return window.historyStateNoticeReport'),ensure_ascii=True),flush=True)
+
+	def test_check_only_signed_out_state_notice(self):
+		self._state_notice_cases([{'code':'signed_out','slot':'before','kind':'check'}],'en')
+
+	def test_check_only_state_notices_and_noncheck_controls(self):
+		cases=[{'code':code,'slot':slot,'kind':kind} for code in ('signed_out','terms_of_use','page_blank','daily_set,searches',None) for slot in ('before','after') for kind in ('check','run')]
+		for lang in ('en','de'):
+			with self.subTest(lang=lang):self._state_notice_cases(cases,lang)
 
 	def test_f81_band_proportions_and_task_truth(self):
 		_harness.viewport(1131,643);self.open();self.js("""

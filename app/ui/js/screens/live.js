@@ -86,7 +86,7 @@ export function mount(view, ctx) {
         ]);
         const children = [head];
         if (!foldDiagnostics) {
-            children.push(checkOnly ? decisionNotice(account) : null, errorNotice(account), checkOnly ? null : stateNotice(state, account));
+            children.push(checkOnly ? decisionNotice(account) : null, errorNotice(account), stateNotice(state, account));
         }
         if (!checkOnly) children.push(el("ul", { class: "live-task-list", "aria-label": t("overview.tasks_today") }, tasks.map((task) => {
             const state = i18n.has(`common.task_status.${task.status}`) ? `common.task_status.${task.status}` : "common.task_status.none";
