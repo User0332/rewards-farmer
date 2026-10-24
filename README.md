@@ -18,7 +18,8 @@ Automation for MS Rewards based on [https://youtu.be/4qdPcMNaioA](https://youtu.
 
 ## Core Setup & Running Instructions
 
-IMPORTANT: Use at your own risk. Microsoft may take action against your account for using automated scripts to gain rewards points. The YouTube video contains more details about the techniques implemented to avoid detection of this script.
+> [!IMPORTANT]
+> Use at your own risk. Microsoft may take action against your account for using automated scripts to gain rewards points. The YouTube video contains more details about the techniques implemented to avoid detection of this script.
 
 Clone the repository.
 
@@ -277,6 +278,7 @@ Windows (PowerShell)
 $env:USE_VIRTUAL_DESKTOP="true"; python src/main.py
 ```
 
-> **Note:** The script automatically detects which virtual desktop you started from and calculates the exact number of navigation hops so it returns directly to your starting desktop. When `CLEANUP_VIRTUAL_DESKTOP=true`, the worker desktop is safely closed after you press Enter on exit, returning you to your main desktop.
+> [!NOTE]
+> The script automatically detects which virtual desktop you started from and calculates the exact number of navigation hops so it returns directly to your starting desktop. When `CLEANUP_VIRTUAL_DESKTOP=true`, the worker desktop is safely closed after you press Enter on exit, returning you to your main desktop.
 
 Please open up a GitHub issue if you run into any difficulties.
