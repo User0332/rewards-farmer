@@ -19,7 +19,7 @@ VOCABULARIES = {
 	"common.task.": ("daily_set", "explore_on_bing", "visual_search", "misc_cards", "quests", "searches", "bonus"),
 	"common.section.": ("searches", "daily_set", "cards", "quests", "balance"),
 	"errors.task.": ("not_available", "not_ready", "element_missing", "browser_closed", "offline", "error", "turned_off", "stopped", "not_run"),
-	"errors.run.": ("ok", "partial", "failed", "skipped", "checked", "stopped", "busy", "crashed", "config_error", "interrupted", "unknown"),
+	"errors.run.": ("ok", "partial", "failed", "skipped", "unreadable", "checked", "stopped", "busy", "crashed", "config_error", "interrupted", "unknown"),
 	"errors.decision.": ("enough_open", "quest_unlocked", "below_threshold", "nothing_open", "unreadable", "unreadable_run_anyway"),
 	"errors.warning.": ("llm_unavailable", "search_terms_unavailable", "signed_out", "daily_set_partial"),
 	"errors.browser.": ("edge_missing", "driver_missing", "driver_mismatch", "profile_in_use", "edge_exited", "profile_unwritable", "unknown"),

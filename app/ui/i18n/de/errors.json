@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "Einige Aufgaben wurden nicht fertig.", "src": "a9214825"},
     "errors.run.failed": {"text": "Der Durchlauf konnte seine Aufgaben nicht ausführen.", "src": "970610ea"},
     "errors.run.skipped": {"text": "Für einen Durchlauf war zu wenig offen.", "src": "dff69997"},
+    "errors.run.unreadable": {"text": "Konnte nicht prüfen, was offen war.", "src": "4864a48f"},
     "errors.run.checked": {"text": "Offene Aufgaben geprüft.", "src": "e31a68b8"},
     "errors.run.stopped": {"text": "Du hast diesen Durchlauf gestoppt.", "src": "88971f45"},
     "errors.run.busy": {"text": "Ein anderer Durchlauf lief bereits.", "src": "bacf0ac2"},

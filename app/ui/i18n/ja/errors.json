@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "一部のタスクが完了しませんでした。", "src": "a9214825"},
     "errors.run.failed": {"text": "タスクを実行できませんでした。", "src": "970610ea"},
     "errors.run.skipped": {"text": "実行するほどの未完了タスクはありませんでした。", "src": "dff69997"},
+    "errors.run.unreadable": {"text": "未完了のタスクを確認できませんでした。", "src": "4864a48f"},
     "errors.run.checked": {"text": "未完了のタスクを確認しました。", "src": "e31a68b8"},
     "errors.run.stopped": {"text": "この実行は手動で停止しました。", "src": "88971f45"},
     "errors.run.busy": {"text": "別の実行がすでに進行していました。", "src": "bacf0ac2"},

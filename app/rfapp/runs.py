@@ -91,7 +91,7 @@ def load_run(run_id: str, labels: dict[str, str], user_data_dir: str) -> dict:
 	detail = {"run_id": run_id, "trigger": start.get("trigger", "cli"), "kind": "check" if start.get("plan", {}).get("check_only") else "run",
 		"started_at": start.get("ts", events[0].get("ts") if events else None), "ended_at": end.get("ts") if end and not unknown else None,
 		"duration_ms": end.get("duration_ms") if end and not unknown else None, "active": active, "result": result,
-		"result_key": "errors.run." + result if result else None, "points_earned": None, "stop_requested": False,
+		"result_key": stats_ledger.result_key(result, events), "points_earned": None, "stop_requested": False,
 		"accounts": [], "warnings": [], "log_size": log_size, "deferred": deferred if not unknown else None}
 	if unknown:
 		return detail

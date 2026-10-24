@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "Alcune attività non sono state completate.", "src": "a9214825"},
     "errors.run.failed": {"text": "Non è stato possibile eseguire le attività.", "src": "970610ea"},
     "errors.run.skipped": {"text": "Non c'era abbastanza da fare per avviare un'esecuzione.", "src": "dff69997"},
+    "errors.run.unreadable": {"text": "Impossibile controllare le attività disponibili.", "src": "4864a48f"},
     "errors.run.checked": {"text": "Attività disponibili controllate.", "src": "e31a68b8"},
     "errors.run.stopped": {"text": "Hai interrotto questa esecuzione.", "src": "88971f45"},
     "errors.run.busy": {"text": "Un'altra esecuzione era già in corso.", "src": "bacf0ac2"},

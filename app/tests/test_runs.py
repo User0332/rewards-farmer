@@ -114,6 +114,103 @@ class RunReductionTests(unittest.TestCase):
 					self.assertEqual(detail["accounts"][0]["status"], "skipped")
 					self.assertIs(detail["accounts"][0]["decision"]["run"], False)
 
+	def _result_key_record(self, decisions=(("one", "unreadable"),), *, unreadable="page_blank", result="skipped", ran=()):
+		run_id = "20261023T210000Z-0088"
+		stamp = datetime(2026, 10, 23, 21, tzinfo=timezone.utc)
+		events = []
+		def emit(kind, **fields):
+			events.append({"v": 1, "run": run_id, "ts": (stamp + timedelta(seconds=len(events))).isoformat(), "type": kind, **fields})
+		emit("run_start", trigger="scheduled", accounts=[name for name, _ in decisions], plan={"only_if_open": True})
+		for name, reason in decisions:
+			emit("account_start", account=name, profile="profiles/" + name)
+			emit("state", account=name, phase="before", balance=None, earned_today=None, searches_earned=60, searches_max=60,
+				daily_set_open=0, cards_open=0, quests_open=0, open_points=0, unreadable=unreadable if reason.startswith("unreadable") else None)
+			emit("decision", account=name, should_run=reason == "unreadable_run_anyway", reason=reason)
+			if name in ran:
+				emit("task_start", account=name, task="quests")
+				emit("task_end", account=name, task="quests", outcome="ok")
+			emit("account_end", account=name, started=True, ran_tasks=name in ran)
+		if result is not None:
+			emit("run_end", result=result, accounts_ran=len(ran), exit_code=0, duration_ms=1)
+		return run_id, events
+
+	def _assert_result_key_surfaces(self, record, result, key, *, active=False):
+		run_id, events = record
+		path = self.directory / (run_id + ".jsonl")
+		path.write_text("".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
+		self.active.return_value = run_id if active else None
+		labels = {name: name for name in events[0]["accounts"]}
+		detail = runs.load_run(run_id, labels, "profiles")
+		history = runs.history(labels=labels, user_data_dir="profiles")["runs"]
+		self.assertEqual(len(history), 1)
+		last_run = self._overview(datetime(2026, 10, 23, 22, tzinfo=timezone.utc), active=tuple(labels), prefs={"account_labels": labels})["last_run"]
+		surfaces = {"detail": detail, "history": history[0], "last_run": last_run,
+			"stats": runs.stats_ledger.run_summary(run_id, events, active=active)}
+		for name in labels:
+			surfaces["stats/" + name] = runs.stats_ledger.run_summary(run_id, events, active=active, account=name)
+		pushes = []
+		tail = runs.LiveTail(lambda topic, data: pushes.append((topic, data)), labels, "profiles")
+		if active:
+			tail.poll()
+			topic = "run.started"
+		else:
+			tail._pending_finishes[run_id] = None
+			tail.poll()
+			topic = "run.finished"
+		live = [data for pushed_topic, data in pushes if pushed_topic == topic]
+		self.assertEqual(len(live), 1)
+		surfaces["live"] = live[0]
+		for surface, value in surfaces.items():
+			with self.subTest(surface=surface):
+				self.assertEqual((value["result"], value["result_key"], value["active"]), (result, key, active))
+		return detail
+
+	def test_unreadable_skip_result_key_agrees_across_run_surfaces(self):
+		for unreadable in ("page_blank", "signed_out"):
+			with self.subTest(unreadable=unreadable):
+				detail = self._assert_result_key_surfaces(self._result_key_record(unreadable=unreadable), "skipped", "errors.run.unreadable")
+				self.assertEqual(detail["kind"], "check")
+				self.assertEqual(detail["accounts"][0]["status"], "skipped")
+				self.assertEqual(detail["accounts"][0]["decision"]["reason"], "unreadable")
+				self.assertEqual(detail["accounts"][0]["state_before"]["unreadable"], unreadable)
+
+	def test_readable_skip_result_keys_are_unchanged_across_run_surfaces(self):
+		for reason in ("nothing_open", "below_threshold"):
+			with self.subTest(reason=reason):
+				self._assert_result_key_surfaces(self._result_key_record((("one", reason),)), "skipped", "errors.run.skipped")
+
+	def test_two_account_skip_result_key_uses_the_whole_run(self):
+		for decisions in ((("one", "unreadable"), ("two", "nothing_open")), (("one", "nothing_open"), ("two", "unreadable"))):
+			with self.subTest(decisions=decisions):
+				self._assert_result_key_surfaces(self._result_key_record(decisions), "skipped", "errors.run.unreadable")
+
+	def test_unreadable_run_anyway_result_keys_are_unchanged_across_run_surfaces(self):
+		for result in ("ok", "partial", "failed"):
+			with self.subTest(result=result):
+				self._assert_result_key_surfaces(self._result_key_record((("one", "unreadable_run_anyway"),), result=result, ran=("one",)), result, "errors.run." + result)
+
+	def test_other_results_and_active_keys_are_unchanged_across_run_surfaces(self):
+		for recorded, active, result in (("checked", False, "checked"), ("crashed", False, "crashed"), (None, False, "interrupted"), (None, True, None)):
+			with self.subTest(recorded=recorded, active=active):
+				self._assert_result_key_surfaces(self._result_key_record(result=recorded), result, "errors.run." + result if result else None, active=active)
+
+	def test_execution_in_another_account_keeps_the_skipped_key_across_run_surfaces(self):
+		markers = ({"type": "run_end", "accounts_ran": 1}, {"type": "account_end", "account": "two", "ran_tasks": True},
+			{"type": "task_start", "account": "two", "task": "quests"}, {"type": "task_end", "account": "two", "task": "quests", "outcome": "ok"})
+		for marker in markers:
+			with self.subTest(marker=marker):
+				run_id, events = self._result_key_record((("one", "unreadable"), ("two", "nothing_open")))
+				if marker["type"] == "run_end":
+					events[-1].update(marker)
+				else:
+					events.insert(-1, {**events[-1], **marker})
+				self._assert_result_key_surfaces((run_id, events), "skipped", "errors.run.skipped")
+
+	def test_off_task_does_not_hide_an_unreadable_skip_across_run_surfaces(self):
+		run_id, events = self._result_key_record()
+		events.insert(-1, {**events[-2], "type": "task_end", "task": "quests", "outcome": "off"})
+		self._assert_result_key_surfaces((run_id, events), "skipped", "errors.run.unreadable")
+
 	def test_newer_schema_unknown_ignores_reduction_and_unknown_events(self):
 		run_id = self.fixture("multi")
 		path = self.directory / (run_id + ".jsonl")

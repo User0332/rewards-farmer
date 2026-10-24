@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "Some tasks did not finish.", "note": "Run result in History, Live run or a notification. No placeholders. Keep it short."},
     "errors.run.failed": {"text": "The run could not do its tasks.", "note": "Run result in History, Live run or a notification. No placeholders."},
     "errors.run.skipped": {"text": "Nothing worth a run was open.", "note": "Skipped-check result in History or Live run. No placeholders. This is not a failed run."},
+    "errors.run.unreadable": {"text": "Could not check what was open.", "note": "Run result in History, Live run or the Stats list for a check that could not read the Rewards page. No placeholders. Keep it short; the decision line and the page notice below explain why. Do not say nothing was open."},
     "errors.run.checked": {"text": "Checked what is open.", "note": "Read-only check result in History or Live run. No placeholders. No task was done."},
     "errors.run.stopped": {"text": "You stopped this run.", "note": "Run result in History or Live run. No placeholders."},
     "errors.run.busy": {"text": "Another run was already going.", "note": "Run result in History or Live run when the browser lock was held. No placeholders."},

@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "Algumas tarefas não foram concluídas.", "src": "a9214825"},
     "errors.run.failed": {"text": "A execução não conseguiu realizar as tarefas.", "src": "970610ea"},
     "errors.run.skipped": {"text": "Não havia tarefas pendentes que justificassem uma execução.", "src": "dff69997"},
+    "errors.run.unreadable": {"text": "Não foi possível verificar o que estava pendente.", "src": "4864a48f"},
     "errors.run.checked": {"text": "Tarefas pendentes verificadas.", "src": "e31a68b8"},
     "errors.run.stopped": {"text": "Você interrompeu esta execução.", "src": "88971f45"},
     "errors.run.busy": {"text": "Outra execução já estava em andamento.", "src": "bacf0ac2"},

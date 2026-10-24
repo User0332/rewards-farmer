@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "部分任务未完成。", "src": "a9214825"},
     "errors.run.failed": {"text": "本次运行未能执行任务。", "src": "970610ea"},
     "errors.run.skipped": {"text": "没有值得运行的待完成任务。", "src": "dff69997"},
+    "errors.run.unreadable": {"text": "未能检查有哪些待完成的任务。", "src": "4864a48f"},
     "errors.run.checked": {"text": "已检查待完成的任务。", "src": "e31a68b8"},
     "errors.run.stopped": {"text": "你停止了本次运行。", "src": "88971f45"},
     "errors.run.busy": {"text": "当时已有其他运行正在进行。", "src": "bacf0ac2"},

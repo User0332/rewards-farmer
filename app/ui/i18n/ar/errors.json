@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "لم تكتمل بعض المهام.", "src": "a9214825"},
     "errors.run.failed": {"text": "تعذر تنفيذ المهام في هذا التشغيل.", "src": "970610ea"},
     "errors.run.skipped": {"text": "لم يتوفر ما يستدعي التشغيل.", "src": "dff69997"},
+    "errors.run.unreadable": {"text": "تعذّر التحقق مما كان متاحًا.", "src": "4864a48f"},
     "errors.run.checked": {"text": "تم التحقق مما هو متاح.", "src": "e31a68b8"},
     "errors.run.stopped": {"text": "أوقفت هذا التشغيل.", "src": "88971f45"},
     "errors.run.busy": {"text": "كان هناك تشغيل آخر جارٍ بالفعل.", "src": "bacf0ac2"},

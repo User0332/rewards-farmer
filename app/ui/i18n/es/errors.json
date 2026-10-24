@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "Algunas tareas no terminaron.", "src": "a9214825"},
     "errors.run.failed": {"text": "No se pudieron realizar las tareas.", "src": "970610ea"},
     "errors.run.skipped": {"text": "No había nada pendiente que justificara una ejecución.", "src": "dff69997"},
+    "errors.run.unreadable": {"text": "No se pudo comprobar qué quedaba pendiente.", "src": "4864a48f"},
     "errors.run.checked": {"text": "Se comprobó qué quedaba pendiente.", "src": "e31a68b8"},
     "errors.run.stopped": {"text": "Detuviste esta ejecución.", "src": "88971f45"},
     "errors.run.busy": {"text": "Ya había otra ejecución en curso.", "src": "bacf0ac2"},

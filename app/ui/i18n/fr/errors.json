@@ -31,6 +31,7 @@
     "errors.run.partial": {"text": "Certaines tâches n’ont pas été terminées.", "src": "a9214825"},
     "errors.run.failed": {"text": "Les tâches n’ont pas pu être exécutées.", "src": "970610ea"},
     "errors.run.skipped": {"text": "Il n’y avait pas assez à faire pour lancer une exécution.", "src": "dff69997"},
+    "errors.run.unreadable": {"text": "Impossible de vérifier ce qu’il restait à faire.", "src": "4864a48f"},
     "errors.run.checked": {"text": "Les activités restantes ont été vérifiées.", "src": "e31a68b8"},
     "errors.run.stopped": {"text": "Vous avez arrêté cette exécution.", "src": "88971f45"},
     "errors.run.busy": {"text": "Une autre exécution était déjà en cours.", "src": "bacf0ac2"},

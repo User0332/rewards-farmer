@@ -280,6 +280,24 @@ def _daily_delta(events, *, zone=None, bounds=()):
 	return value if value >= 0 else None
 
 
+def result_key(result, events) -> str | None:
+	"""Describe the whole run without changing its recorded terminal result."""
+	if result is None:
+		return None
+	if result == "skipped":
+		unreadable = False
+		for event in events:
+			kind = event.get("type")
+			if (kind == "run_end" and _number(event.get("accounts_ran")) and event["accounts_ran"] > 0
+				or kind == "account_end" and event.get("ran_tasks") is True
+				or kind in ("task_start", "task_end") and event.get("outcome") != "off"):
+				return "errors.run.skipped"
+			unreadable |= kind == "decision" and event.get("reason") == "unreadable"
+		if unreadable:
+			return "errors.run.unreadable"
+	return "errors.run." + result
+
+
 def run_summary(run_id, events, *, active=False, account=None, zone=None, bounds=()):
 	"""Compact shared History identity; no labels, paths, text or log reads."""
 	start = next((event for event in events if event.get("type") == "run_start"), {})
@@ -311,7 +329,7 @@ def run_summary(run_id, events, *, active=False, account=None, zone=None, bounds
 		problems.append({"task": None, "reason_key": reason})
 	return {"run_id": run_id, "started_at": start.get("ts", events[0].get("ts") if events else None),
 		"kind": "check" if check else "run", "trigger": start.get("trigger") if start.get("trigger") in ("scheduled", "app", "cli") else "cli", "active": active,
-		"result": result, "result_key": "errors.run." + result if result else None,
+		"result": result, "result_key": result_key(result, events),
 		"points_earned": sum(known) if known else None, "problems": problems}
 
 
