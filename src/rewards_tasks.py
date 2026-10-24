@@ -18,6 +18,7 @@ import queries
 import mouse_trajectory
 import mimic_typing
 import element_selectors
+import quest_steps
 import run_record
 
 from constants import DATA_HOME
@@ -649,8 +650,10 @@ class RewardsTaskUtils:
 			activity = activities[0]
 			label = (activity.text or "").strip()
 			clicked.add(activity_key(activity))
+			href = activity.get_dom_attribute("href") or ""
 
 			self.move_to_and_click(activity)
+			quest_steps.record_click(url, href, label)
 			time.sleep(random.uniform(2, 4))
 			self.tab_utils.close_all_other_tabs()
 

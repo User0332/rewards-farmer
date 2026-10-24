@@ -22,6 +22,7 @@ from selenium.webdriver.common.by import By
 
 from element_selectors import ElementNotReady
 import run_record
+import quest_steps
 
 EARN_URL = "https://rewards.bing.com/earn"
 DAILY_SET_POINTS = 10
@@ -436,6 +437,8 @@ def read_state(driver, elements, timeout: float = 30, skip_cards: frozenset[str]
 	try:
 		_require_earn_page(driver, elements, timeout)
 		urls = _wait_for(lambda: _quest_urls(driver, elements), timeout)
+		clicked = quest_steps.clicked_today()
+		not_counted = 0
 		for url in urls:
 			try:
 				try:
@@ -444,12 +447,17 @@ def read_state(driver, elements, timeout: float = 30, skip_cards: frozenset[str]
 					pass
 				_wait_for(lambda: _quest_ready(driver, url), timeout)
 				activities = elements.get_quest_activity_links()
-				quests_open += len({
+				identities = {
 					(link.get_dom_attribute("href") or "", (link.text or "").strip())
 					for link in activities if link.is_displayed()
-				})
+				}
+				omitted = {(href, text) for href, text in identities if (url, href, text) in clicked}
+				quests_open += len(identities - omitted)
+				not_counted += len(omitted)
 			except Exception:
 				unreadable.add("quests")
+		if not_counted:
+			logger.info("quest steps already clicked today and unchanged: %s (not counted)", not_counted)
 	except _PageStayedBlank as exc:
 		unreadable.add(exc.code)
 	except Exception:
