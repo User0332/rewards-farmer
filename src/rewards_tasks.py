@@ -580,11 +580,22 @@ class RewardsTaskUtils:
 		They unlock one step at a time, which is why each card's page is loaded
 		again after every activity instead of collecting its links up front.
 		"""
-		self.switch_to_earn_page()
+		try:
+			self.switch_to_earn_page()
+		except NoSuchElementException:
+			# A quest-only run reaches the freshly loaded home page before the
+			# earlier tasks in a full run have given its navigation time to render.
+			self.wait_for_element(self.elements.get_earn_tab)
+			self.switch_to_earn_page()
+
+		try:
+			quest_links = self.wait_for_element(self.elements.get_quest_links)
+		except TimeoutException:
+			raise NoSuchElementException("no quests in this UI variant") from None
 
 		quest_urls = []
 
-		for link in self.elements.get_quest_links():
+		for link in quest_links:
 			href = link.get_dom_attribute("href") or ""
 
 			if href.startswith("/"):
