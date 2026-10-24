@@ -5,9 +5,10 @@ Automation for MS Rewards based on [https://youtu.be/4qdPcMNaioA](https://youtu.
 ## Table of Contents
 
 - [Core Setup & Running Instructions](#core-setup--running-instructions)
+	- [Configuration Script](#configuration-script)
 	- [Where search queries come from](#where-search-queries-come-from)
 	- [Installing Dependencies](#installing-dependencies)
-	- [Profile Setup](#profile-setup)
+	- [Single Profile Setup](#single-profile-setup)
 - [If Edge will not start](#if-edge-will-not-start)
 - [Running more than one account](#running-more-than-one-account)
 - [Docker](#docker)
@@ -59,6 +60,8 @@ Running `init-config.py` with the `--manage-accounts` flag (shown below) will al
 py .\src\init-config.py --manage-accounts
 ```
 
+For signing into multiple accounts properly, see the [relevant notice](#proper-signin-notice).
+
 ### Where search queries come from
 
 The bot needs short strings to type into Bing. Two backends produce them, set with `QUERY_SOURCE`:
@@ -98,11 +101,19 @@ If the configuration options are not provided, they default to `LLM_PROVIDER=loc
 
 You must also provide an image for the script to upload to complete the visual search task. A helper script is included at `src/random_image_for_visual_search.py` that will download an image from Wikipedia named `visual_search.jpg` into the project root for you. You may also provide an image of your own, just ensure that the absolute path of the image is placed in the `VISUAL_SEARCH_IMAGE_PATH` constant at the top of `rewards_tasks.py`.
 
-### Profile Setup
+### Single Profile Setup
 
-The profile directory in `src/constants.py` is set to `Default`. If this signs you in to a global profile that you do not want to use for automation, then you can create a new profile from within the webdriver instance manually and then change the `PROFILE_NAME` constant to `Profile 1` (or the equivalent number).
+> [!TIP]
+> It is recommended to configure `REWARDS_ACCOUNTS` rather than run the script using the default configuration from this section, even if you are running only one account. This allows each profile to be isolated by a named data directory and makes it easier to add another account later.
+>
+> You can do this using the [configuration script](#configuration-script) or by [manual configuration](#running-more-than-one-account). This method will create entirely new profiles separate from the default profile discussed here, so you will have to complete sign in again.
 
-Run main.py (`python src/main.py`; paths are resolved from the repository, so it can be started from any directory), wait for the page to launch, and then CTRL-C to quit the application immediately. Sign in to the created profile with your Microsoft account on both Bing and `rewards.bing.com`.
+By default, the script runs a single account using the `Default` profile in the base data directory. To sign in to this profile, you can do one of two things to launch the browser:
+
+1. Run main.py (`python src/main.py`; paths are resolved from the repository, so it can be started from any directory), wait for the page to launch, and then CTRL-C to quit the application immediately.
+2. Run Edge directly through `msedge --user-data-dir="<USER_DATA_DIR>" --profile-directory=Default https://rewards.bing.com`. Note that the default user data directory is `<repo>\data-dir`.
+
+Once the browser launches, sign in to the created profile with your Microsoft account on both Bing and `rewards.bing.com`. Additionally, see the [relevant notice](#proper-signin-notice) on signing in properly.
 
 EU Users: you may have to accept a consent banner once on `rewards.bing.com` and on the Bing search page, `bing.com`. Once you consent, your choice will be saved for future runs using the same profile, so you will not need to interact with the banner during automated runs.
 
@@ -138,8 +149,14 @@ REWARDS_ACCOUNTS=personal,spare python src/main.py
 Each is signed in once by hand, the same way as the single profile, using its own directory:
 
 ```
-msedge --user-data-dir="<repo>\data-dir\personal" --profile-directory=Default https://rewards.bing.com
+msedge --user-data-dir="<USER_DATA_DIR>\personal" --profile-directory=Default https://rewards.bing.com
 ```
+
+Note that the default user data directory is `<repo>\data-dir`.
+
+<a id="proper-signin-notice"></a>
+> [!NOTE]
+> When signing in to an account, whether through the above command or through the accounts manager in the configuration script, you must ensure that you sign in to the Edge profile, `rewards.bing.com`, *and* `bing.com` so that the script never accidentally uses a global account associated with your Windows account. To do this, when you launch the sign-in window either via the above command or the accounts manager, look for the profile icon in the top right hand corner of the window and click on it. If the browser does not display the desired account, click on "Profile settings" and select "Sign out" on the page that appears. The Edge window will briefly refresh. Then, click on the profile icon in the top right again. There should be a dropdown menu of accounts to choose from. Choose the correct account and sign in. Then, head to `rewards.bing.com` and `bing.com` to make sure they are both using the desired account. If they are not, sign out from those sites and then click sign in.
 
 They run one after another, and an account that fails is reported and skipped rather than ending the run, whether it fails to start or dies partway through. Leave `REWARDS_ACCOUNTS` unset and everything behaves exactly as before, using the single profile in `data-dir`.
 
@@ -263,4 +280,3 @@ $env:USE_VIRTUAL_DESKTOP="true"; python src/main.py
 > **Note:** The script automatically detects which virtual desktop you started from and calculates the exact number of navigation hops so it returns directly to your starting desktop. When `CLEANUP_VIRTUAL_DESKTOP=true`, the worker desktop is safely closed after you press Enter on exit, returning you to your main desktop.
 
 Please open up a GitHub issue if you run into any difficulties.
-
