@@ -32,14 +32,14 @@ DEFAULT_SOURCE = LLM
 ENV_VAR = "QUERY_SOURCE"
 
 KNOWN_TASKS = {
-	"Search on Bing for hotels to stay at on your next adventure": "hotels in Paris",
-	"Search on Bing to find jewelry for any occasion": "jewelry",
-	"Search on Bing for real-estate available in your dream town": "real estate in San Francisco",
-	"Search on Bing to see if your team won their recent game or match": "recent sports scores",
-	"Search on Bing for a flight to your perfect vacation": "flights to Miami",
-	"Search on Bing for the best insurance plans for your needs": "car insurance plans",
-	"Search on Bing to compare personal and student loan options": "student loan options",
-	"Search on Bing to find items on your shopping list": "school supplies"
+	"search on bing for hotels to stay at on your next adventure": "hotels in Paris",
+	"search on bing to find jewelry for any occasion": "jewelry",
+	"search on bing for real-estate available in your dream town": "real estate in San Francisco",
+	"search on bing to see if your team won their recent game or match": "recent sports scores",
+	"search on bing for a flight to your perfect vacation": "flights to Miami",
+	"search on bing for the best insurance plans for your needs": "car insurance plans",
+	"search on bing to compare personal and student loan options": "student loan options",
+	"search on bing to find items on your shopping list": "school supplies"
 }
 
 
@@ -53,7 +53,8 @@ def selected_source() -> str:
 def search_query_for_task(task_description: str) -> str:
 	"""A query for one "Search on Bing for X" card."""
 
-	if (short_path := KNOWN_TASKS.get(task_description)): return short_path
+	# we use .removesuffix('.') because sometimes the descriptions end with a period
+	if (short_path := KNOWN_TASKS.get(task_description.removesuffix('.').lower())): return short_path
 
 	if selected_source() == TRENDS:
 		query = query_sources.query_from_task_description(task_description)
