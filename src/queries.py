@@ -62,7 +62,10 @@ def search_query_for_task(task_description: str) -> str:
 	"""A query for one "Search on Bing for X" card."""
 
 	# we use .removesuffix('.') because sometimes the descriptions end with a period
-	if (short_path := KNOWN_TASKS.get(task_description.removesuffix('.').lower())): return short_path
+	# some descriptions also contain the zero-width space character \u200b
+	normalized_task_description = task_description.replace("\u200b", "").strip().removesuffix(".").lower()
+
+	if (short_path := KNOWN_TASKS.get(normalized_task_description)): return short_path
 
 	if selected_source() == TRENDS:
 		query = query_sources.query_from_task_description(task_description)
