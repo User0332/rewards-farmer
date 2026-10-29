@@ -39,7 +39,15 @@ KNOWN_TASKS = {
 	"search on bing for a flight to your perfect vacation": "flights to Miami",
 	"search on bing for the best insurance plans for your needs": "car insurance plans",
 	"search on bing to compare personal and student loan options": "student loan options",
-	"search on bing to find items on your shopping list": "school supplies"
+	"search on bing to find items on your shopping list": "school supplies",
+	"search on bing to book affordable flights for your next trip": "affordable flights",
+	"search on bing to reserve airport parking at the best rates": "airport parking",
+	"search on bing for fast and fresh flower delivery options": "flower delivery",
+	"search on bing to find the best streaming platforms and bundles": "streaming bundles",
+	"search on bing to check your credit report and raise your score": "how to check and improve credit score",
+	"search on bing for a health condition to learn about the symptoms": "type 2 diabetes symptoms",
+	"search on bing for new recipes": "dessert recipes", # needs manual testing
+	"search on bing to explore videogames": "latest video games" # needs manual testing
 }
 
 
