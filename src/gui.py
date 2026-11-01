@@ -1745,13 +1745,13 @@ class ManagerApp:
 			row=1, column=0, columnspan=2, sticky="w", pady=(6, 10))
 
 		self.accounts_tree = ttk.Treeview(card, columns=("name", "email", "run"),
-			show="headings", selectmode="extended", height=10)
+			show="headings", selectmode="extended", height=6)
 		self.accounts_tree.heading("name", text="Profile directory")
 		self.accounts_tree.heading("email", text="Signed in as")
 		self.accounts_tree.heading("run", text="Run")
-		self.accounts_tree.column("name", anchor="w", width=200, stretch=False)
-		self.accounts_tree.column("email", anchor="w", width=340)
-		self.accounts_tree.column("run", anchor="center", width=90, stretch=False)
+		self.accounts_tree.column("name", anchor="w", width=160, stretch=False)
+		self.accounts_tree.column("email", anchor="w", width=320)
+		self.accounts_tree.column("run", anchor="center", width=80, stretch=False)
 		# Zebra stripes keep a long list readable, and an excluded row recedes
 		# so the farming set is obvious at a glance.
 		self.accounts_tree.tag_configure("odd", background=ROW_ALT)
@@ -1770,6 +1770,40 @@ class ManagerApp:
 		tree_scroll = PillScrollbar(card, command=self.accounts_tree.yview)
 		self.accounts_tree.configure(yscrollcommand=tree_scroll.set)
 		tree_scroll.grid(row=2, column=1, sticky="ns", padx=(8, 0))
+
+		# Expanded account overview with points
+		overview_wrap = tk.Frame(card, bg=CARD_BG)
+		overview_wrap.grid(row=3, column=0, columnspan=2, sticky="nsew", pady=(12, 0))
+		overview_wrap.columnconfigure(0, weight=1)
+		overview_wrap.rowconfigure(1, weight=1)
+		card.rowconfigure(3, weight=1)
+
+		ttk.Label(overview_wrap, text="Account overview", style="H1.TLabel").grid(
+			row=0, column=0, sticky="w", pady=(0, 6))
+
+		self.account_overview_tree = ttk.Treeview(overview_wrap,
+			columns=("name", "email", "status", "obtained", "gained", "available"),
+			show="headings", selectmode="extended", height=8)
+		self.account_overview_tree.heading("name", text="Profile")
+		self.account_overview_tree.heading("email", text="Signed in as")
+		self.account_overview_tree.heading("status", text="Status")
+		self.account_overview_tree.heading("obtained", text="Obtained")
+		self.account_overview_tree.heading("gained", text="Gained")
+		self.account_overview_tree.heading("available", text="Available")
+		self.account_overview_tree.column("name", anchor="w", width=150, stretch=False)
+		self.account_overview_tree.column("email", anchor="w", width=300)
+		self.account_overview_tree.column("status", anchor="center", width=80, stretch=False)
+		self.account_overview_tree.column("obtained", anchor="e", width=90, stretch=False)
+		self.account_overview_tree.column("gained", anchor="e", width=80, stretch=False)
+		self.account_overview_tree.column("available", anchor="e", width=90, stretch=False)
+		self.account_overview_tree.tag_configure("odd", background=ROW_ALT)
+		self.account_overview_tree.tag_configure("even", background=CARD_BG)
+		self.account_overview_tree.tag_configure("skipped", foreground=MUTED)
+		self.account_overview_tree.grid(row=1, column=0, sticky="nsew")
+		ov_scroll = PillScrollbar(overview_wrap, command=self.account_overview_tree.yview)
+		self.account_overview_tree.configure(yscrollcommand=ov_scroll.set)
+		ov_scroll.grid(row=1, column=1, sticky="ns", padx=(8, 0))
+		self._refresh_account_overview()
 
 		ttk.Label(card, style="CardSmall.TLabel",
 			text="Tip: double-click a row to include or exclude it.").grid(
@@ -2215,6 +2249,19 @@ class ManagerApp:
 		else:
 			text = f"{count} account{'s' if count != 1 else ''}"
 		self.accounts_count_label.configure(text=text)
+		self._refresh_account_overview()
+
+	def _refresh_account_overview(self) -> None:
+		if not hasattr(self, "account_overview_tree"):
+			return
+		for item in self.account_overview_tree.get_children():
+			self.account_overview_tree.delete(item)
+		for name in self.accounts:
+			email = self._profile_email(name)
+			skipped = name in self.excluded
+			self.account_overview_tree.insert("", "end", values=(
+				name, email, "Skipped" if skipped else "Farms", "--", "--", "--"
+			))
 
 	def _profile_email(self, name: str) -> str:
 		root = os.environ.get(accounts.DATA_DIR_ENV_VAR, DEFAULT_ROOT_DATA_DIR)
@@ -2547,6 +2594,7 @@ class ManagerApp:
 		self.points_available = None
 		self.points_start = None
 		self._update_points_display()
+		self._refresh_account_overview()
 		self.append_console("[gui] Starting rewards-farmer ...", "muted")
 		self.stopping = False
 
