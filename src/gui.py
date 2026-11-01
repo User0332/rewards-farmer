@@ -27,6 +27,7 @@ import time
 import tkinter as tk
 import tkinter.font as tkfont
 import traceback
+import shutil
 from dataclasses import dataclass, field as dataclass_field
 from tkinter import filedialog, messagebox, ttk
 
@@ -37,6 +38,16 @@ import accounts
 import browser
 import log_utils
 from constants import DEFAULT_ROOT_DATA_DIR, DOTENV_PATH, REPO_ROOT
+
+if sys.platform == "win32":
+	try:
+		import winreg
+	except Exception:
+		winreg = None
+else:
+	winreg = None
+
+SCHED_TASK_NAME = "RewardsFarmerDaily"
 
 SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 MAIN_SCRIPT = os.path.join(SRC_DIR, "main.py")
@@ -1220,6 +1231,9 @@ class ManagerApp:
 		self.points_current_label = None
 		self.points_available_label = None
 
+		self.schedule_var = tk.BooleanVar(value=self._is_scheduled())
+		self.autostart_var = tk.BooleanVar(value=self._is_autostart())
+
 		# Filled by refresh_accounts: the configured names, the ones left out of
 		# a run, and those left out in the account list's own order.
 		self.accounts: list[str] = []
@@ -1871,6 +1885,96 @@ class ManagerApp:
 		sync_label()
 
 		tk.Frame(block, bg=BORDER, height=1).pack(fill="x", pady=(12, 0))
+
+		# Automation
+		automation = tk.Frame(parent, bg=CARD_BG)
+		automation.pack(fill="x")
+
+		ttk.Label(automation, text="Automation", style="H1.TLabel").pack(
+			anchor="w", pady=(12, 6))
+
+		sched_row = tk.Frame(automation, bg=CARD_BG)
+		sched_row.pack(fill="x")
+
+		ttk.Label(sched_row, text="Run every day (Task Scheduler)", style="Card.TLabel").pack(side="left")
+
+		ToggleSwitch(sched_row, self.schedule_var).pack(side="left", padx=(20, 0))
+		sched_state = ttk.Label(sched_row, text="", style="CardMuted.TLabel", width=10)
+		sched_state.pack(side="left", padx=(10, 0))
+
+		def sync_sched(*_args):
+			on = self.schedule_var.get()
+			sched_state.configure(text="Enabled" if on else "Disabled",
+				foreground=SUCCESS if on else MUTED)
+
+		def apply_sched(*_args):
+			if self.schedule_var.get():
+				if self._enable_schedule():
+					self.set_footer("Daily schedule enabled in Task Scheduler")
+				else:
+					self.schedule_var.set(False)
+					self.set_footer("Failed to enable daily schedule")
+			else:
+				if self._disable_schedule():
+					self.set_footer("Daily schedule disabled")
+				else:
+					self.set_footer("Failed to disable daily schedule")
+
+		self.schedule_var.trace_add("write", apply_sched)
+		sync_sched()
+
+		auto_row = tk.Frame(automation, bg=CARD_BG)
+		auto_row.pack(fill="x", pady=(6, 0))
+
+		ttk.Label(auto_row, text="Run at Windows startup", style="Card.TLabel").pack(side="left")
+
+		ToggleSwitch(auto_row, self.autostart_var).pack(side="left", padx=(20, 0))
+		auto_state = ttk.Label(auto_row, text="", style="CardMuted.TLabel", width=10)
+		auto_state.pack(side="left", padx=(10, 0))
+
+		def sync_auto(*_args):
+			on = self.autostart_var.get()
+			auto_state.configure(text="Enabled" if on else "Disabled",
+				foreground=SUCCESS if on else MUTED)
+
+		def apply_auto(*_args):
+			if self.autostart_var.get():
+				if self._enable_autostart():
+					self.set_footer("Run at startup enabled")
+				else:
+					self.autostart_var.set(False)
+					self.set_footer("Failed to enable startup")
+			else:
+				if self._disable_autostart():
+					self.set_footer("Run at startup disabled")
+				else:
+					self.set_footer("Failed to disable startup")
+
+		self.autostart_var.trace_add("write", apply_auto)
+		sync_auto()
+
+		time_row = tk.Frame(automation, bg=CARD_BG)
+		time_row.pack(fill="x", pady=(6, 0))
+
+		ttk.Label(time_row, text="Daily time (HH:MM)", style="CardMuted.TLabel").pack(side="left")
+		self.schedule_time_var = tk.StringVar(value=self.env.get("GUI_SCHEDULE_TIME", "09:00"))
+		time_field = RoundedField(time_row, width=80)
+		time_field.pack(side="left", padx=(10, 0))
+		time_entry = ttk.Entry(time_field, textvariable=self.schedule_time_var,
+			style="Field.TEntry", justify="center")
+		time_field.attach(time_entry)
+
+		def save_time(*_args):
+			try:
+				self.env.update({"GUI_SCHEDULE_TIME": self.schedule_time_var.get().strip()})
+			except Exception:
+				pass
+			if self.schedule_var.get():
+				self._enable_schedule()
+
+		self.schedule_time_var.trace_add("write", save_time)
+
+		tk.Frame(automation, bg=BORDER, height=1).pack(fill="x", pady=(12, 0))
 
 	def _scrollable(self, parent: tk.Frame) -> tk.Frame:
 		canvas = tk.Canvas(parent, bg=CARD_BG, highlightthickness=0, bd=0)
@@ -2643,6 +2747,116 @@ class ManagerApp:
 			self.points_available_label.configure(text="Available: --")
 		else:
 			self.points_available_label.configure(text=f"Available: {self.points_available:,}")
+
+	# region automation
+
+	def _run_cli_cmd(self) -> list[str]:
+		if sys.platform == "win32" and os.path.exists(os.path.join(REPO_ROOT, "run-cli.bat")):
+			return [os.path.join(REPO_ROOT, "run-cli.bat")]
+		return [sys.executable, "-u", MAIN_SCRIPT]
+
+	def _is_scheduled(self) -> bool:
+		if sys.platform != "win32":
+			return False
+		try:
+			result = subprocess.run(["schtasks", "/Query", "/TN", SCHED_TASK_NAME],
+				stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=False)
+			return result.returncode == 0
+		except Exception:
+			return False
+
+	def _enable_schedule(self) -> bool:
+		if sys.platform != "win32":
+			return False
+		try:
+			time_str = self.schedule_time_var.get().strip() if hasattr(self, "schedule_time_var") else self.env.get("GUI_SCHEDULE_TIME", "09:00")
+			# Ensure HH:MM format
+			if re.match(r'^\d{1,2}:\d{2}$', time_str):
+				h, m = time_str.split(":")
+				time_str = f"{int(h):02d}:{m}"
+			else:
+				time_str = "09:00"
+			bat = os.path.join(REPO_ROOT, "run-cli.bat")
+			if not os.path.exists(bat):
+				# create a simple bat
+				with open(bat, "w", encoding="utf-8") as f:
+					f.write("@echo off\r\ncd /d \"%~dp0\"\r\ncall \"%~dp0run-gui.bat\" 2>&1 || python src\\main.py\r\n")
+			# Use schtasks to run daily
+			tr = bat
+			cmd = ["schtasks", "/Create", "/TN", SCHED_TASK_NAME, "/TR", tr,
+				"/SC", "DAILY", "/ST", time_str, "/F", "/RL", "LIMITED"]
+			result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+				creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+			if result.returncode == 0:
+				self.env.update({"GUI_SCHEDULE_TIME": time_str})
+				return True
+			return False
+		except Exception:
+			return False
+
+	def _disable_schedule(self) -> bool:
+		if sys.platform != "win32":
+			return False
+		try:
+			result = subprocess.run(["schtasks", "/Delete", "/TN", SCHED_TASK_NAME, "/F"],
+				stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+				creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+			return result.returncode == 0
+		except Exception:
+			return False
+
+	def _is_autostart(self) -> bool:
+		if sys.platform != "win32" or winreg is None:
+			return False
+		try:
+			key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+				r"Software\Microsoft\Windows\CurrentVersion\Run", 0,
+				winreg.KEY_READ)
+			try:
+				winreg.QueryValueEx(key, "RewardsFarmer")
+				winreg.CloseKey(key)
+				return True
+			except Exception:
+				winreg.CloseKey(key)
+				return False
+		except Exception:
+			return False
+
+	def _enable_autostart(self) -> bool:
+		if sys.platform != "win32" or winreg is None:
+			return False
+		try:
+			bat = os.path.join(REPO_ROOT, "run-gui.bat")
+			if not os.path.exists(bat):
+				with open(bat, "w", encoding="utf-8") as f:
+					f.write("@echo off\r\ncd /d \"%~dp0\"\r\npythonw src\\gui.py\r\n")
+			cmd = f'"{bat}"'
+			key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+				r"Software\Microsoft\Windows\CurrentVersion\Run", 0,
+				winreg.KEY_SET_VALUE)
+			winreg.SetValueEx(key, "RewardsFarmer", 0, winreg.REG_SZ, cmd)
+			winreg.CloseKey(key)
+			return True
+		except Exception:
+			return False
+
+	def _disable_autostart(self) -> bool:
+		if sys.platform != "win32" or winreg is None:
+			return False
+		try:
+			key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+				r"Software\Microsoft\Windows\CurrentVersion\Run", 0,
+				winreg.KEY_SET_VALUE)
+			try:
+				winreg.DeleteValue(key, "RewardsFarmer")
+			except Exception:
+				pass
+			winreg.CloseKey(key)
+			return True
+		except Exception:
+			return False
+
+	# endregion
 
 	@staticmethod
 	def _tag_for(line: str) -> str | None:
