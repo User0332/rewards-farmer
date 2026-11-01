@@ -52,7 +52,15 @@ RUN apt-get update \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir "selenium>=4.46.0,<5.0.0" "numpy" "python-dotenv"
+# Install poetry and use it to install packages to system python inside the container
+# There's no point in creating a venv inside the container, its already isolated
+RUN pip install --no-cache-dir poetry && poetry config virtualenvs.create false
+
+# Copy poetry project files into the container
+COPY pyproject.toml poetry.lock* ./
+
+# Install python dependencies with poetry
+RUN poetry install --no-interaction
 
 COPY src/ ./src/
 COPY nouns.txt ./

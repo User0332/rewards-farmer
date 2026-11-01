@@ -14,10 +14,13 @@ that two profiles hold two independent, persistent identities, so it is opt in:
 """
 
 import logging
+from contextlib import ExitStack
 import os
 import shutil
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
@@ -30,6 +33,7 @@ from selenium.common.exceptions import (
 import accounts
 import browser
 import main
+import constants
 
 # Names that have to be refused, with the reason each one is not simply a
 # directory sitting under data-dir.
@@ -143,6 +147,13 @@ class RunLoopTestCase(EnvironmentTestCase):
 
 	def setUp(self):
 		super().setUp()
+
+		self.temp = tempfile.TemporaryDirectory()
+		self.addCleanup(self.temp.cleanup)
+		self.stack = ExitStack()
+		self.addCleanup(self.stack.close)
+		self.stack.enter_context(mock.patch.dict(os.environ, {"USER_DATA_DIR": self.temp.name}))
+		self.stack.enter_context(mock.patch.object(constants, "RUNS_DIR", os.path.join(self.temp.name, "runs")))
 
 		# main() waits on input() when it is not headless, which would hang.
 		headless = main.HEADLESS

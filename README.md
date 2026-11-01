@@ -2,6 +2,8 @@
 
 Automation for MS Rewards based on [https://youtu.be/4qdPcMNaioA](https://youtu.be/4qdPcMNaioA).
 
+A Windows desktop app built on this farmer, with setup, run history and a schedule, lives in [mardausdennis/rewards-farmer-app](https://github.com/mardausdennis/rewards-farmer-app).
+
 ## Table of Contents
 
 - [Core Setup & Running Instructions](#core-setup--running-instructions)
@@ -13,6 +15,7 @@ Automation for MS Rewards based on [https://youtu.be/4qdPcMNaioA](https://youtu.
 - [Running more than one account](#running-more-than-one-account)
 - [Docker](#docker)
 - [Logging](#logging)
+- [Conditional runs and records](#conditional-runs-and-records)
 - [Windows Virtual Desktop (Windows only)](#windows-virtual-desktop-windows-only)
 
 
@@ -220,6 +223,19 @@ The port is published on `127.0.0.1` only, so it is not reachable from the netwo
 
 Signing in signs the browser in, not just the website, so Edge may sync bookmarks and autofill into the profile it just created. `data-dir` is a bot profile living in the project directory rather than your everyday browser profile, and it is gitignored, but it is worth knowing what ends up there.
 
+### Using a local LLM with Docker
+
+Point the base URL to the Docker host gateway. Example .env for Ollama Llama 3.2:
+```env
+QUERY_SOURCE=llm
+LLM_PROVIDER=local
+LOCAL_LLM_BASE_URL=http://host.docker.internal:11434/v1
+LOCAL_LLM_MODEL=llama3.2
+```
+
+If your model provider listens on localhost only, you must configure it to also listen on Docker's network bridge. Example for Ollama:
+`OLLAMA_HOST=0.0.0.0:11434 ollama serve`
+
 <details>
 <summary>Why sign-in has to happen inside the container</summary>
 
@@ -274,6 +290,26 @@ REWARDS_FARMER_LOG_LEVEL=DEBUG REWARDS_FARMER_LOG_FILE=run.log python src/main.p
 ```
 
 If you are opening an issue about a crash, running with `REWARDS_FARMER_LOG_LEVEL=DEBUG` and attaching the log is the most useful thing you can include.
+
+## Conditional runs and records
+
+`--read-state` records open work before and after farming. `--check-only` reads it without starting tasks; it still opens Edge to inspect the Rewards page
+
+`--only-if-open` reads first and runs when at least 15 points are known to be open, or a quest step is unlocked. Change the threshold with `--min-points`; when only a quest qualifies, only quests run. An unreadable page is skipped unless you also pass `--run-if-unreadable`. `--unattended` exits without waiting for Enter
+
+Windows (PowerShell)
+```sh
+python src/main.py --only-if-open --min-points 20 --unattended
+```
+
+*nix (Bash)
+```sh
+python src/main.py --check-only --unattended
+```
+
+Runs write timestamped JSONL records under `runs/`, with account and task outcomes and any requested state reads. `runs/quest-steps-today.json` tracks quest links already clicked today so an unchanged link does not trigger another conditional run. Without new flags, console output stays unchanged
+
+A lock under `USER_DATA_DIR` (by default `data-dir`) prevents two farmer runs from using the same profile root at once. A second run exits with code 3 before opening Edge
 
 ## Windows Virtual Desktop (Windows only)
 

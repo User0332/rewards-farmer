@@ -1,4 +1,5 @@
 import re
+from urllib.parse import urlsplit
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
@@ -43,6 +44,15 @@ class Labels:
 	# never done a visual search the same link reads "Activate streak" (#80).
 	VISUAL_SEARCH_NOW = "search now"
 	VISUAL_SEARCH_ACTIVATE = "activate streak"
+	# Exact match: plain substrings like "accept" are too short to search the
+	# whole page for. bing.com has a stable id, rewards.bing.com does not.
+	CONSENT_ACCEPT = (
+		"accept", "accept all",
+		"accepter", "tout accepter",
+		"akzeptieren", "alle akzeptieren",
+		"aceptar", "aceptar todo",
+		"accetta", "accetta tutto",
+	)
 
 
 class ElementSelectionUtils:
@@ -276,6 +286,91 @@ class ElementSelectionUtils:
 		return container.find_elements(By.TAG_NAME, "a")
 
 	# ------------------------------------------------------------------
+	# quests (punch cards)
+	# ------------------------------------------------------------------
+
+	def get_quest_links(self):
+		"""Links from the quests section, each pointing at a punch card page."""
+		try:
+			container = self._container_by_id("quests")
+		except NoSuchElementException:
+			return []
+
+		links = []
+
+		for link in container.find_elements(By.TAG_NAME, "a"):
+			try:
+				if "/earn/quest/" in (link.get_dom_attribute("href") or ""):
+					links.append(link)
+			except StaleElementReferenceException:
+				continue
+
+		return links
+
+	def _is_quest_start_link(self, link):
+		"""The observed card activation control, not a general dashboard link."""
+		try:
+			page = urlsplit(getattr(self.driver, "current_url", ""))
+			target = urlsplit(link.get_dom_attribute("href") or "")
+			label = " ".join((link.text or "").split()).casefold()
+			aria = " ".join((link.get_dom_attribute("aria-label") or "").split()).casefold()
+			return (
+				page.scheme == "https" and page.netloc == "rewards.bing.com"
+				and re.fullmatch(r"/earn/quest/[^/]+/?", page.path) is not None
+				and target.scheme == "https" and target.netloc == "rewards.bing.com" and target.path == "/dashboard"
+				and label == "activate quest" and aria.startswith("activate quest, ") and bool(aria[len("activate quest, "):].strip())
+				and link.get_dom_attribute("data-rac") is not None
+				and link.get_dom_attribute("data-react-aria-pressable") == "true"
+				and link.get_dom_attribute("target") == "_blank"
+				and {"noopener", "noreferrer"}.issubset((link.get_dom_attribute("rel") or "").lower().split())
+				and (link.get_dom_attribute("aria-disabled") or "").lower() != "true"
+				and link.get_dom_attribute("disabled") is None and link.get_dom_attribute("data-disabled") is None
+				and link.is_displayed()
+			)
+		except (ValueError, StaleElementReferenceException):
+			return False
+
+	def get_quest_activity_links(self):
+		"""Unlocked activity links on an open punch card page.
+
+		The observed Activate quest control links back to the Rewards dashboard;
+		only its specific activation signature may pass on that host. Search
+		activities keep their existing Bing-link filter. A card shows its
+		next activity before it unlocks and marks it `aria-disabled="true"`,
+		because it releases one punch per 24 hours, and that link must not be
+		clicked.
+
+		The search stays inside `<main>`. The footer carries
+		`https://www.bing.com/?rwgbopen=1` and a language link, and a page wide
+		host match clicked both on every run.
+		"""
+		containers = self.driver.find_elements(By.TAG_NAME, "main")
+		scope = containers[0] if containers else self.driver
+
+		links = []
+
+		for link in scope.find_elements(By.TAG_NAME, "a"):
+			try:
+				href = link.get_dom_attribute("href") or ""
+
+				if "bing.com" not in href:
+					continue
+				if "rewards.bing.com" in href and not (containers and self._is_quest_start_link(link)):
+					continue
+
+				if not (link.text or "").strip():
+					continue
+
+				if (link.get_dom_attribute("aria-disabled") or "").lower() == "true":
+					continue
+
+				links.append(link)
+			except StaleElementReferenceException:
+				continue
+
+		return links
+
+	# ------------------------------------------------------------------
 	# visual search
 	# ------------------------------------------------------------------
 
@@ -330,6 +425,26 @@ class ElementSelectionUtils:
 
 	def get_visual_search_file_input(self):
 		return self.driver.find_element(By.CSS_SELECTOR, "#sb_fileinput")
+
+	def get_cookie_consent_accept_button(self):
+		"""The accept button of the cookie consent prompt, if one is showing.
+
+		On bing.com it is a modal whose overlay swallows every click and
+		keystroke without raising, which is why it has to be dismissed rather
+		than ignored.
+		"""
+		for button in self.driver.find_elements(By.ID, "bnp_btn_accept"):
+			if button.is_displayed():
+				return button
+
+		for button in self.driver.find_elements(By.TAG_NAME, "button"):
+			try:
+				if button.is_displayed() and (button.text or "").strip().lower() in Labels.CONSENT_ACCEPT:
+					return button
+			except StaleElementReferenceException:
+				continue
+
+		raise NoSuchElementException("no cookie consent prompt showing")
 
 	# ------------------------------------------------------------------
 	# cards

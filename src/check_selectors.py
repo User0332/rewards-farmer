@@ -131,9 +131,9 @@ def main():
 
 		if not rendered:
 			print("The earn page never finished rendering.")
-			print("In the EU the cookie consent banner blocks it until answered, and it")
-			print("cannot be dismissed reliably from selenium. Open the profile in a")
-			print("normal Edge window, answer the banner once, then run this again.")
+			print("One known cause is a profile that is not signed in. Open that")
+			print("profile in a normal Edge window, sign in on rewards.bing.com and on")
+			print("bing.com, then run this again.")
 			return 2
 
 		describe_environment(driver, report)
@@ -144,7 +144,16 @@ def main():
 		report.check("get_points_breakdown_button", elements.get_points_breakdown_button)
 
 		print("\n## daily set")
-		opener = report.check("get_open_daily_set_button", elements.get_open_daily_set_button)
+		try:
+			opener = elements.get_open_daily_set_button()
+		except Exception as exc:
+			opener = None
+			if driver.find_elements(By.ID, "streaks"):
+				report.record("get_open_daily_set_button", "FAILED", type(exc).__name__)
+			else:
+				report.record("get_open_daily_set_button", "ABSENT", "this account's page has no Daily Set section")
+		else:
+			report.check("get_open_daily_set_button", lambda: opener)
 
 		if opener is not None:
 			driver.execute_script("arguments[0].scrollIntoView({block:'center'});", opener)

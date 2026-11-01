@@ -15,11 +15,23 @@ import queries
 import mouse_trajectory
 import mimic_typing
 import element_selectors
+import run_record
+import quest_steps
 
 from constants import REPO_ROOT
 
 VISUAL_SEARCH_IMAGE_PATH = os.path.join(REPO_ROOT, "visual_search.jpg")
 
+TASKS = (
+	("daily_set", "Bing daily set", "complete_bing_daily_set"),
+	("explore_on_bing", "Explore on Bing", "complete_explore_on_bing_tasks"),
+	("visual_search", "Visual search", "complete_visual_search"),
+	("misc_cards", "Misc cards", "complete_misc_cards"),
+	("quests", "Quests", "complete_quests"),
+	("searches", "Required searches", "complete_required_searches"),
+	("bonus", "Bonus points", "claim_bonus_points"),
+)
+TASK_IDS = tuple(task_id for task_id, _, _ in TASKS)
 REWARDS_HOME_URL = "https://rewards.bing.com/"
 
 logger = logging.getLogger(__name__)
@@ -113,6 +125,7 @@ class RewardsTaskUtils:
 		self.mouse = mouse_trajectory.MouseUtils(driver)
 		self.keyboard = mimic_typing.KeyboardUtils(driver)
 		self.elements = element_selectors.ElementSelectionUtils(driver)
+		self.dismiss_cookie_consent()
 		self.verify_signed_in_state()
 
 	def verify_signed_in_state(self):
@@ -124,6 +137,51 @@ class RewardsTaskUtils:
 				logger.warning("Please sign in once on rewards.bing.com in this Edge profile window.")
 		except Exception:
 			pass
+
+	def dismiss_cookie_consent(self, timeout: int = 3) -> bool:
+		"""Accept the cookie consent prompt if one shows up. Never raises.
+
+		The prompt is saved per profile once answered, so this is usually a
+		no-op. Returns whether a prompt was dismissed.
+		"""
+		try:
+			button = WebDriverWait(self.driver, timeout).until(
+				lambda _: self._consent_button_or_none()
+			)
+		except TimeoutException:
+			return False
+
+		try:
+			self.move_to_and_click(button)
+		except Exception:
+			pass
+
+		time.sleep(1)
+
+		# A real pointer click on a modal's button can land on the backdrop.
+		# Scripted only here, where nothing is being earned.
+		if self._consent_button_or_none() is not None:
+			try:
+				self.driver.execute_script("arguments[0].click();", button)
+			except Exception:
+				pass
+
+			time.sleep(1)
+
+		dismissed = self._consent_button_or_none() is None
+
+		if dismissed:
+			logger.info("Accepted the cookie consent prompt on %s", self.driver.current_url)
+		else:
+			logger.warning("Could not dismiss the cookie consent prompt on %s", self.driver.current_url)
+
+		return dismissed
+
+	def _consent_button_or_none(self):
+		try:
+			return self.elements.get_cookie_consent_accept_button()
+		except Exception:
+			return None
 
 	def find_element(self, xpath: str):
 		return self.driver.find_element(By.XPATH, xpath)
@@ -343,14 +401,32 @@ class RewardsTaskUtils:
 		self.tab_utils.switch_to_other_tab()
 		self.progress = "opened the visual search page"
 
+		self.dismiss_cookie_consent()
+
 		self.wait_for_then_click(self.elements.get_visual_search_button)
 
 		file_input = self.wait_for_element(self.elements.get_visual_search_file_input)
 
+		landing_url = self.driver.current_url
+
 		file_input.send_keys(VISUAL_SEARCH_IMAGE_PATH)
 		self.progress = "uploaded the image"
 
-		time.sleep(random.uniform(3, 5))
+		# send_keys succeeds even when an overlay ate the click and the image
+		# went nowhere. An accepted upload navigates away from the landing page.
+		def left_landing_page(_):
+			return self.driver.current_url != landing_url
+
+		try:
+			WebDriverWait(self.driver, 20).until(left_landing_page)
+		except TimeoutException:
+			logger.warning(
+				"Visual search: Bing did not move off %s after the upload, so the "
+				"image was probably not accepted. Please check manually.",
+				landing_url
+			)
+		else:
+			time.sleep(random.uniform(3, 5))
 
 		self.tab_utils.switch_to_other_tab()
 		self.tab_utils.close_all_other_tabs()
@@ -408,6 +484,7 @@ class RewardsTaskUtils:
 		logger.info("Search points before: %s/%s", points_earned, max_pts)
 
 		sent = 0
+		self._searches_sent = 0
 		self.progress = "sent 0 searches"
 
 		for round_number in range(1, max_rounds + 1):
@@ -417,11 +494,29 @@ class RewardsTaskUtils:
 			# Assume the lower known rate so a round never overshoots by much.
 			searches = max(1, (max_pts - points_earned) // 3)
 
-			batch = self.run_search_batch(searches, already_sent=sent)
-			sent += batch
-
 			previous = points_earned
-			points_earned, max_pts = self.read_search_points()
+			try:
+				batch = self.run_search_batch(searches, already_sent=sent)
+				points_earned, max_pts = self.read_search_points()
+			except (NoSuchElementException, TimeoutException) as exc:
+				if self._searches_sent == 0:
+					raise
+				batch = self._searches_sent - sent
+				# The last query can fill the quota before its clear button or the
+				# returning earn page is ready. Only a fresh reading can prove that.
+				logger.warning(
+					"Search result could not be verified after %s %s (%s), reloading once",
+					self._searches_sent, "search" if self._searches_sent == 1 else "searches", type(exc).__name__
+				)
+				try:
+					self.driver.get("https://rewards.bing.com/earn")
+					self.tab_utils.ensure_focus()
+					points_earned, max_pts = self.read_search_points()
+				except Exception:
+					raise exc
+				if points_earned < max_pts:
+					raise
+			sent += batch
 
 			logger.info(
 				"Round %s: %s searches -> %s/%s",
@@ -436,6 +531,92 @@ class RewardsTaskUtils:
 			logger.warning("Search quota not filled: %s/%s", points_earned, max_pts)
 		else:
 			logger.info("Search quota complete: %s/%s", points_earned, max_pts)
+
+	def complete_quests(self, max_steps: int = 8):
+		"""Work through the punch cards in the quests section.
+
+		Cards can start with activation before their Bing activities unlock.
+		They unlock one step at a time, which is why each card's page is loaded
+		again after every activity instead of collecting its links up front.
+		"""
+		self.switch_to_earn_page()
+
+		quest_urls = []
+
+		for link in self.elements.get_quest_links():
+			href = link.get_dom_attribute("href") or ""
+
+			if href.startswith("/"):
+				href = "https://rewards.bing.com" + href
+
+			if href and href not in quest_urls:
+				quest_urls.append(href)
+
+		if not quest_urls:
+			raise NoSuchElementException("no quests in this UI variant")
+
+		logger.info("%s quest(s) found", len(quest_urls))
+
+		self.progress = f"worked through 0 of {len(quest_urls)} quests"
+
+		for number, url in enumerate(quest_urls, start=1):
+			self.complete_single_quest(url, max_steps)
+			self.progress = f"worked through {number} of {len(quest_urls)} quests"
+
+	def complete_single_quest(self, url: str, max_steps: int) -> int:
+		"""Click the unlocked activities of one punch card, returning how many."""
+		completed = 0
+		clicked = set()
+		def activity_key(activity):
+			href = activity.get_dom_attribute("href") or ""
+			# Only the admitted activation control can be on the Rewards host.
+			# New tracking parameters must not make that same start step new.
+			return ("quest start",) if "rewards.bing.com" in href else ((activity.text or "").strip(), href)
+
+		for _ in range(max_steps):
+			self.driver.get(url)
+			self.tab_utils.ensure_focus()
+
+			try:
+				self.wait_for_element(self.elements.get_quest_activity_links)
+			except TimeoutException:
+				break
+
+			# Some cards keep an activity clickable after the click, for example
+			# one whose punches come from searching on separate days rather than
+			# from the link. Without this the loop clicked the same link once
+			# per round until max_steps ran out.
+			activities = [
+				activity for activity in self.elements.get_quest_activity_links()
+				if activity_key(activity) not in clicked
+			]
+
+			if not activities:
+				break
+
+			activity = activities[0]
+			label = (activity.text or "").strip()
+			href = activity.get_dom_attribute("href") or ""
+			clicked.add(activity_key(activity))
+
+			self.move_to_and_click(activity)
+			quest_steps.record_click(url, href, label)
+			time.sleep(random.uniform(2, 4))
+			self.tab_utils.close_all_other_tabs()
+
+			completed += 1
+			logger.info("Quest activity done: %r", label[:40])
+
+			time.sleep(random.uniform(1, 2))
+
+		card = url.rsplit("/", 1)[-1]
+
+		if completed:
+			logger.info("%s activity/activities completed on %s", completed, card)
+		else:
+			logger.info("Nothing left to click on %s", card)
+
+		return completed
 
 	def read_search_points(self):
 		"""Open the points breakdown, read the Bing search row, close it again."""
@@ -470,8 +651,11 @@ class RewardsTaskUtils:
 		The trends source can come back with fewer queries than asked for, so
 		the caller cannot assume count.
 		"""
+		self._searches_sent = already_sent
 		self.driver.get("https://www.bing.com/")
 		self.tab_utils.ensure_focus()
+
+		self.dismiss_cookie_consent()
 
 		self.wait_for_element(self.elements.get_bing_search_bar)
 
@@ -485,6 +669,7 @@ class RewardsTaskUtils:
 			self.keyboard.send_keys(f"{query} -noai{Keys.ENTER}")
 			sent_here = i + 1
 			sent = already_sent + sent_here
+			self._searches_sent = sent
 			self.progress = f"sent {sent} {'search' if sent == 1 else 'searches'}"
 
 			time.sleep(random.uniform(5.5, 7.5))
@@ -561,20 +746,16 @@ class RewardsTaskUtils:
 		except TimeoutException:
 			logger.warning("Could not find the 'Claim Bonus Points' button. There are likely no bonus points to claim at this time.")
 
-	def complete_all_tasks(self):
+	def complete_all_tasks(self, *, only=None):
 		# Each task is run independently. The Rewards UI differs by market and
 		# changes between deploys, so a task the current variant does not ship
 		# must not take the remaining ones down with it.
-		steps = (
-			("Bing daily set", self.complete_bing_daily_set),
-			("Explore on Bing", self.complete_explore_on_bing_tasks),
-			("Visual search", self.complete_visual_search),
-			("Misc cards", self.complete_misc_cards),
-			("Required searches", self.complete_required_searches),
-			("Bonus points", self.claim_bonus_points),
-		)
-
-		for name, step in steps:
+		for task_id, name, method in TASKS:
+			if only is not None and task_id not in only:
+				continue
+			began = time.monotonic()
+			run_record.emit("task_start", task=task_id, name=name)
+			outcome, reason = "ok", None
 			# The tags stay in the message rather than being folded into the
 			# level, they are the per-task outcome summary and reading a run
 			# means scanning for them.
@@ -585,11 +766,12 @@ class RewardsTaskUtils:
 			self.progress = None
 
 			try:
-				step()
+				getattr(self, method)()
 				logger.info("[OK] %s", name)
 				completed = True
 			except Exception as exc:
 				tag, reason = task_failure_report(exc, self.progress)
+				outcome = "skip" if tag == "SKIP" else "fail"
 
 				logger.log(
 					logging.WARNING if tag == "SKIP" else logging.ERROR,
@@ -604,3 +786,5 @@ class RewardsTaskUtils:
 
 			if not completed:
 				self.return_to_rewards_home()
+			run_record.emit("task_end", task=task_id, name=name, outcome=outcome, detail=reason,
+				progress=self.progress, duration_ms=round((time.monotonic() - began) * 1000))

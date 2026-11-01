@@ -10,6 +10,5 @@ __pycache__/
 *.log
 *.png
 *.jpg
-poetry.lock
 README.md
 docs/

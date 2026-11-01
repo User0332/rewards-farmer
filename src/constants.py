@@ -7,3 +7,4 @@ REPO_ROOT = dirname(dirname(abspath(__file__)))
 
 DEFAULT_ROOT_DATA_DIR = join(REPO_ROOT, "data-dir")
 DOTENV_PATH = join(REPO_ROOT, ".env")
+RUNS_DIR = join(REPO_ROOT, "runs")

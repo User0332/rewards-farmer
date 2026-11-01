@@ -9,3 +9,5 @@ data-dir/
 __pycache__/
 .env
 .venv*
+/runs/
+!tests/fixtures/*.txt

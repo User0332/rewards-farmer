@@ -233,6 +233,7 @@ class TaskLoop(unittest.TestCase):
 		("Explore on Bing", "complete_explore_on_bing_tasks"),
 		("Visual search", "complete_visual_search"),
 		("Misc cards", "complete_misc_cards"),
+		("Quests", "complete_quests"),
 		("Required searches", "complete_required_searches"),
 		("Bonus points", "claim_bonus_points"),
 	)
@@ -425,6 +426,58 @@ class ProgressInsideTasks(unittest.TestCase):
 			"[FAIL] Explore on Bing: searched 2 of 3 cards, then the next element never appeared",
 			output,
 		)
+
+	def _quests(self, pages, sticky=()):
+		"""The quests task over punch card pages: url -> labels still unlocked.
+
+		Clicking an activity uses it up, except the labels in sticky, which
+		stay clickable the way some cards keep their link after the click.
+		"""
+		class Link:
+			def __init__(self, text, href):
+				self.text, self.href = text, href
+
+			def get_dom_attribute(self, name):
+				return self.href if name == "href" else None
+
+		current = [None]
+		clicked = []
+
+		def click(activity):
+			clicked.append(activity.text)
+
+			if activity.text not in sticky:
+				pages[current[0]].remove(activity.text)
+
+		tasks = self._tasks(
+			get_quest_links=lambda: [Link("card", url) for url in ["/earn/quest/a", "/earn/quest/a", "/earn/quest/b"]],
+			get_quest_activity_links=lambda: [Link(text, f"https://www.bing.com/search?q={text}") for text in pages[current[0]]],
+		)
+		tasks.driver.get = lambda url: current.__setitem__(0, url)
+		tasks.wait_for_element = wait_once
+		tasks.move_to_and_click = click
+
+		return tasks, clicked
+
+	def test_quests_click_each_unlocked_activity_once(self):
+		pages = {
+			"https://rewards.bing.com/earn/quest/a": ["a1", "always open", "a2"],
+			"https://rewards.bing.com/earn/quest/b": ["b1"],
+		}
+		tasks, clicked = self._quests(pages, sticky={"always open"})
+
+		output = self._report(tasks, "complete_quests")
+
+		self.assertEqual(clicked, ["a1", "always open", "a2", "b1"])
+		self.assertIn("2 quest(s) found", output)
+		self.assertIn("[OK] Quests", output)
+
+	def test_no_quests_section_is_skipped(self):
+		tasks = self._tasks(get_quest_links=lambda: [])
+
+		output = self._report(tasks, "complete_quests")
+
+		self.assertIn("[SKIP] Quests: not available in this UI variant", output)
 
 	def test_explore_on_bing_without_a_section_is_still_skipped(self):
 		tasks = self._tasks(get_explore_on_bing_elements=lambda: [])
