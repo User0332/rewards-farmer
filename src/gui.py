@@ -1211,6 +1211,15 @@ class ManagerApp:
 		self.current_view = "Run"
 		self._status: tuple | None = None
 
+		# Points tracking (parsed from console output)
+		self.points_current: int | None = None
+		self.points_gained: int = 0
+		self.points_available: int | None = None
+		self.points_start: int | None = None
+		self.points_gained_label = None
+		self.points_current_label = None
+		self.points_available_label = None
+
 		# Filled by refresh_accounts: the configured names, the ones left out of
 		# a run, and those left out in the account list's own order.
 		self.accounts: list[str] = []
@@ -1617,6 +1626,7 @@ class ManagerApp:
 		summary = _card(tab)
 		summary.grid(row=0, column=0, sticky="ew", pady=(PAGE_PAD, 0), padx=PAGE_PAD)
 		summary.columnconfigure(0, weight=1)
+		summary.columnconfigure(1, weight=1)
 
 		left = tk.Frame(summary, bg=CARD_BG)
 		left.grid(row=0, column=0, sticky="w")
@@ -1630,8 +1640,28 @@ class ManagerApp:
 			wraplength=560, justify="left")
 		self.run_excluded_label.grid(row=2, column=0, sticky="w", pady=(4, 0))
 
+		# Points summary panel
+		points_frame = tk.Frame(summary, bg=CARD_BG)
+		points_frame.grid(row=0, column=1, sticky="e", padx=(GAP * 2, GAP))
+		points_frame.columnconfigure(0, weight=1)
+
+		points_title = ttk.Label(points_frame, text="Points", style="CardSmall.TLabel")
+		points_title.grid(row=0, column=0, columnspan=3, sticky="w", pady=(0, 4))
+
+		# Obtained / Current
+		self.points_current_label = ttk.Label(points_frame, text="Obtained: --", style="CardMuted.TLabel")
+		self.points_current_label.grid(row=1, column=0, sticky="w", padx=(0, 16))
+
+		# Gained
+		self.points_gained_label = ttk.Label(points_frame, text="Gained: --", style="CardMuted.TLabel")
+		self.points_gained_label.grid(row=1, column=1, sticky="w", padx=(0, 16))
+
+		# Available
+		self.points_available_label = ttk.Label(points_frame, text="Available: --", style="CardMuted.TLabel")
+		self.points_available_label.grid(row=1, column=2, sticky="w")
+
 		actions = tk.Frame(summary, bg=CARD_BG)
-		actions.grid(row=0, column=1, sticky="e", padx=(GAP, 0))
+		actions.grid(row=0, column=2, sticky="e")
 
 		self.run_button = PillButton(actions, text="Run", variant="accent",
 			command=self.start_run)
@@ -2408,6 +2438,11 @@ class ManagerApp:
 			return
 
 		self.clear_console()
+		self.points_current = None
+		self.points_gained = 0
+		self.points_available = None
+		self.points_start = None
+		self._update_points_display()
 		self.append_console("[gui] Starting rewards-farmer ...", "muted")
 		self.stopping = False
 
@@ -2498,6 +2533,7 @@ class ManagerApp:
 			self.append_console(f"[gui] Exited with code {code}.", "error")
 			self.set_status("error", f"Exited with code {code}")
 
+		self._update_points_display()
 		self._update_controls()
 
 	# endregion
@@ -2518,6 +2554,95 @@ class ManagerApp:
 
 		self.console.see("end")
 		self.console.configure(state="disabled")
+
+		try:
+			self._update_points_from_line(line)
+		except Exception:
+			pass
+
+	def _update_points_from_line(self, line: str) -> None:
+		if self.points_current_label is None:
+			return
+
+		# Try to capture current/balance/total/available/earned points from
+		# common formats (e.g. "X points", "Balance: X", "Points: X/Y", "Total: X")
+		# Look for numbers near "point", "balance", "total"
+		lower = line.lower()
+
+		# Patterns like "X/Y points" or "points X/Y"
+		m = re.findall(r'(\d[\d,]*)\s*/\s*(\d[\d,]*)\s*points?', lower)
+		if m:
+			earned_s, total_s = m[-1]
+			try:
+				earned = int(earned_s.replace(',', ''))
+				total = int(total_s.replace(',', ''))
+				if self.points_available is None or total > 0:
+					self.points_available = total
+				# treat earned as current/obtained in this context
+				if self.points_current is None and earned >= 0:
+					self.points_current = earned
+					if self.points_start is None:
+						self.points_start = earned
+					elif self.points_start is not None:
+						self.points_gained = self.points_current - self.points_start
+				self._update_points_display()
+				return
+			except Exception:
+				pass
+
+		# "Current points: 1234" / "Balance: 1234" / "Points: 1234"
+		for pattern in [r'current\s+points?[:\s]+(\d[\d,]*)',
+			r'balance[:\s]+(\d[\d,]*)',
+			r'total[:\s]+(\d[\d,]*)',
+			r'points?[:\s]+(\d[\d,]*)\s*(?:$|[^/\d])']:
+			m2 = re.findall(pattern, lower)
+			if m2:
+				try:
+					val = int(m2[-1].replace(',', ''))
+					# avoid overwriting with small deltas; prefer explicit total/balance/current
+					if 'balance' in lower or 'total' in lower or 'current' in lower or self.points_current is None:
+						if self.points_current is None:
+							self.points_current = val
+							self.points_start = val
+						elif self.points_current != val:
+							# if we see a different total, update
+							if 'total' in lower or 'balance' in lower:
+								self.points_current = val
+						else:
+							self.points_current = val
+					self._update_points_display()
+					return
+				except Exception:
+					pass
+
+		# "earned X points" / "+X points" / "gained X"
+		m3 = re.findall(r'(?:earned|gained|\+)(\d[\d,]*)\s*points?', lower)
+		if m3:
+			try:
+				g = int(m3[-1].replace(',', ''))
+				self.points_gained += g
+				if self.points_current is not None:
+					self.points_current += g
+				self._update_points_display()
+				return
+			except Exception:
+				pass
+
+	def _update_points_display(self) -> None:
+		if self.points_current_label is None:
+			return
+		if self.points_current is None:
+			self.points_current_label.configure(text="Obtained: --")
+		else:
+			self.points_current_label.configure(text=f"Obtained: {self.points_current:,}")
+		if self.points_gained == 0 and self.points_start is None:
+			self.points_gained_label.configure(text="Gained: --")
+		else:
+			self.points_gained_label.configure(text=f"Gained: {self.points_gained:+,}")
+		if self.points_available is None:
+			self.points_available_label.configure(text="Available: --")
+		else:
+			self.points_available_label.configure(text=f"Available: {self.points_available:,}")
 
 	@staticmethod
 	def _tag_for(line: str) -> str | None:
