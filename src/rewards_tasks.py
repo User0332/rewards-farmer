@@ -391,7 +391,13 @@ class RewardsTaskUtils:
 
 				raise
 
-		if self.wait_for_element(link_or_done) is done:
+		try:
+			result = self.wait_for_element(link_or_done)
+		except TimeoutException:
+			self._log_visual_search_sidebar()
+			raise
+
+		if result is done:
 			logger.info("Visual search is already done for today")
 
 			return
@@ -430,6 +436,45 @@ class RewardsTaskUtils:
 
 		self.tab_utils.switch_to_other_tab()
 		self.tab_utils.close_all_other_tabs()
+
+	def _log_visual_search_sidebar(self):
+		# "Opened the sidebar" only means the click returned. When the next
+		# wait fails (#138), distinguish a missing panel from an unrecognised
+		# action. Read controls only, never the page text, URLs or account data.
+		try:
+			sections = [
+				section for section in self.driver.find_elements(By.TAG_NAME, "section")
+				if (section.get_dom_attribute("id") or "").startswith("react-aria")
+			]
+			visible = [section for section in sections if section.is_displayed()]
+			if not visible:
+				logger.warning(
+					"Visual search: no visible react-aria sidebar after the opener click "
+					"(%s matching section(s)); action wait expired", len(sections)
+				)
+				return
+
+			logger.warning(
+				"Visual search: %s visible react-aria sidebar(s); "
+				"no Search now/Activate streak or done marker matched during the wait", len(visible)
+			)
+			for index, section in enumerate(visible):
+				controls = []
+				for control in section.find_elements(By.CSS_SELECTOR, 'a, button, [role="link"]')[:12]:
+					try:
+						if not control.is_displayed():
+							continue
+						label = " ".join((control.text or "").split())[:60]
+						role = " ".join((control.get_dom_attribute("role") or "-").split())[:24]
+						disabled = " ".join((control.get_dom_attribute("aria-disabled") or "-").split())[:8]
+						controls.append(f"{control.tag_name} role={role} aria-disabled={disabled} label={label!r}")
+					except StaleElementReferenceException:
+						continue
+				logger.warning("Visual search: sidebar[%s] controls: %s", index, "; ".join(controls) or "<none>")
+		except Exception as exc:
+			# A disappearing panel or dead driver must not replace the task's
+			# original timeout with a failure of the diagnostic itself.
+			logger.warning("Visual search: sidebar diagnostics unavailable (%s)", type(exc).__name__)
 
 	def complete_misc_cards(self):
 		self.switch_to_earn_page()
