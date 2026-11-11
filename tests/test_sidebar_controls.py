@@ -33,8 +33,11 @@ class SidebarControls(unittest.TestCase):
 		self.assertIn("Claim", caught.exception.msg)
 
 	def test_close_by_visible_text_aria_or_title(self):
-		for target in (FakeElement(text="Close"), FakeElement(attributes={"aria-label": "Close points breakdown"}), FakeElement(attributes={"title": "Dismiss"})):
-			self.assertIs(selectors([FakeElement(text="Claim"), target]).get_generic_sidebar_close_button(), target)
+		for label in ("Close", "Close panel", "Dismiss", "Close rewards details", "Dismiss this pane"):
+			for attribute in ("text", "aria-label", "title"):
+				with self.subTest(label=label, attribute=attribute):
+					target = FakeElement(text=label if attribute == "text" else "", attributes={} if attribute == "text" else {attribute: label})
+					self.assertIs(selectors([FakeElement(text="Claim"), target]).get_generic_sidebar_close_button(), target)
 
 	def test_hidden_disabled_and_lookalike_actions_are_not_matches(self):
 		for button in (FakeElement(text="Claim", displayed=False), FakeElement(text="Claim", attributes={"aria-disabled": "true"}),
@@ -43,8 +46,11 @@ class SidebarControls(unittest.TestCase):
 				selectors([button]).get_claim_bonus_points_button()
 
 	def test_close_account_is_not_a_sidebar_dismiss_action(self):
+		for label in ("Unknown", "Enclosed", "Dismissal", "Close account", "Close ACCOUNT settings"):
+			with self.subTest(label=label), self.assertRaises(NoSuchElementException):
+				selectors([FakeElement(text=label)]).get_generic_sidebar_close_button()
 		with self.assertRaises(NoSuchElementException):
-			selectors([FakeElement(text="Close account")]).get_generic_sidebar_close_button()
+			selectors([FakeElement(text="Close", attributes={"aria-label": "Close account"})]).get_generic_sidebar_close_button()
 
 
 if __name__ == "__main__":

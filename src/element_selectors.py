@@ -556,9 +556,9 @@ return (
 		return self._sidebar_control((Labels.CLAIM, "claim bonus points"))
 
 	def get_generic_sidebar_close_button(self):
-		return self._sidebar_control(("close", "dismiss", "close dialog", "close panel", "close sidebar", "close points breakdown"))
+		return self._sidebar_control(("close", "dismiss"), close=True)
 
-	def _sidebar_control(self, labels):
+	def _sidebar_control(self, labels, *, close=False):
 		seen = []
 		for button in self.get_sidebar_section().find_elements(By.TAG_NAME, "button"):
 			try:
@@ -568,7 +568,10 @@ return (
 				seen.extend(value for value in values if value)
 				if button.get_dom_attribute("aria-disabled") == "true" or button.get_dom_attribute("disabled") is not None:
 					continue
-				if any(value.casefold() in labels for value in values):
+				if close and any("account" in value.casefold() for value in values):
+					continue
+				if (any(re.search(r"\b(?:close|dismiss)\b", value, re.I) for value in values) if close
+					else any(value.casefold() in labels for value in values)):
 					return button
 			except StaleElementReferenceException:
 				continue
