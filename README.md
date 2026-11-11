@@ -76,8 +76,7 @@ python src/gui.py
 
 On Windows you can use `pythonw src/gui.py` to open it without a console
 window behind it. The `run-gui.bat` launcher in the project root does the
-same without needing a terminal: double-click it, or copy it wherever you
-like. It finds the Poetry environment itself, so it works even when launched
+same without needing a terminal: double-click it, or create a shortcut to it.
 from outside the folder. A companion `run-cli.bat` runs the normal
 command-line `main.py` in a console instead, for when you want to watch its
 output, which is what `python src/main.py` does.
