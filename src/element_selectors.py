@@ -1,3 +1,4 @@
+import logging
 import re
 from urllib.parse import urlsplit
 
@@ -5,6 +6,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 from selenium import webdriver
+
+logger = logging.getLogger(__name__)
 
 
 class ElementNotReady(NoSuchElementException):
@@ -88,6 +91,7 @@ class ElementSelectionUtils:
 
 	def __init__(self, driver: webdriver.Edge):
 		self.driver = driver
+		self._untitled_visual_panel_logged = False
 
 	# ------------------------------------------------------------------
 	# helpers
@@ -422,9 +426,9 @@ class ElementSelectionUtils:
 		return bool(counters) and all(total > 0 and done >= total for done, total in counters)
 
 	def get_visual_search_sidebar(self):
-		"""Require a visible panel heading/title identifying visual search."""
+		"""Reject a positively different title, not an unverified title layout."""
 		titles = []
-		incomplete = False
+		untitled = []
 		for section in self.driver.find_elements(By.TAG_NAME, "section"):
 			try:
 				if not (section.get_dom_attribute("id") or "").startswith("react-aria") or not section.is_displayed():
@@ -434,12 +438,22 @@ class ElementSelectionUtils:
 				if any(Labels.VISUAL_SEARCH_STREAK in label.casefold() for label in labels):
 					return section
 				titles.extend(labels)
-				incomplete |= not labels
+				if not labels:
+					untitled.append(section)
 			except StaleElementReferenceException:
-				incomplete = True
-		if titles and not incomplete:
+				continue
+		if titles:
 			raise UnexpectedVisualSearchPanel("expected Visual Search Streak panel; opened panel: " + ", ".join(dict.fromkeys(titles)))
-		raise ElementNotReady("visual search panel title has not appeared")
+		if untitled:
+			# Tile identity is primary. An unknown title layout must not block
+			# its panel's label-matched actions, but cannot override a wrong title.
+			sidebar = untitled[0]
+			if not self._untitled_visual_panel_logged:
+				logger.info("Visual search panel has no identifiable title (panels=%d, links=%d, buttons=%d)",
+					len(untitled), len(sidebar.find_elements(By.TAG_NAME, "a")), len(sidebar.find_elements(By.TAG_NAME, "button")))
+				self._untitled_visual_panel_logged = True
+			return sidebar
+		raise ElementNotReady("visual search panel has not appeared")
 
 	def get_search_now_link_from_visual_search_sidebar(self):
 		sidebar = self.get_visual_search_sidebar()

@@ -126,10 +126,28 @@ class PanelIdentity(unittest.TestCase):
 			with self.subTest(links=links), self.assertRaises(NoSuchElementException):
 				element_selectors.ElementSelectionUtils(driver_for(sidebar=panel(links=links))).get_search_now_link_from_visual_search_sidebar()
 
-	def test_untitled_or_hidden_panel_is_unready(self):
-		for sidebar in (panel(title=None), panel(displayed=False)):
+	def test_missing_or_hidden_panel_is_unready(self):
+		for sidebar in (None, panel(displayed=False)):
 			with self.assertRaises(element_selectors.ElementNotReady):
 				element_selectors.ElementSelectionUtils(driver_for(sidebar=sidebar)).get_visual_search_sidebar()
+
+	def test_untitled_panel_logs_counts_once_despite_repeated_lookups(self):
+		sidebar = panel(title=None, links=[FakeElement(text="PRIVATE LINK TEXT")])
+		selectors = element_selectors.ElementSelectionUtils(driver_for(sidebar=sidebar))
+		with self.assertLogs(element_selectors.logger, level=logging.INFO) as captured:
+			for _ in range(3):
+				self.assertIs(selectors.get_visual_search_sidebar(), sidebar)
+				self.assertFalse(selectors.visual_search_done_today())
+		self.assertEqual(len(captured.records), 1)
+		self.assertEqual(captured.records[0].getMessage(), "Visual search panel has no identifiable title (panels=1, links=1, buttons=0)")
+		self.assertNotIn("PRIVATE", "\n".join(captured.output))
+
+	def test_untitled_panel_does_not_override_positive_wrong_title(self):
+		driver = driver_for(sidebar=panel(title=None, links=[FakeElement(text="Search now")]))
+		driver.children[(By.TAG_NAME, "section")].append(panel("Bing App Streak"))
+		with self.assertRaises(element_selectors.UnexpectedVisualSearchPanel) as caught:
+			element_selectors.ElementSelectionUtils(driver).get_search_now_link_from_visual_search_sidebar()
+		self.assertIn("Bing App Streak", str(caught.exception))
 
 	def test_visible_visual_panel_wins_over_stale_hidden_or_other_panel_copy(self):
 		correct = panel("  VISUAL\n Search Streak  ", [FakeElement(text="Search now")])
@@ -220,6 +238,32 @@ class TaskIdentity(unittest.TestCase):
 		output = self.run_task(driver)
 		self.assertIn("[FAIL] Visual search", output)
 		self.assertIn("opened panel: Bing App Streak", output)
+		self.assertEqual(driver.clicked, [driver.tiles[4]])
+
+	def test_untitled_panel_with_search_now_proceeds_after_identified_tile(self):
+		for label in ("Search now", "Activate streak"):
+			with self.subTest(label=label):
+				link = FakeElement(text=label)
+				driver = driver_for(sidebar=panel(title=None, links=[link]))
+				output = self.run_task(driver)
+				self.assertIn("[OK] Visual search", output)
+				self.assertEqual(driver.clicked[:2], [driver.tiles[4], link])
+				self.assertEqual(len(driver.clicked), 3)
+
+	def test_untitled_panel_with_check_in_only_times_out_without_activity_click(self):
+		check_in = FakeElement(text="Check-in now")
+		driver = driver_for(sidebar=panel(title=None, links=[check_in]))
+		output = self.run_task(driver, missing_image=True)
+		self.assertIn("[FAIL] Visual search: opened the sidebar", output)
+		self.assertIn("no Search now/Activate streak or done marker matched", output)
+		self.assertEqual(driver.clicked, [driver.tiles[4]])
+		self.assertNotIn(check_in, driver.clicked)
+
+	def test_untitled_panel_done_marker_keeps_ok_without_action_click(self):
+		control = FakeElement(text="Search now", attributes={"role": "link", "aria-disabled": "true"})
+		driver = driver_for(sidebar=panel(title=None, controls=[control]))
+		output = self.run_task(driver, missing_image=True)
+		self.assertIn("[OK] Visual search", output)
 		self.assertEqual(driver.clicked, [driver.tiles[4]])
 
 	def test_right_panel_without_action_or_done_keeps_timeout_diagnostics_and_fail(self):
