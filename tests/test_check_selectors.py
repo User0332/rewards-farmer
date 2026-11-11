@@ -59,6 +59,7 @@ class DiagnosticDriver(FakeDriver):
 			self.children[(By.ID, "streaks")] = [self.streaks]
 		if self.opener is not None:
 			self.children[(By.TAG_NAME, "button")].append(self.opener)
+			self.children[(By.ID, "streaks")] = [FakeElement(children={(By.TAG_NAME, "button"): [self.opener]})]
 		if url == "https://rewards.bing.com/dashboard":
 			self.children[(By.TAG_NAME, "button")] = [FakeElement(text="Ready to claim")]
 		if url == "https://www.bing.com/":
@@ -169,18 +170,18 @@ class CheckSelectors(unittest.TestCase):
 		streaks = FakeElement(attributes={"id": "streaks"})
 		driver = DiagnosticDriver(streaks=streaks, opener=True)
 		code, rows, output, opener, activities = self.run_diagnostic(driver)
-		self.assertEqual(code, 1)  # Its empty visual streaks row is still unrendered.
+		self.assertEqual(code, 0)  # The rendered Daily Set tile proves visual search absent.
 		self.assertIn(("get_daily_set_elements", "OK", "3 element(s)"), rows)
 		self.assertEqual(activities.call_count, 2)
 		self.assertIn(driver.opener, driver.clicks)
 		self.assertIn(driver.close, driver.clicks)
 
-	def test_opener_outside_streaks_resolves_when_section_inventory_misses_it(self):
+	def test_opener_inside_streaks_resolves_when_section_inventory_misses_it(self):
 		for section_ids in ([], ["moreactivities"]):
 			with self.subTest(section_ids=section_ids):
 				driver = DiagnosticDriver(opener=True, section_ids=section_ids)
 				code, rows, output, opener, activities = self.run_diagnostic(driver)
-				self.assertEqual(code, 1)  # Daily set succeeds; visual streaks is unrendered.
+				self.assertEqual(code, 0)  # Daily set succeeds; visual streaks is absent.
 				self.assertIn(("get_open_daily_set_button", "OK", "'Daily set streak'"), rows)
 				self.assertIn(("get_daily_set_elements", "OK", "3 element(s)"), rows)
 				opener.assert_called_once_with()

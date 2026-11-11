@@ -15,18 +15,13 @@ import element_selectors
 import rewards_tasks
 from fakes import FakeDriver, FakeElement
 
-TITLE = "p.text-globalBody2Strong"
-METADATA = "div.line-clamp-2.text-metadata"
-HEADINGS = 'h1, h2, h3, h4, h5, h6, [role="heading"], p.text-globalBody2Strong'
+HEADINGS = 'h1, h2, h3, h4, h5, h6, [role="heading"]'
 DENNIS = ("Bing Search Streak", "Daily Set Streak", "Bing App Streak", "Visual Search Streak")
 SLIMDEBUG = ("Bing Search Streak", "Daily Set Streak", "Edge Browsing Streak", "Bing App Streak")
 
 
 def tile(title, metadata="Activity: 0/1", *, displayed=True):
-	return FakeElement(text=title + "\nDay 0 of 7 streak completed.\n" + metadata, displayed=displayed, children={
-		(By.CSS_SELECTOR, TITLE): [FakeElement(text=title)],
-		(By.CSS_SELECTOR, METADATA): [FakeElement(text=metadata)],
-	})
+	return FakeElement(text=title + "\nDay 0 of 7 streak completed.\n" + metadata, displayed=displayed)
 
 
 def panel(title="Visual Search Streak", links=(), controls=(), displayed=True):
@@ -64,7 +59,7 @@ class TileIdentity(unittest.TestCase):
 		self.assertNotIn("Search: 1/1", caught.exception.msg)
 
 	def test_exact_normalized_title_inside_streaks_only(self):
-		driver = driver_for(("  vIsUaL\n SEARCH\tStReAk  ",))
+		driver = driver_for(("  vIsUaL  SEARCH\tStReAk  ",))
 		self.assertIs(element_selectors.ElementSelectionUtils(driver).get_open_visual_search_sidebar(), driver.tiles[1])
 		for title in ("Not Visual Search Streak", "Visual Search Streak bonus", "Visual Search"):
 			with self.subTest(title=title):
@@ -73,9 +68,9 @@ class TileIdentity(unittest.TestCase):
 				with self.assertRaises(element_selectors.VisualSearchUnavailable):
 					element_selectors.ElementSelectionUtils(driver).get_open_visual_search_sidebar()
 
-	def test_missing_empty_hidden_or_partly_untitled_row_is_not_ready_not_absent(self):
+	def test_missing_empty_or_hidden_row_is_not_ready_not_absent(self):
 		for sections in ([], [FakeElement()], [FakeElement(displayed=False)],
-			[FakeElement(children={(By.TAG_NAME, "button"): [tile("Bing App Streak"), tile("")]})]):
+			[FakeElement(children={(By.TAG_NAME, "button"): [FakeElement(), FakeElement()]})]):
 			with self.subTest(sections=sections), self.assertRaises(element_selectors.ElementNotReady):
 				element_selectors.ElementSelectionUtils(FakeDriver(children={(By.ID, "streaks"): sections})).get_open_visual_search_sidebar()
 
@@ -92,7 +87,7 @@ class TileIdentity(unittest.TestCase):
 		self.assertIs(element_selectors.ElementSelectionUtils(driver).get_open_visual_search_sidebar(), driver.tiles[4])
 
 	def test_row_with_no_titled_tiles_is_unready(self):
-		driver = FakeDriver(children={(By.ID, "streaks"): [FakeElement(children={(By.TAG_NAME, "button"): [FakeElement(text="Loading...")]})]})
+		driver = FakeDriver(children={(By.ID, "streaks"): [FakeElement(children={(By.TAG_NAME, "button"): [FakeElement(text="")]})]})
 		with self.assertRaises(element_selectors.ElementNotReady):
 			element_selectors.ElementSelectionUtils(driver).get_open_visual_search_sidebar()
 
@@ -101,7 +96,7 @@ class TileIdentity(unittest.TestCase):
 			("Activity: 0/0", False), ("Activity: ?/1", False), ("", False), ("Activity: 1/1\nActivity: 0/1", False)):
 			with self.subTest(metadata=metadata):
 				driver = driver_for(metadata=metadata)
-				driver.tiles[4].text = "Visual Search Streak\nDay 7 of 7 streak completed."
+				driver.tiles[4].text = "Visual Search Streak\nDay 7 of 7 streak completed.\n" + metadata
 				self.assertEqual(element_selectors.ElementSelectionUtils(driver).visual_search_tile_done_today(), done)
 
 

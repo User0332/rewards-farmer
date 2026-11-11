@@ -193,41 +193,62 @@ class ElementSelectionUtils:
 	# daily set
 	# ------------------------------------------------------------------
 
-	def _streaks_button(self, index: int) -> WebElement:
-		"""Positional fallback inside the streaks section.
+	def _streak_buttons(self):
+		buttons = []
+		for section in self.driver.find_elements(By.ID, "streaks"):
+			try:
+				if not section.is_displayed():
+					continue
+				for button in section.find_elements(By.TAG_NAME, "button"):
+					try:
+						if button.is_displayed():
+							lines = [self._visual_label(line) for line in (button.text or "").splitlines()]
+							buttons.append((button, [line for line in lines if line]))
+					except StaleElementReferenceException:
+						continue
+			except StaleElementReferenceException:
+				continue
+		return buttons
 
-		Same node the original absolute XPath pointed at, but anchored on the
-		section id so an extra section earlier in the page cannot shift it.
-		"""
-		streaks = self.driver.find_element(By.ID, "streaks")
+	def _streak_tile(self, title):
+		buttons = self._streak_buttons()
+		for button, lines in buttons:
+			if any(line.casefold() == self._visual_label(title).casefold() for line in lines):
+				return button
+		if not any(lines for _, lines in buttons):
+			raise ElementNotReady("streaks row has not finished rendering its tile text")
+		raise NoSuchElementException(f"no streak tile titled {title!r}")
 
-		return streaks.find_element(By.XPATH, f"./div/div[2]/div/div/button[{index}]")
+	def streak_tile_titles(self):
+		titles = []
+		for _, lines in self._streak_buttons():
+			titles.extend([line for line in lines if line.casefold().endswith("streak")] or lines[:1])
+		return list(dict.fromkeys(titles))
+
+	@staticmethod
+	def streak_tile_counter(tile, *, label=None):
+		values = set()
+		for line in (tile.text or "").splitlines():
+			match = re.fullmatch(r"\s*([\w-]+)\s*:\s*(\d+)\s*/\s*(\d+)\s*", line)
+			if match and (label is None or match[1].casefold() == label.casefold()):
+				values.add((int(match[2]), int(match[3])))
+		if len(values) == 1:
+			done, total = values.pop()
+			if total > 0:
+				return done, total
+		return None
+
+	@classmethod
+	def streak_panel_titles(cls, section):
+		labels = [cls._visual_label(title.text) for title in section.find_elements(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"]') if title.is_displayed()]
+		return [label for label in labels if label] or [cls._visual_label(line) for line in (section.text or "").splitlines() if line.strip().casefold().endswith("streak")]
 
 	def get_open_daily_set_button(self):
-		# Lives in the streaks section, not in a section of its own. Match on
-		# "daily set streak" rather than "daily set", because the level up
-		# section also has "Complete the Daily Set for 7 days in a row".
 		try:
-			return self._button_containing(Labels.DAILY_SET_STREAK)
+			return self._streak_tile(Labels.DAILY_SET_STREAK)
 		except NoSuchElementException:
-			pass
-
-		# The positional fallback only helps if what sits there really is the
-		# daily set entry. On a partially rendered streaks section it is not:
-		# observed returning the mobile app entry, and clicking that opens the
-		# app store page instead of the panel, which is what the reports in #45
-		# and #46 describe. Check before handing it back, and skip the task
-		# rather than click the wrong streak.
-		candidate = self._streaks_button(3)
-		label = (candidate.text or "").strip()
-
-		if "daily set" not in label.lower():
-			raise NoSuchElementException(
-				"daily set opener not found by label, and position 3 holds "
-				f"{label.splitlines()[0] if label else '<empty>'!r} instead"
-			)
-
-		return candidate
+			# Keep #49's existing skip path, including a row still rendering.
+			raise NoSuchElementException("daily set opener not found by label") from None
 
 	def get_daily_set_elements(self):
 		"""The daily set activities in the opened panel.
@@ -388,29 +409,12 @@ class ElementSelectionUtils:
 
 	def get_open_visual_search_sidebar(self):
 		"""Find a tile by its title inside a rendered streak row, never by position."""
-		titles = []
-		incomplete = False
-		for section in self.driver.find_elements(By.ID, "streaks"):
-			try:
-				if not section.is_displayed():
-					continue
-				buttons = [button for button in section.find_elements(By.TAG_NAME, "button") if button.is_displayed()]
-				if not buttons:
-					incomplete = True
-				for button in buttons:
-					title_nodes = button.find_elements(By.CSS_SELECTOR, "p.text-globalBody2Strong")
-					labels = [self._visual_label(title.text) for title in title_nodes if title.is_displayed()]
-					labels = [label for label in labels if label]
-					if title_nodes and not labels:
-						incomplete = True
-					titles.extend(labels)
-					if any(label.casefold() == Labels.VISUAL_SEARCH_STREAK for label in labels):
-						return button
-			except StaleElementReferenceException:
-				incomplete = True
-		if not titles or incomplete:
-			raise ElementNotReady("streaks row has not finished rendering its tile titles")
-		raise VisualSearchUnavailable("visual search streak is not available; shown tiles: " + ", ".join(dict.fromkeys(titles)))
+		try:
+			return self._streak_tile(Labels.VISUAL_SEARCH_STREAK)
+		except ElementNotReady:
+			raise
+		except NoSuchElementException:
+			raise VisualSearchUnavailable("visual search streak is not available; shown tiles: " + ", ".join(self.streak_tile_titles())) from None
 
 	@staticmethod
 	def _visual_label(text):
@@ -418,12 +422,8 @@ class ElementSelectionUtils:
 
 	def visual_search_tile_done_today(self):
 		"""Only the selected tile's daily metadata counts, not its seven-day streak."""
-		tile = self.get_open_visual_search_sidebar()
-		counters = []
-		for metadata in tile.find_elements(By.CSS_SELECTOR, "div.line-clamp-2.text-metadata"):
-			if metadata.is_displayed():
-				counters.extend((int(done), int(total)) for done, total in re.findall(r"(\d+)\s*/\s*(\d+)", metadata.text or ""))
-		return bool(counters) and all(total > 0 and done >= total for done, total in counters)
+		counter = self.streak_tile_counter(self.get_open_visual_search_sidebar())
+		return counter is not None and counter[0] >= counter[1]
 
 	def get_visual_search_sidebar(self):
 		"""Reject a positively different title, not an unverified title layout."""
@@ -433,8 +433,7 @@ class ElementSelectionUtils:
 			try:
 				if not (section.get_dom_attribute("id") or "").startswith("react-aria") or not section.is_displayed():
 					continue
-				labels = [self._visual_label(title.text) for title in section.find_elements(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"], p.text-globalBody2Strong') if title.is_displayed()]
-				labels = [label for label in labels if label]
+				labels = self.streak_panel_titles(section)
 				if any(Labels.VISUAL_SEARCH_STREAK in label.casefold() for label in labels):
 					return section
 				titles.extend(labels)
