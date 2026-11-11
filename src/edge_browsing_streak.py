@@ -101,11 +101,11 @@ def read_minutes(driver):
 	return values[0]
 
 
-def activation(driver):
+def activation(driver, *, panel_opened=False):
 	# A tile may contain activation without a panel. Otherwise inspect only
 	# a panel identified by its title; unknown app/visual panels cannot act.
 	tile = find_tile(driver)
-	for scope in [tile, *driver.find_elements(By.TAG_NAME, "section")]:
+	for scope in [tile, *(driver.find_elements(By.TAG_NAME, "section") if panel_opened else [])]:
 		if scope is not tile:
 			if not (scope.get_dom_attribute("id") or "").startswith("react-aria") or not scope.is_displayed():
 				continue
@@ -166,7 +166,7 @@ def _complete(tasks, limit):
 				return next((section for section in tasks.driver.find_elements(By.TAG_NAME, "section")
 					if (section.get_dom_attribute("id") or "").startswith("react-aria") and section.is_displayed()), None)
 			tasks.wait_for_element(panel_ready, timeout=min(10, max(0, deadline-clock())))
-			control = activation(tasks.driver)
+			control = activation(tasks.driver, panel_opened=True)
 		if control is not None:
 			# No pointer retry after an ambiguous activation response.
 			tasks.move_to_and_click(control, retries=1)

@@ -196,6 +196,12 @@ class EdgeBrowsingStreakTests(unittest.TestCase):
 		h.driver.children[(By.TAG_NAME, "section")][0].children[(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"], p.text-globalBody2Strong')] = [FakeElement(text="Bing App Streak")]
 		with self.assertRaises(edge.EdgeStreakIncomplete):
 			h.run()
+		self.assertEqual([target for target, _ in h.clicks], [h.tile])
+
+	def test_preexisting_unrelated_panel_activation_is_not_a_tile_activation(self):
+		h = Harness(activate="Get started", panel_activation=True)
+		self.assertIsNone(edge.activation(h.driver))
+		self.assertIs(edge.activation(h.driver, panel_opened=True), h.activation)
 		self.assertEqual(h.clicks, [])
 
 	def test_task_loop_registers_edge_only_when_enabled_and_preserves_skip(self):
