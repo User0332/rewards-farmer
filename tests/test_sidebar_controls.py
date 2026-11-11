@@ -32,6 +32,21 @@ class SidebarControls(unittest.TestCase):
 			selectors([FakeElement(text="Claim"), FakeElement(text="Get started")]).get_generic_sidebar_close_button()
 		self.assertIn("Claim", caught.exception.msg)
 
+	def test_claim_substring_fallback_after_all_exact_labels(self):
+		for attribute in ("text", "aria-label", "title"):
+			with self.subTest(attribute=attribute):
+				fallback = FakeElement(text="Claim 50 points" if attribute == "text" else "", attributes={} if attribute == "text" else {attribute: "Claim 50 points"})
+				heading = FakeElement(text="Ready to claim 50 points")
+				self.assertIs(selectors([heading, fallback]).get_claim_bonus_points_button(), fallback)
+				exact = FakeElement(text="CLAIM")
+				self.assertIs(selectors([fallback, exact]).get_claim_bonus_points_button(), exact)
+
+	def test_ready_to_claim_is_excluded_even_with_a_claim_alias(self):
+		for target in (FakeElement(text="Ready to claim"), FakeElement(text="Ready to CLAIM 50 points"),
+			FakeElement(text="Claim", attributes={"aria-label": "Ready to claim"})):
+			with self.subTest(text=target.text), self.assertRaises(NoSuchElementException):
+				selectors([target]).get_claim_bonus_points_button()
+
 	def test_close_by_visible_text_aria_or_title(self):
 		for label in ("Close", "Close panel", "Dismiss", "Close rewards details", "Dismiss this pane"):
 			for attribute in ("text", "aria-label", "title"):
