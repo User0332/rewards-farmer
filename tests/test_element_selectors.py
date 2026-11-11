@@ -332,6 +332,7 @@ class VisualSearchPanel(unittest.TestCase):
 			attributes={"id": "react-aria-42"},
 			children={
 				(By.TAG_NAME, "a"): [FakeElement(text=text) for text in links],
+				(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"], p.text-globalBody2Strong'): [FakeElement(text="Visual Search Streak")],
 				(By.CSS_SELECTOR, self.DONE_CONTROL): list(controls),
 			},
 		)

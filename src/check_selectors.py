@@ -18,6 +18,7 @@ import sys
 import time
 
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
 
 import accounts
 import browser
@@ -181,7 +182,16 @@ def main():
 
 		print("\n## optional tasks")
 		report.check("get_explore_on_bing_elements", elements.get_explore_on_bing_elements, optional=True)
-		report.check("get_open_visual_search_sidebar", elements.get_open_visual_search_sidebar, optional=True)
+		try:
+			visual = elements.get_open_visual_search_sidebar()
+		except element_selectors.ElementNotReady as exc:
+			report.record("get_open_visual_search_sidebar", "FAILED", exc.msg)
+		except NoSuchElementException as exc:
+			report.record("get_open_visual_search_sidebar", "ABSENT", exc.msg)
+		except Exception as exc:
+			report.record("get_open_visual_search_sidebar", "FAILED", type(exc).__name__)
+		else:
+			report.check("get_open_visual_search_sidebar", lambda: visual)
 
 		print("\n## cards")
 		cards = report.check("get_all_misc_cards", elements.get_all_misc_cards)

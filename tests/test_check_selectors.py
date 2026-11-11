@@ -130,11 +130,12 @@ class CheckSelectors(unittest.TestCase):
 		for section_ids in (None, [], ["streaks"]):
 			with self.subTest(section_ids=section_ids):
 				code, rows, output, opener, activities = self.run_diagnostic(DiagnosticDriver(section_ids=section_ids))
-				self.assertEqual(code, 0)
+				self.assertEqual(code, 1)  # Visual streaks cannot be classified absent until rendered.
 				row = next(row for row in rows if row[0] == "get_open_daily_set_button")
 				self.assertEqual(row[1], "ABSENT")
 				self.assertIn("no Daily Set section", row[2])
-				self.assertIn("FAILED=0", output)
+				self.assertIn("FAILED=1", output)
+				self.assertEqual(next(row[1] for row in rows if row[0] == "get_open_visual_search_sidebar"), "FAILED")
 				self.assertNotIn("get_daily_set_elements", [row[0] for row in rows])
 				opener.assert_called_once_with()
 				activities.assert_not_called()
@@ -142,8 +143,8 @@ class CheckSelectors(unittest.TestCase):
 	def test_absent_daily_set_does_not_hide_an_unrelated_failure(self):
 		code, rows, output, opener, activities = self.run_diagnostic(DiagnosticDriver(dashboard=False))
 		self.assertEqual(code, 1)
-		self.assertEqual([row[0] for row in rows if row[1] == "FAILED"], ["get_dashboard_tab"])
-		self.assertIn("FAILED=1", output)
+		self.assertEqual([row[0] for row in rows if row[1] == "FAILED"], ["get_dashboard_tab", "get_open_visual_search_sidebar"])
+		self.assertIn("FAILED=2", output)
 		activities.assert_not_called()
 
 	def test_streaks_without_opener_remains_failed(self):
@@ -151,7 +152,7 @@ class CheckSelectors(unittest.TestCase):
 		code, rows, output, opener, activities = self.run_diagnostic(DiagnosticDriver(streaks=streaks))
 		self.assertEqual(code, 1)
 		self.assertIn(("get_open_daily_set_button", "FAILED", "NoSuchElementException"), rows)
-		self.assertIn("FAILED=1", output)
+		self.assertIn("FAILED=2", output)
 		opener.assert_called_once_with()
 		activities.assert_not_called()
 
@@ -168,7 +169,7 @@ class CheckSelectors(unittest.TestCase):
 		streaks = FakeElement(attributes={"id": "streaks"})
 		driver = DiagnosticDriver(streaks=streaks, opener=True)
 		code, rows, output, opener, activities = self.run_diagnostic(driver)
-		self.assertEqual(code, 0)
+		self.assertEqual(code, 1)  # Its empty visual streaks row is still unrendered.
 		self.assertIn(("get_daily_set_elements", "OK", "3 element(s)"), rows)
 		self.assertEqual(activities.call_count, 2)
 		self.assertIn(driver.opener, driver.clicks)
@@ -179,7 +180,7 @@ class CheckSelectors(unittest.TestCase):
 			with self.subTest(section_ids=section_ids):
 				driver = DiagnosticDriver(opener=True, section_ids=section_ids)
 				code, rows, output, opener, activities = self.run_diagnostic(driver)
-				self.assertEqual(code, 0)
+				self.assertEqual(code, 1)  # Daily set succeeds; visual streaks is unrendered.
 				self.assertIn(("get_open_daily_set_button", "OK", "'Daily set streak'"), rows)
 				self.assertIn(("get_daily_set_elements", "OK", "3 element(s)"), rows)
 				opener.assert_called_once_with()
@@ -191,9 +192,26 @@ class CheckSelectors(unittest.TestCase):
 		code, rows, output, opener, activities = self.run_diagnostic(DiagnosticDriver(streaks=streaks, section_ids=[]))
 		self.assertEqual(code, 1)
 		self.assertIn(("get_open_daily_set_button", "FAILED", "NoSuchElementException"), rows)
-		self.assertIn("FAILED=1", output)
+		self.assertIn("FAILED=2", output)
 		opener.assert_called_once_with()
 		activities.assert_not_called()
+
+	def test_rendered_row_without_visual_tile_reports_absent_titles_without_clicking_it(self):
+		title = FakeElement(text="Bing App Streak")
+		tile = FakeElement(text="Bing App Streak\nCheck-in: 0/1", children={(By.CSS_SELECTOR, "p.text-globalBody2Strong"): [title]})
+		streaks = FakeElement(children={(By.TAG_NAME, "button"): [tile]})
+		driver = DiagnosticDriver(streaks=streaks)
+		_, rows, _, _, _ = self.run_diagnostic(driver)
+		row = next(row for row in rows if row[0] == "get_open_visual_search_sidebar")
+		self.assertEqual(row[1], "ABSENT")
+		self.assertIn("shown tiles: Bing App Streak", row[2])
+		self.assertNotIn(tile, driver.clicks)
+
+	def test_visual_selector_driver_failure_is_failed_not_absent_and_check_continues(self):
+		with mock.patch.object(element_selectors.ElementSelectionUtils, "get_open_visual_search_sidebar", side_effect=RuntimeError("synthetic failure")):
+			_, rows, _, _, _ = self.run_diagnostic(DiagnosticDriver())
+		self.assertIn(("get_open_visual_search_sidebar", "FAILED", "RuntimeError"), rows)
+		self.assertIn("get_all_misc_cards", [row[0] for row in rows])
 
 
 if __name__ == "__main__":
