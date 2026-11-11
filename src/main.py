@@ -74,11 +74,13 @@ def run_account(account: accounts.Account) -> bool:
 	began = time.monotonic()
 	_account_started = _account_ran = False
 	run_record.emit("account_start", account=account.name, profile=account.user_data_dir)
+
 	def ended(error_code=None):
 		if error_code == "browser_failed":
 			run_record.emit("browser_failed", account=account.name)
 		run_record.emit("account_end", account=account.name, started=_account_started, ran_tasks=_account_ran,
 			error_code=error_code, duration_ms=round((time.monotonic() - began) * 1000))
+
 	try:
 		if not desktop_utils.prepare_desktop_before_launch():
 			ended("browser_failed")
@@ -192,7 +194,10 @@ def pause_for_enter() -> None:
 		pass
 
 
-def main() -> int:
+def main(unattended: bool = False, plan: RunPlan | None = None) -> int:
+	global _plan, _account_started, _account_ran
+	_plan = plan or RunPlan()
+	_plan = dataclasses.replace(_plan, read_state=_plan.read_state or _plan.only_if_open or _plan.check_only)
 	log_utils.setup_logging()
 	desktop_utils.reset_virtual_desktop_state()
 
@@ -252,7 +257,7 @@ def main() -> int:
 		# Nothing is watching a container, and stdin is not a terminal there.
 		# --unattended skips the prompt for scheduled runs on the host too.
 		if not HEADLESS and not unattended:
-			input("Press Enter to exit...")
+			pause_for_enter()
 		code = 0 if started else 1
 		stats = recorder.stats
 		if not started:
@@ -279,13 +284,21 @@ def main() -> int:
 				lock.release()
 
 
-	# Nothing is watching a container, and stdin is not a terminal there. The
-	# same is true when the GUI runs this.
-	pause_for_enter()
-
-	desktop_utils.cleanup_virtual_desktop()
-
-	return 0 if started else 1
+def cli(argv: list[str] | None = None) -> int:
+	parser = argparse.ArgumentParser(description="Work through the Rewards tasks for every configured account.")
+	parser.add_argument("--unattended", action="store_true", help="exit without waiting for Enter, for scheduled runs")
+	parser.add_argument("--read-state", action="store_true", help="record open work before and after the run")
+	parser.add_argument("--only-if-open", action="store_true", help="run only for enough known points or an unlocked quest")
+	parser.add_argument("--min-points", type=int, default=DEFAULT_MIN_POINTS, help="point threshold for --only-if-open (default: 15)")
+	parser.add_argument("--run-if-unreadable", action="store_true", help="allow --only-if-open to run when the page cannot be read")
+	parser.add_argument("--check-only", action="store_true", help="record open work without starting any tasks")
+	arguments = parser.parse_args(argv)
+	if os.path.isfile(DOTENV_PATH): dotenv.load_dotenv(DOTENV_PATH)
+	minimum = arguments.min_points
+	if minimum < 0:
+		parser.error("--min-points must not be negative")
+	return main(unattended=arguments.unattended, plan=RunPlan(arguments.read_state or arguments.only_if_open or arguments.check_only,
+		arguments.only_if_open, arguments.check_only, minimum, arguments.run_if_unreadable))
 
 
 if __name__ == "__main__":
