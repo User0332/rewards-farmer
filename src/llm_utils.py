@@ -184,10 +184,11 @@ def get_related_search_queries(seed_word: str, num_queries: int=20) -> Generator
 		yield f"{seed_word} {noun1} {noun2}".lower()
 
 
-NOUNS = [
-	noun.strip().lower() for noun in open(os.path.join(REPO_ROOT, "nouns.txt"), "r", encoding="utf-8").read().splitlines()
-	if len(noun.strip()) >= 3
-]
+with open(os.path.join(REPO_ROOT, "nouns.txt"), "r", encoding="utf-8") as f:
+	NOUNS = [
+		noun.strip().lower() for noun in f.read().splitlines()
+		if len(noun.strip()) >= 3
+	]
 
 
 def get_random_noun() -> str:
