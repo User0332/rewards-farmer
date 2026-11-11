@@ -16,7 +16,7 @@ def selectors(buttons):
 
 
 class StreakText(unittest.TestCase):
-	def test_class_free_and_restyled_tiles_use_exact_normalized_title_lines(self):
+	def test_class_free_and_restyled_tiles_use_normalized_title_lines(self):
 		for classes in ("", "new-title-design new-counter-design"):
 			with self.subTest(classes=classes):
 				tile = FakeElement(text="  vISual  SEARCH\tStreak  \nDay 7 of 7\nActivity: 1/1", attributes={"class": classes},
@@ -24,6 +24,28 @@ class StreakText(unittest.TestCase):
 				reader = selectors([FakeElement(text="Bing App Streak\nCheck-in: 0/1"), tile])
 				self.assertIs(reader.get_open_visual_search_sidebar(), tile)
 				self.assertTrue(reader.visual_search_tile_done_today())
+
+	def test_title_substring_matches_with_extra_words_but_not_another_tile(self):
+		for title in ("Visual Search Streak", "Daily Set Streak", "Edge Browsing Streak"):
+			with self.subTest(title=title):
+				tile = FakeElement(text="Start " + title.upper().replace(" ", "  ") + " today\nActivity: 0/1")
+				other = FakeElement(text="Bing App Streak\nCheck-in: 0/1")
+				self.assertIs(selectors([other, tile])._streak_tile(title), tile)
+				with self.assertRaises(NoSuchElementException):
+					selectors([other])._streak_tile(title)
+
+	def test_panel_actions_match_substrings_without_accepting_hidden_or_disabled_links(self):
+		for label in ("Continue to SEARCH  NOW for today", "Please ACTIVATE  STREAK to begin"):
+			for blocked in (None, "hidden", "disabled"):
+				with self.subTest(label=label, blocked=blocked):
+					link = FakeElement(text=label, displayed=blocked != "hidden", attributes={"aria-disabled": "true"} if blocked == "disabled" else {})
+					panel = FakeElement(text="Visual Search Streak", attributes={"id": "react-aria-panel"}, children={(By.TAG_NAME, "a"): [link]})
+					reader = ElementSelectionUtils(FakeDriver(children={(By.TAG_NAME, "section"): [panel]}))
+					if blocked:
+						with self.assertRaises(NoSuchElementException):
+							reader.get_search_now_link_from_visual_search_sidebar()
+					else:
+						self.assertIs(reader.get_search_now_link_from_visual_search_sidebar(), link)
 
 	def test_daily_set_uses_same_row_identity_not_global_substring_or_third_button(self):
 		tile = FakeElement(text="Daily Set Streak\nActivity: 0/3")

@@ -58,10 +58,10 @@ class TileIdentity(unittest.TestCase):
 		self.assertNotIn("Day 0", caught.exception.msg)
 		self.assertNotIn("Search: 1/1", caught.exception.msg)
 
-	def test_exact_normalized_title_inside_streaks_only(self):
+	def test_normalized_title_substring_inside_streaks_only(self):
 		driver = driver_for(("  vIsUaL  SEARCH\tStReAk  ",))
 		self.assertIs(element_selectors.ElementSelectionUtils(driver).get_open_visual_search_sidebar(), driver.tiles[1])
-		for title in ("Not Visual Search Streak", "Visual Search Streak bonus", "Visual Search"):
+		for title in ("Bing App Streak", "Edge Browsing Streak", "Visual Search"):
 			with self.subTest(title=title):
 				driver = driver_for((title,))
 				driver.children[(By.TAG_NAME, "button")] = [tile("Visual Search Streak")]
@@ -109,15 +109,15 @@ class PanelIdentity(unittest.TestCase):
 				getter()
 			self.assertIn("Bing App Streak", str(caught.exception))
 
-	def test_right_panel_only_returns_exact_visible_enabled_actions(self):
-		for label in ("Search now", "Activate streak", "  SEARCH\n NOW "):
+	def test_right_panel_only_returns_matching_visible_enabled_actions(self):
+		for label in ("Search now", "Activate streak", "  SEARCH\n NOW ", "Search now to continue", "Please activate streak"):
 			with self.subTest(label=label):
 				link = FakeElement(text=label)
 				selectors = element_selectors.ElementSelectionUtils(driver_for(sidebar=panel(links=[link])))
 				self.assertIs(selectors.get_search_now_link_from_visual_search_sidebar(), link)
 		for links in ([FakeElement(text="Activity: 0/1"), FakeElement(text="Get Bing app")],
 			[FakeElement(text="Search now", displayed=False)], [FakeElement(text="Search now", attributes={"aria-disabled": "true"})],
-			[FakeElement(text="Do not Search now")]):
+			[FakeElement(text="Check-in now")]):
 			with self.subTest(links=links), self.assertRaises(NoSuchElementException):
 				element_selectors.ElementSelectionUtils(driver_for(sidebar=panel(links=links))).get_search_now_link_from_visual_search_sidebar()
 

@@ -213,7 +213,7 @@ class ElementSelectionUtils:
 	def _streak_tile(self, title):
 		buttons = self._streak_buttons()
 		for button, lines in buttons:
-			if any(line.casefold() == self._visual_label(title).casefold() for line in lines):
+			if any(self._visual_label(title).casefold() in line.casefold() for line in lines):
 				return button
 		if not any(lines for _, lines in buttons):
 			raise ElementNotReady("streaks row has not finished rendering its tile text")
@@ -459,7 +459,7 @@ class ElementSelectionUtils:
 
 		for label in (Labels.VISUAL_SEARCH_NOW, Labels.VISUAL_SEARCH_ACTIVATE):
 			for link in sidebar.find_elements(By.TAG_NAME, "a"):
-				if (link.is_displayed() and self._visual_label(link.text).casefold() == label
+				if (link.is_displayed() and label in self._visual_label(link.text).casefold()
 					and link.get_dom_attribute("aria-disabled") != "true"):
 					return link
 		raise NoSuchElementException("visual search panel has no Search now or Activate streak link")
