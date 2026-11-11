@@ -553,42 +553,26 @@ return (
 		return self._button_containing(Labels.READY_TO_CLAIM)
 
 	def get_claim_bonus_points_button(self):
-		sidebar = self.get_sidebar_section()
-		buttons = sidebar.find_elements(By.TAG_NAME, "button")
-
-		# Prefer the button whose whole label is the action. A substring match
-		# would hit the "Ready to claim" heading before the actual Claim button.
-		for button in buttons:
-			try:
-				if (button.text or "").strip().lower() == Labels.CLAIM:
-					return button
-			except StaleElementReferenceException:
-				continue
-
-		for button in buttons:
-			try:
-				if Labels.CLAIM in (button.text or "").lower():
-					return button
-			except StaleElementReferenceException:
-				continue
-
-		if len(buttons) < 3:
-			raise NoSuchElementException("bonus sidebar has no claim button")
-
-		return buttons[2]
+		return self._sidebar_control((Labels.CLAIM, "claim bonus points"))
 
 	def get_generic_sidebar_close_button(self):
-		sidebar = self.get_sidebar_section()
+		return self._sidebar_control(("close", "dismiss", "close dialog", "close panel", "close sidebar", "close points breakdown"))
 
-		try:
-			return sidebar.find_element(By.CSS_SELECTOR, "button[aria-label*='lose']")
-		except NoSuchElementException:
-			buttons = sidebar.find_elements(By.TAG_NAME, "button")
-
-			if not buttons:
-				raise NoSuchElementException("sidebar has no buttons")
-
-			return buttons[0]
+	def _sidebar_control(self, labels):
+		seen = []
+		for button in self.get_sidebar_section().find_elements(By.TAG_NAME, "button"):
+			try:
+				if not button.is_displayed():
+					continue
+				values = [" ".join((value or "").split()) for value in (button.text, button.get_dom_attribute("aria-label"), button.get_dom_attribute("title"))]
+				seen.extend(value for value in values if value)
+				if button.get_dom_attribute("aria-disabled") == "true" or button.get_dom_attribute("disabled") is not None:
+					continue
+				if any(value.casefold() in labels for value in values):
+					return button
+			except StaleElementReferenceException:
+				continue
+		raise NoSuchElementException("sidebar has no " + "/".join(labels) + " control; shown labels: " + ", ".join(dict.fromkeys(seen)))
 
 	# ------------------------------------------------------------------
 	# bing search page

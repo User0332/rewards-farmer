@@ -33,7 +33,7 @@ class DiagnosticDriver(FakeDriver):
 		self.section_ids = section_ids
 		self.opener = FakeElement(text="Daily set streak") if opener else None
 		self.points = FakeElement(text="Points breakdown")
-		self.close = FakeElement()
+		self.close = FakeElement(attributes={"aria-label": "Close"})
 		self.panel = None
 		self.clicks = []
 		self.quit_calls = 0
