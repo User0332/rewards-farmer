@@ -36,16 +36,17 @@ class Harness:
 		self.driver.command_executor = types.SimpleNamespace(_client_config=types.SimpleNamespace(timeout=120))
 		self.driver.set_page_load_timeout = lambda value: setattr(self.driver.timeouts, "page_load", value)
 		self.activation = FakeElement(text=activate) if activate else None
-		self.tile = FakeElement(children={(By.CSS_SELECTOR, "p.text-globalBody2Strong"): [FakeElement(text="Bing App Streak" if absent else "  EDGE\n Browsing Streak  ")]})
+		self.title = "Bing App Streak" if absent else "  EDGE  Browsing Streak  "
+		self.tile = FakeElement(text=self.title, attributes={"class": "restyled-tile"})
 		self.section = FakeElement(children={(By.TAG_NAME, "button"): [self.tile]})
 		self.driver.children[(By.ID, "streaks")] = [self.section]
 		self.driver.children[(By.TAG_NAME, "section")] = [FakeElement(attributes={"id": "react-aria-edge"}, children={
-			(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"], p.text-globalBody2Strong'): [FakeElement(text="Edge Browsing Streak")]})]
+			(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"]'): [FakeElement(text="Edge Browsing Streak")]})]
 		if self.activation and not panel_activation:
 			self.tile.children[(By.CSS_SELECTOR, 'a, button, [role="link"], [role="button"]')] = [self.activation]
 		if self.activation and panel_activation:
 			self.driver.children[(By.TAG_NAME, "section")] = [FakeElement(attributes={"id": "react-aria-edge"}, children={
-				(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"], p.text-globalBody2Strong'): [FakeElement(text="Edge Browsing Streak")],
+				(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"]'): [FakeElement(text="Edge Browsing Streak")],
 				(By.CSS_SELECTOR, 'a, button, [role="link"], [role="button"]'): [self.activation]})]
 		def get(url):
 			self.loads.append(url)
@@ -53,7 +54,7 @@ class Harness:
 			if url == edge.EARN:
 				self.read_index += 1
 				done, total = self.readings[min(self.read_index, len(self.readings)-1)]
-				self.tile.children[(By.CSS_SELECTOR, "div.line-clamp-2.text-metadata")] = [FakeElement(text=f"Minutes: {done}/{total}")]
+				self.tile.text = self.title + f"\nMinutes: {done}/{total}"
 		self.driver.get = get
 		self.driver.execute_cdp_cmd = lambda name, fields: self.headers.append((name, fields))
 		self.tasks = rewards_tasks.RewardsTaskUtils.__new__(rewards_tasks.RewardsTaskUtils)
@@ -187,13 +188,13 @@ class EdgeBrowsingStreakTests(unittest.TestCase):
 		h.driver.get(edge.EARN)
 		for text in ("Email: 1/1", "Minutes: 0/0", "Minutes: 0/30 Minutes: 5/30"):
 			with self.subTest(text=text):
-				h.tile.children[(By.CSS_SELECTOR, "div.line-clamp-2.text-metadata")] = [FakeElement(text=text)]
+				h.tile.text = h.title + "\n" + text
 				with self.assertRaises(__import__("element_selectors").ElementNotReady):
 					edge.read_minutes(h.driver)
 
 	def test_wrong_panel_activation_is_not_clicked(self):
 		h = Harness(activate="Get started", panel_activation=True)
-		h.driver.children[(By.TAG_NAME, "section")][0].children[(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"], p.text-globalBody2Strong')] = [FakeElement(text="Bing App Streak")]
+		h.driver.children[(By.TAG_NAME, "section")][0].children[(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"]')] = [FakeElement(text="Bing App Streak")]
 		with self.assertRaises(edge.EdgeStreakIncomplete):
 			h.run()
 		self.assertEqual([target for target, _ in h.clicks], [h.tile])

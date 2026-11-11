@@ -3,13 +3,13 @@ import logging
 import contextlib
 import math
 import os
-import re
 import time
 from urllib.parse import urlsplit
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import NoSuchElementException
+from element_selectors import ElementSelectionUtils, ElementNotReady
 import run_record
 
 TITLE = "Edge Browsing Streak"
@@ -66,39 +66,20 @@ def normalized(value):
 
 
 def find_tile(driver):
-	# Deliberately local to this task: no dependency on the visual-search PR.
-	from element_selectors import ElementNotReady
-	titles, incomplete = [], False
-	for section in driver.find_elements(By.ID, "streaks"):
-		try:
-			if not section.is_displayed():
-				continue
-			for button in section.find_elements(By.TAG_NAME, "button"):
-				if not button.is_displayed():
-					continue
-				nodes = button.find_elements(By.CSS_SELECTOR, "p.text-globalBody2Strong")
-				labels = [normalized(node.text) for node in nodes if node.is_displayed() and normalized(node.text)]
-				incomplete |= bool(nodes) and not labels
-				titles.extend(labels)
-				if any(label.casefold() == TITLE.casefold() for label in labels):
-					return button
-		except StaleElementReferenceException:
-			incomplete = True
-	if not titles or incomplete:
-		raise ElementNotReady("streaks row is not ready for Edge browsing")
-	raise EdgeStreakUnavailable("Edge Browsing Streak is not available; shown tiles: " + ", ".join(dict.fromkeys(titles)))
+	elements = ElementSelectionUtils(driver)
+	try:
+		return elements._streak_tile(TITLE)
+	except ElementNotReady:
+		raise
+	except NoSuchElementException:
+		raise EdgeStreakUnavailable("Edge Browsing Streak is not available; shown tiles: " + ", ".join(elements.streak_tile_titles())) from None
 
 
 def read_minutes(driver):
-	from element_selectors import ElementNotReady
-	tile = find_tile(driver)
-	values = []
-	for metadata in tile.find_elements(By.CSS_SELECTOR, "div.line-clamp-2.text-metadata"):
-		if metadata.is_displayed():
-			values.extend((int(done), int(total)) for done, total in re.findall(r"\bMinutes\s*:?\s*(\d+)\s*/\s*(\d+)", metadata.text or "", re.I))
-	if len(set(values)) != 1 or values[0][1] <= 0:
+	counter = ElementSelectionUtils.streak_tile_counter(find_tile(driver), label="Minutes")
+	if counter is None:
 		raise ElementNotReady("Edge browsing minute counter is not ready")
-	return values[0]
+	return counter
 
 
 def activation(driver, *, panel_opened=False):
@@ -109,8 +90,7 @@ def activation(driver, *, panel_opened=False):
 		if scope is not tile:
 			if not (scope.get_dom_attribute("id") or "").startswith("react-aria") or not scope.is_displayed():
 				continue
-			titles = scope.find_elements(By.CSS_SELECTOR, 'h1, h2, h3, h4, h5, h6, [role="heading"], p.text-globalBody2Strong')
-			labels = [normalized(title.text).casefold() for title in titles if title.is_displayed() and normalized(title.text)]
+			labels = [title.casefold() for title in ElementSelectionUtils.streak_panel_titles(scope)]
 			if labels and not any(TITLE.casefold() in label for label in labels):
 				raise EdgeStreakIncomplete("Edge browsing opener showed another streak panel; stopped")
 		for control in scope.find_elements(By.CSS_SELECTOR, 'a, button, [role="link"], [role="button"]'):
