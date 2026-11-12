@@ -40,12 +40,16 @@ USER_PROMPT_FOR_SEARCH_QUERY_CONTINUATION = """Generate the next search query.""
 
 MAX_EMPTY_RETRIES = 5
 
-DEFAULT_LLM_PROVIDER = os.getenv("LLM_PROVIDER", "local").strip().lower()
+DEFAULT_LLM_PROVIDER = "local"
+
+def _get_llm_provider() -> str:
+	return os.getenv("LLM_PROVIDER", DEFAULT_LLM_PROVIDER).strip().lower()
 
 def _get_llm_base_url() -> str:
-	if DEFAULT_LLM_PROVIDER in ("openrouter", "open-router"):
+	provider = _get_llm_provider()
+	if provider in ("openrouter", "open-router"):
 		return os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip().rstrip("/")
-	elif DEFAULT_LLM_PROVIDER in ("local", "ollama"):
+	elif provider in ("local", "ollama"):
 		if base := os.getenv("LOCAL_LLM_BASE_URL", "").strip():
 			return base.rstrip("/")
 		host = os.getenv("OLLAMA_HOST", "localhost:11434").strip()
@@ -53,22 +57,23 @@ def _get_llm_base_url() -> str:
 			host = f"http://{host}"
 		return f"{host.rstrip('/')}/v1"
 
-	raise ValueError(f"Unsupported LLM_PROVIDER: {DEFAULT_LLM_PROVIDER}. Supported values are 'openrouter' and 'local'.")
+	raise ValueError(f"Unsupported LLM_PROVIDER: {provider}. Supported values are 'openrouter' and 'local'.")
 
 def _get_llm_model() -> str:
-	if DEFAULT_LLM_PROVIDER in ("openrouter", "open-router"):
+	provider = _get_llm_provider()
+	if provider in ("openrouter", "open-router"):
 		return os.getenv("OPENROUTER_MODEL", "openrouter/free").strip()
-	elif DEFAULT_LLM_PROVIDER in ("local", "ollama"):
+	elif provider in ("local", "ollama"):
 		return os.getenv("LOCAL_LLM_MODEL", "gemma4:cloud").strip()
 
-	raise ValueError(f"Unsupported LLM_PROVIDER: {DEFAULT_LLM_PROVIDER}. Supported values are 'openrouter' and 'local'.")
+	raise ValueError(f"Unsupported LLM_PROVIDER: {provider}. Supported values are 'openrouter' and 'local'.")
 
 def _get_llm_headers() -> dict[str, str]:
 	headers = {
 		"Content-Type": "application/json",
 	}
 
-	if DEFAULT_LLM_PROVIDER in {"openrouter", "open-router"}:
+	if _get_llm_provider() in {"openrouter", "open-router"}:
 		api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
 		if not api_key:
 			raise RuntimeError("OPENROUTER_API_KEY is required when LLM_PROVIDER=openrouter")

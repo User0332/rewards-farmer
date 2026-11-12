@@ -13,8 +13,6 @@ from selenium.common.exceptions import NoSuchDriverException, WebDriverException
 import accounts
 import log_utils
 
-HEADLESS = os.environ.get("REWARDS_HEADLESS", "").strip().lower() in ("1", "true", "yes")
-
 logger = logging.getLogger(__name__)
 
 # Matched in order against the driver's message, lowercased. selenium reports
@@ -43,7 +41,12 @@ EXPLANATIONS = [
 ]
 
 
-def build_options(account: accounts.Account) -> webdriver.EdgeOptions:
+def headless_enabled() -> bool:
+	return os.environ.get("REWARDS_HEADLESS", "").strip().lower() in ("1", "true", "yes")
+
+
+def build_options(account: accounts.Account, *, headless: bool | None = None) -> webdriver.EdgeOptions:
+	headless = headless_enabled() if headless is None else headless
 	options = webdriver.EdgeOptions()
 
 	options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -61,7 +64,7 @@ def build_options(account: accounts.Account) -> webdriver.EdgeOptions:
 	if os.environ.get("EDGE_BINARY"):
 		options.binary_location = os.environ["EDGE_BINARY"]
 
-	if HEADLESS:
+	if headless:
 		# A container has no display. The window size is set explicitly because
 		# the pointer code works in viewport coordinates, and the default
 		# headless window is small enough to put cards out of reach.
