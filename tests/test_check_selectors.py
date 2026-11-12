@@ -62,7 +62,7 @@ class DiagnosticDriver(FakeDriver):
 		if url == "https://rewards.bing.com/dashboard":
 			self.children[(By.TAG_NAME, "button")] = [FakeElement(text="Ready to claim")]
 		if url == "https://www.bing.com/":
-			self.children[(By.TAG_NAME, "textarea")] = [FakeElement()]
+			self.children[(By.ID, "sb_form_q")] = [FakeElement()]
 
 	def execute_script(self, script, *args):
 		if "window.innerWidth" in script:

@@ -595,7 +595,8 @@ return (
 	# ------------------------------------------------------------------
 
 	def get_bing_search_bar(self):
-		return self.driver.find_element(By.TAG_NAME, "textarea")
+		# Bing uses a textarea on home and an input on results pages.
+		return self.driver.find_element(By.ID, "sb_form_q")
 
 	def get_clear_bing_search_query_button(self):
 		return self.driver.find_element(By.ID, "sw_clx")
