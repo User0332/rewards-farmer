@@ -107,6 +107,18 @@ class TileIdentity(unittest.TestCase):
 
 
 class PanelIdentity(unittest.TestCase):
+	def test_loading_empty_busy_and_spinner_panels_are_not_ready_not_wrong_identity(self):
+		for variant in ("Loading...", "Loading…", "", "busy", "spinner"):
+			with self.subTest(variant=variant):
+				sidebar = panel("Visual Search Streak" if variant in ("busy", "spinner") else variant, [FakeElement(text="Search now")])
+				if variant == "busy":
+					sidebar.attributes["aria-busy"] = "true"
+				if variant == "spinner":
+					sidebar.children[(By.CSS_SELECTOR, '[aria-busy="true"], [role="progressbar"], [role="spinner"], [role="status"]')] = [FakeElement(attributes={"role": "progressbar"})]
+				selectors = element_selectors.ElementSelectionUtils(driver_for(sidebar=sidebar))
+				with self.assertRaises(element_selectors.ElementNotReady):
+					selectors.get_search_now_link_from_visual_search_sidebar()
+
 	def test_wrong_panel_with_two_links_cannot_return_app_store_link(self):
 		links = [FakeElement(text="Check-in now"), FakeElement(text="Search now", attributes={"href": "https://synthetic.invalid/app-store"})]
 		selectors = element_selectors.ElementSelectionUtils(driver_for(sidebar=panel("Bing App Streak", links)))
@@ -251,6 +263,33 @@ class TaskIdentity(unittest.TestCase):
 		output = self.run_task(driver)
 		self.assertIn("[FAIL] Visual search", output)
 		self.assertIn("opened panel: Bing App Streak", output)
+		self.assertEqual(driver.clicked, [driver.tiles[4]])
+
+	def test_loading_heading_settles_within_existing_wait_then_runs(self):
+		link = FakeElement(text="Search now")
+		sidebar = panel("Loading...", [link])
+		driver = driver_for(sidebar=sidebar)
+		find = sidebar.find_elements
+		reads = []
+		def headings(by, selector):
+			if (by, selector) == (By.CSS_SELECTOR, HEADINGS):
+				reads.append(None)
+				sidebar.children[(by, selector)][0].text = "Loading..." if len(reads) < 3 else "Visual Search Streak"
+			return find(by, selector)
+		sidebar.find_elements = headings
+		wait = RealWait
+		with mock.patch(__name__ + ".RealWait", lambda driver, timeout: wait(driver, 0.2, poll_frequency=0.01)):
+			output = self.run_task(driver)
+		self.assertIn("[OK] Visual search", output)
+		self.assertGreaterEqual(len(reads), 3)
+		self.assertEqual(driver.clicked[:2], [driver.tiles[4], link])
+
+	def test_loading_heading_forever_is_not_ready_without_action_click(self):
+		link = FakeElement(text="Search now")
+		driver = driver_for(sidebar=panel("Loading...", [link]))
+		output = self.run_task(driver, missing_image=True)
+		self.assertIn("[FAIL] Visual search: opened the sidebar, then on the page but not ready in time (TimeoutException)", output)
+		self.assertNotIn("expected Visual Search Streak panel", output)
 		self.assertEqual(driver.clicked, [driver.tiles[4]])
 
 	def test_untitled_panel_with_search_now_proceeds_after_identified_tile(self):
