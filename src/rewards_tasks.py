@@ -85,7 +85,7 @@ def task_failure_report(exc: BaseException, progress: str | None = None) -> tupl
 	if progress is None:
 		if cause is None:
 			if isinstance(exc, element_selectors.VisualSearchUnavailable):
-				return "SKIP", f"not available in this UI variant: {exc.msg}"
+				return "SKIP", f"not available in this UI variant: {exc.reason}"
 			return "SKIP", f"not available in this UI variant ({name})"
 
 		return "FAIL", cause

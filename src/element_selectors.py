@@ -27,6 +27,11 @@ class ElementNotReady(NoSuchElementException):
 class VisualSearchUnavailable(NoSuchElementException):
 	"""A rendered streak row has no visual search tile; its titles are safe to report."""
 
+	def __init__(self, reason):
+		# Selenium adds its troubleshooting URL to msg, not to our UI reason.
+		self.reason = reason
+		super().__init__(reason)
+
 
 class UnexpectedVisualSearchPanel(ValueError):
 	"""The opener landed on a different identified panel. Nothing in it is safe to click."""

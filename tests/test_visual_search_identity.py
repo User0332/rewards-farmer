@@ -42,6 +42,12 @@ def driver_for(titles=DENNIS, *, metadata="Activity: 0/1", sidebar=None):
 
 
 class TileIdentity(unittest.TestCase):
+	def test_unavailable_preserves_plain_reason_separately_from_selenium_diagnostics(self):
+		exception = element_selectors.VisualSearchUnavailable("shown tiles: Bing App Streak")
+		self.assertEqual(exception.reason, "shown tiles: Bing App Streak")
+		self.assertIsInstance(exception, NoSuchElementException)
+		self.assertIn(exception.reason, exception.msg)
+
 	def test_dennis_layout_finds_actual_title_not_position(self):
 		driver = driver_for()
 		self.assertIs(element_selectors.ElementSelectionUtils(driver).get_open_visual_search_sidebar(), driver.tiles[4])
@@ -185,6 +191,18 @@ class TaskIdentity(unittest.TestCase):
 			self.assertIn(title, output)
 		self.assertEqual(driver.clicked, [])
 		self.assertNotIn("Generating", output)
+
+	def test_missing_tile_skip_detail_is_plain_in_log_and_run_record(self):
+		expected = "not available in this UI variant: visual search streak is not available; shown tiles: 1,000 BONUS, " + ", ".join(SLIMDEBUG)
+		with mock.patch.object(rewards_tasks.run_record, "emit") as emit:
+			output = self.run_task(driver_for(SLIMDEBUG), missing_image=True)
+		end = next(call.kwargs for call in emit.call_args_list if call.args == ("task_end",))
+		self.assertEqual(end["outcome"], "skip")
+		self.assertEqual(end["detail"], expected)
+		self.assertTrue(output.endswith("[SKIP] Visual search: " + expected), output)
+		for text in (output, end["detail"]):
+			self.assertNotIn("For documentation", text)
+			self.assertNotIn("selenium.dev", text)
 
 	def test_done_today_and_day_seven_do_not_open_panel(self):
 		for day in (1, 7):

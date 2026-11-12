@@ -206,6 +206,8 @@ class CheckSelectors(unittest.TestCase):
 		row = next(row for row in rows if row[0] == "get_open_visual_search_sidebar")
 		self.assertEqual(row[1], "ABSENT")
 		self.assertIn("shown tiles: Bing App Streak", row[2])
+		self.assertNotIn("For documentation", row[2])
+		self.assertNotIn("selenium.dev", row[2])
 		self.assertNotIn(tile, driver.clicks)
 
 	def test_visual_selector_driver_failure_is_failed_not_absent_and_check_continues(self):

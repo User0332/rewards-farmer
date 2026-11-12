@@ -186,6 +186,8 @@ def main():
 			visual = elements.get_open_visual_search_sidebar()
 		except element_selectors.ElementNotReady as exc:
 			report.record("get_open_visual_search_sidebar", "FAILED", exc.msg)
+		except element_selectors.VisualSearchUnavailable as exc:
+			report.record("get_open_visual_search_sidebar", "ABSENT", exc.reason)
 		except NoSuchElementException as exc:
 			report.record("get_open_visual_search_sidebar", "ABSENT", exc.msg)
 		except Exception as exc:
