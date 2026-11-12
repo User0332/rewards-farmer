@@ -102,6 +102,7 @@ class EdgeBrowsingStreakTests(unittest.TestCase):
 		with self.assertRaises(edge.EdgeStreakUnavailable) as caught:
 			h.run()
 		self.assertIn("Bing App Streak", caught.exception.msg)
+		self.assertEqual(caught.exception.reason, "Edge Browsing Streak is not available; shown tiles: Bing App Streak")
 		self.assertEqual(h.loads, [edge.EARN])
 		self.assertEqual(h.clicks, [])
 
@@ -215,6 +216,24 @@ class EdgeBrowsingStreakTests(unittest.TestCase):
 		with mock.patch.dict(os.environ, {"EDGE_BROWSING_STREAK": "false"}), mock.patch.object(run_record, "emit") as emit:
 			h.tasks.complete_all_tasks(only={"edge_browsing"})
 		emit.assert_not_called()
+
+	def test_missing_tile_skip_detail_is_plain_in_log_and_run_record(self):
+		h = Harness(absent=True)
+		titles = ("1,000 BONUS", "Bing Search Streak", "Daily Set Streak", "Bing App Streak", "Visual Search Streak")
+		h.section.children[(By.TAG_NAME, "button")] = [FakeElement(text=title) for title in titles]
+		expected = "Edge Browsing Streak is not available; shown tiles: " + ", ".join(titles)
+		with mock.patch.dict(os.environ, {"EDGE_BROWSING_STREAK": "true"}), self.assertLogs(rewards_tasks.logger, level="INFO") as logs, mock.patch.object(run_record, "emit") as emit:
+			h.tasks.complete_all_tasks(only={"edge_browsing"})
+		end = next(call.kwargs for call in emit.call_args_list if call.args == ("task_end",))
+		self.assertEqual(end["outcome"], "skip")
+		self.assertEqual(end["detail"], expected)
+		line = next(record.getMessage() for record in logs.records if "[SKIP]" in record.getMessage())
+		self.assertEqual(line, "[SKIP] Edge browsing streak: " + expected)
+		for text in (line, end["detail"]):
+			self.assertNotIn("For documentation", text)
+			self.assertNotIn("selenium.dev", text)
+		self.assertEqual(h.loads, [edge.EARN])
+		self.assertEqual(h.clicks, [])
 
 
 if __name__ == "__main__":

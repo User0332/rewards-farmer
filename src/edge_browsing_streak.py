@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class EdgeStreakUnavailable(NoSuchElementException):
-	pass
+	def __init__(self, reason):
+		self.reason = reason
+		super().__init__(reason)
 
 
 class EdgeStreakIncomplete(Exception):

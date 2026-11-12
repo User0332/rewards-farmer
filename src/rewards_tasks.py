@@ -833,7 +833,7 @@ class RewardsTaskUtils:
 			except Exception as exc:
 				tag, reason = task_failure_report(exc, self.progress)
 				if isinstance(exc, edge_browsing_streak.EdgeStreakUnavailable) and self.progress is None:
-					tag, reason = "SKIP", exc.msg
+					tag, reason = "SKIP", exc.reason
 				outcome = "skip" if tag == "SKIP" else "fail"
 
 				logger.log(
