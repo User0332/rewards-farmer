@@ -25,10 +25,11 @@ from selenium.common.exceptions import (
 	TimeoutException,
 	WebDriverException,
 )
+from selenium.webdriver.common.by import By
 
 import rewards_tasks
-from element_selectors import ElementNotReady
-from fakes import FakeDriver
+from element_selectors import ElementNotReady, ElementSelectionUtils
+from fakes import FakeDriver, FakeElement
 from rewards_tasks import ElementNeverAppeared, task_failure_report
 
 # Long enough for one poll, short enough that the suite stays quick.
@@ -45,6 +46,99 @@ def make_tasks():
 	tasks.tab_utils = types.SimpleNamespace(close_all_other_tabs=lambda: None)
 
 	return tasks
+
+
+class VisualSearchDiagnostics(unittest.TestCase):
+	"""#138: the opener click says nothing about which panel actually appeared."""
+
+	def _panel(self, controls=(), displayed=True):
+		return FakeElement(
+			text="private page heading must not be logged",
+			attributes={"id": "react-aria-42"}, displayed=displayed,
+			children={(By.CSS_SELECTOR, 'a, button, [role="link"]'): list(controls)},
+		)
+
+	def _control(self, text, tag="button", role=None, disabled=None, displayed=True):
+		control = FakeElement(text=text, displayed=displayed, attributes={
+			"role": role, "aria-disabled": disabled,
+			"href": "https://example.invalid/private-account-data",
+		})
+		control.tag_name = tag
+		return control
+
+	def _failure(self, sections, error=None):
+		tasks = make_tasks()
+		tasks.driver = FakeDriver(children={(By.TAG_NAME, "section"): sections})
+		tasks.elements = ElementSelectionUtils(tasks.driver)
+		tasks.switch_to_earn_page = lambda: None
+		tasks.wait_for_then_click = lambda getter: None
+		error = error or ElementNeverAppeared("original wait failure")
+		tasks.wait_for_element = mock.Mock(side_effect=error)
+		with mock.patch.object(rewards_tasks, "VISUAL_SEARCH_IMAGE_PATH", __file__):
+			with self.assertLogs(rewards_tasks.logger, level=logging.WARNING) as captured:
+				with self.assertRaises(type(error)) as caught:
+					tasks.complete_visual_search()
+		self.assertIs(caught.exception, error)
+		return "\n".join(captured.output)
+
+	def test_click_without_a_sidebar_names_the_missing_panel(self):
+		output = self._failure([])
+		self.assertIn("no visible react-aria sidebar after the opener click", output)
+		self.assertIn("0 matching section(s)", output)
+
+	def test_a_hidden_panel_does_not_count_as_open_or_leak_its_controls(self):
+		output = self._failure([self._panel([self._control("hidden private control")], displayed=False)])
+		self.assertIn("no visible react-aria sidebar", output)
+		self.assertIn("1 matching section(s)", output)
+		self.assertNotIn("hidden private control", output)
+
+	def test_open_panel_reports_the_unmatched_control_shape_not_page_data(self):
+		output = self._failure([self._panel([
+			self._control("Start visual search", role="link", disabled="false"),
+		])])
+		self.assertIn("1 visible react-aria sidebar(s)", output)
+		self.assertIn("no Search now/Activate streak or done marker matched", output)
+		self.assertIn("button role=link aria-disabled=false label='Start visual search'", output)
+		self.assertNotIn("private page heading", output)
+		self.assertNotIn("private-account-data", output)
+
+	def test_multiple_panels_are_distinguished_and_labels_are_bounded(self):
+		output = self._failure([
+			self._panel([self._control("  How\n  it works  "), self._control("x" * 90)]),
+			self._panel([self._control("Start")]),
+		])
+		self.assertIn("2 visible react-aria sidebar(s)", output)
+		self.assertIn("sidebar[0] controls:", output)
+		self.assertIn("sidebar[1] controls:", output)
+		self.assertIn("label='How it works'", output)
+		self.assertIn("label='" + "x" * 60 + "'", output)
+		self.assertNotIn("x" * 61, output)
+
+	def test_plain_timeout_gets_the_same_diagnostics(self):
+		output = self._failure([self._panel()], TimeoutException("not ready"))
+		self.assertIn("sidebar[0] controls: <none>", output)
+
+	def test_hidden_and_stale_controls_are_not_read_as_ui_labels(self):
+		stale = self._control("stale text")
+		stale.is_displayed = mock.Mock(side_effect=StaleElementReferenceException("gone"))
+		output = self._failure([self._panel([
+			self._control("hidden text", displayed=False), stale, self._control("Start"),
+		])])
+		self.assertIn("label='Start'", output)
+		self.assertNotIn("hidden text", output)
+		self.assertNotIn("stale text", output)
+
+	def test_a_large_panel_logs_at_most_twelve_controls(self):
+		output = self._failure([self._panel([self._control(f"Action {i}") for i in range(20)])])
+		self.assertEqual(output.count("label="), 12)
+		self.assertNotIn("Action 12", output)
+
+	def test_a_diagnostic_read_failure_never_replaces_the_original_timeout(self):
+		panel = self._panel()
+		panel.is_displayed = mock.Mock(side_effect=WebDriverException("private webdriver detail"))
+		output = self._failure([panel])
+		self.assertIn("sidebar diagnostics unavailable (WebDriverException)", output)
+		self.assertNotIn("private webdriver detail", output)
 
 
 class WaitClassification(unittest.TestCase):
@@ -626,6 +720,8 @@ class ProgressInsideTasks(unittest.TestCase):
 		self.assertIn("[OK] Visual search", output)
 		self.assertIn("Visual search is already done for today", output)
 		self.assertEqual(clicked, ["opener"])
+		self.assertNotIn("sidebar diagnostics", output)
+		self.assertNotIn("sidebar[", output)
 
 	def test_visual_search_with_a_link_still_goes_to_bing(self):
 		# A running streak is not mistaken for a finished one. The task clicks
@@ -636,6 +732,8 @@ class ProgressInsideTasks(unittest.TestCase):
 			output = self._report(tasks, "complete_visual_search")
 
 		self.assertEqual(clicked, ["opener", "search now"])
+		self.assertNotIn("sidebar diagnostics", output)
+		self.assertNotIn("sidebar[", output)
 		self.assertIn(
 			"[FAIL] Visual search: opened the visual search page, then the next element never appeared",
 			output,
