@@ -251,6 +251,10 @@ class ElementSelectionUtils:
 	def _streak_panel_loading(self, section):
 		if section.get_dom_attribute("aria-busy") == "true":
 			return True
+		# A settled streak heading identifies the panel even when a progress
+		# widget or help content below it keeps an ancillary loader visible.
+		if any(label.casefold().endswith("streak") for label in self.streak_panel_titles(section)):
+			return False
 		for control in section.find_elements(By.CSS_SELECTOR, '[aria-busy="true"], [role="progressbar"], [role="spinner"], [role="status"]'):
 			if control.is_displayed() and (control.get_dom_attribute("role") != "status"
 				or re.fullmatch(r"loading[.\u2026]*", self._visual_label(control.text), re.I)):
@@ -488,7 +492,7 @@ class ElementSelectionUtils:
 				if (link.is_displayed() and label in self._visual_label(link.text).casefold()
 					and link.get_dom_attribute("aria-disabled") != "true"):
 					return link
-		raise NoSuchElementException("visual search panel has no Search now or Activate streak link")
+		raise ElementNotReady("visual search panel has no Search now or Activate streak link yet")
 
 	def visual_search_done_today(self) -> bool:
 		"""Whether the panel shows today's visual search as done.

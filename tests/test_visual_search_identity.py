@@ -107,17 +107,42 @@ class TileIdentity(unittest.TestCase):
 
 
 class PanelIdentity(unittest.TestCase):
-	def test_loading_empty_busy_and_spinner_panels_are_not_ready_not_wrong_identity(self):
-		for variant in ("Loading...", "Loading…", "", "busy", "spinner"):
+	def test_loading_empty_busy_and_untitled_spinner_panels_are_not_ready(self):
+		for variant in ("Loading...", "Loading…", "", "busy"):
 			with self.subTest(variant=variant):
 				sidebar = panel("Visual Search Streak" if variant in ("busy", "spinner") else variant, [FakeElement(text="Search now")])
 				if variant == "busy":
 					sidebar.attributes["aria-busy"] = "true"
-				if variant == "spinner":
-					sidebar.children[(By.CSS_SELECTOR, '[aria-busy="true"], [role="progressbar"], [role="spinner"], [role="status"]')] = [FakeElement(attributes={"role": "progressbar"})]
 				selectors = element_selectors.ElementSelectionUtils(driver_for(sidebar=sidebar))
 				with self.assertRaises(element_selectors.ElementNotReady):
 					selectors.get_search_now_link_from_visual_search_sidebar()
+		sidebar = panel(title=None, links=[FakeElement(text="Search now")])
+		sidebar.children[(By.CSS_SELECTOR, '[aria-busy="true"], [role="progressbar"], [role="spinner"], [role="status"]')] = [FakeElement(attributes={"role": "progressbar"})]
+		with self.assertRaises(element_selectors.ElementNotReady):
+			element_selectors.ElementSelectionUtils(driver_for(sidebar=sidebar)).get_search_now_link_from_visual_search_sidebar()
+
+	def test_observed_panel_with_real_title_and_ancillary_loader_has_search_action(self):
+		# The live probe captured these headings and controls plus loading=true.
+		# Vary the unclassified descendant marker; it must not erase identity.
+		for role in ("progressbar", "spinner", "status"):
+			with self.subTest(role=role):
+				action = FakeElement(text="Search now", attributes={"href": "https://www.bing.com/"})
+				sidebar = panel(links=[action])
+				sidebar.attributes["role"] = "dialog"
+				sidebar.children[(By.CSS_SELECTOR, HEADINGS)].append(FakeElement(text="How it works"))
+				sidebar.children[(By.TAG_NAME, "button")] = [FakeElement(attributes={"aria-label": "Close"}), FakeElement(text="How it works")]
+				sidebar.children[(By.CSS_SELECTOR, '[aria-busy="true"], [role="progressbar"], [role="spinner"], [role="status"]')] = [FakeElement(text="Loading...", attributes={"role": role})]
+				self.assertIs(element_selectors.ElementSelectionUtils(driver_for(sidebar=sidebar)).get_search_now_link_from_visual_search_sidebar(), action)
+
+	def test_identified_panel_without_action_is_not_ready(self):
+		with self.assertRaises(element_selectors.ElementNotReady):
+			element_selectors.ElementSelectionUtils(driver_for(sidebar=panel(links=[]))).get_search_now_link_from_visual_search_sidebar()
+
+	def test_real_wrong_streak_heading_still_rejected_with_ancillary_loader(self):
+		sidebar = panel("Bing App Streak", [FakeElement(text="Search now")])
+		sidebar.children[(By.CSS_SELECTOR, '[aria-busy="true"], [role="progressbar"], [role="spinner"], [role="status"]')] = [FakeElement(attributes={"role": "progressbar"})]
+		with self.assertRaises(element_selectors.UnexpectedVisualSearchPanel):
+			element_selectors.ElementSelectionUtils(driver_for(sidebar=sidebar)).get_search_now_link_from_visual_search_sidebar()
 
 	def test_wrong_panel_with_two_links_cannot_return_app_store_link(self):
 		links = [FakeElement(text="Check-in now"), FakeElement(text="Search now", attributes={"href": "https://synthetic.invalid/app-store"})]
@@ -291,6 +316,27 @@ class TaskIdentity(unittest.TestCase):
 		self.assertIn("[FAIL] Visual search: opened the sidebar, then on the page but not ready in time (TimeoutException)", output)
 		self.assertNotIn("expected Visual Search Streak panel", output)
 		self.assertEqual(driver.clicked, [driver.tiles[4]])
+
+	def test_observed_action_arrives_after_title_and_waits_without_position_fallback(self):
+		action = FakeElement(text="Search now", attributes={"href": "https://www.bing.com/"})
+		sidebar = panel(links=[])
+		sidebar.attributes["role"] = "dialog"
+		sidebar.children[(By.CSS_SELECTOR, HEADINGS)].append(FakeElement(text="How it works"))
+		find = sidebar.find_elements
+		reads = []
+		def hydrate(by, selector):
+			if (by, selector) == (By.TAG_NAME, "a"):
+				reads.append(None)
+				return [] if len(reads) < 3 else [action]
+			return find(by, selector)
+		sidebar.find_elements = hydrate
+		driver = driver_for(sidebar=sidebar)
+		wait = RealWait
+		with mock.patch(__name__ + ".RealWait", lambda driver, timeout: wait(driver, 0.2, poll_frequency=0.01)):
+			output = self.run_task(driver)
+		self.assertIn("[OK] Visual search", output)
+		self.assertEqual(driver.clicked[:2], [driver.tiles[4], action])
+		self.assertGreaterEqual(len(reads), 3)
 
 	def test_untitled_panel_with_search_now_proceeds_after_identified_tile(self):
 		for label in ("Search now", "Activate streak"):
