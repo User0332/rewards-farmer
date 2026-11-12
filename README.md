@@ -10,6 +10,7 @@ A Windows desktop app built on this farmer, with setup, run history and a schedu
 	- [Configuration Script](#configuration-script)
 	- [Where search queries come from](#where-search-queries-come-from)
 	- [Installing Dependencies](#installing-dependencies)
+	- [Graphical interface](#graphical-interface)
 	- [Single Profile Setup](#single-profile-setup)
 - [If Edge will not start](#if-edge-will-not-start)
 - [Running more than one account](#running-more-than-one-account)
@@ -65,6 +66,50 @@ py .\src\init-config.py --manage-accounts
 ```
 
 For signing into multiple accounts properly, see the [relevant notice](#proper-signin-notice).
+
+### Graphical interface
+
+If you would rather not use the command line, `src/gui.py` puts the same
+three things in a window - no extra features, just buttons in front of what
+already exists. It uses Tkinter, which ships with Python, so nothing new needs
+installing.
+
+```sh
+python src/gui.py
+```
+
+On Windows you can use `pythonw src/gui.py` to open it without a console
+window behind it. The `run-gui.bat` launcher in the project root does the
+same without needing a terminal: double-click it, or create a shortcut to it.
+from outside the folder. A companion `run-cli.bat` runs the normal
+command-line `main.py` in a console instead, for when you want to watch its
+output, which is what `python src/main.py` does.
+
+- **Run** starts `main.py` for the accounts in `.env` and shows its log while
+  it works, with a Stop button to end a run early. It farms every account on
+  the Accounts tab except the ones you excluded.
+- **Accounts** adds and removes profile names and signs one in, the same as
+  `init-config.py --manage-accounts`. Add one name at a time, or use **Add
+  many...** to paste a whole list (one per line, or comma separated). The
+  list shows the Microsoft account each profile is actually signed into,
+  which is the account a run farms - worth checking, since a profile's folder
+  name says nothing about who is logged in to it. Adding a name does not open
+  a browser; use Sign in to do that once per profile.
+  Every account is included in a run by default. Select one or more rows and
+  use **Exclude** to leave them out (or **Include** to put them back);
+  double-clicking a row flips it. Excluded rows are dimmed and marked
+  *Skipped* in the Run column. The choice is remembered in `.env` under
+  `GUI_EXCLUDED_ACCOUNTS`, again a key the bot itself never reads - the
+  window simply hands a run the shorter `REWARDS_ACCOUNTS`, so running
+  `main.py` by hand still works through the whole list.
+- **Settings** reads and writes the same `.env` values `init-config.py` asks
+  about. Only the keys it shows are touched, so comments and any other values
+  in the file are left as they were.
+
+The window follows Windows' light or dark setting on first run, and the
+**Light mode / Dark mode** button in the header switches it either way. The
+choice is remembered in `.env` under `GUI_THEME`, a key the bot itself never
+reads.
 
 ### Where search queries come from
 

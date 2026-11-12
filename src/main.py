@@ -74,11 +74,13 @@ def run_account(account: accounts.Account) -> bool:
 	began = time.monotonic()
 	_account_started = _account_ran = False
 	run_record.emit("account_start", account=account.name, profile=account.user_data_dir)
+
 	def ended(error_code=None):
 		if error_code == "browser_failed":
 			run_record.emit("browser_failed", account=account.name)
 		run_record.emit("account_end", account=account.name, started=_account_started, ran_tasks=_account_ran,
 			error_code=error_code, duration_ms=round((time.monotonic() - began) * 1000))
+
 	try:
 		if not desktop_utils.prepare_desktop_before_launch():
 			ended("browser_failed")
@@ -140,6 +142,56 @@ def run_account(account: accounts.Account) -> bool:
 			)
 
 	return True
+
+
+def _windows_console_attached() -> bool:
+	"""Whether stdin is a real Windows console, by asking the console itself.
+
+	isatty() cannot answer this: the null device the GUI hands main.py is a
+	character device, so isatty() reports True while every read ends at once.
+	GetConsoleMode succeeds only for an actual console.
+	"""
+
+	try:
+		import ctypes
+
+		kernel32 = ctypes.windll.kernel32
+		handle = kernel32.GetStdHandle(-10)  # STD_INPUT_HANDLE
+		mode = ctypes.c_uint()
+
+		return bool(kernel32.GetConsoleMode(handle, ctypes.byref(mode)))
+	except Exception:
+		return False
+
+
+def stdin_is_interactive() -> bool:
+	"""Whether pressing Enter here could actually be read."""
+
+	if not sys.stdin:
+		return False
+
+	if os.name == "nt":
+		return _windows_console_attached()
+
+	return sys.stdin.isatty()
+
+
+def pause_for_enter() -> None:
+	"""Wait for Enter when someone is watching, and never any longer.
+
+	Nothing is watching a container, and stdin is not a terminal there. The
+	same is true when the GUI runs this: it wants the process to end, not to
+	sit on a prompt. The check above tells the two apart on Windows, and the
+	EOFError catch is there in case a console goes away between the two.
+	"""
+
+	if HEADLESS or not stdin_is_interactive():
+		return
+
+	try:
+		input("Press Enter to exit...")
+	except EOFError:
+		pass
 
 
 def main(unattended: bool = False, plan: RunPlan | None = None) -> int:
@@ -205,7 +257,7 @@ def main(unattended: bool = False, plan: RunPlan | None = None) -> int:
 		# Nothing is watching a container, and stdin is not a terminal there.
 		# --unattended skips the prompt for scheduled runs on the host too.
 		if not HEADLESS and not unattended:
-			input("Press Enter to exit...")
+			pause_for_enter()
 		code = 0 if started else 1
 		stats = recorder.stats
 		if not started:
