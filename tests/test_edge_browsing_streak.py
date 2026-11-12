@@ -97,6 +97,13 @@ class EdgeBrowsingStreakTests(unittest.TestCase):
 			with self.subTest(value=value), mock.patch.dict(os.environ, {"EDGE_BROWSING_STREAK_MAX_MINUTES": value}), self.assertRaises(ValueError):
 				edge.maximum_minutes()
 
+	def test_nonpositive_or_nonfinite_limit_has_spaced_message(self):
+		for value in ("0", "-1", "nan", "inf"):
+			with self.subTest(value=value), mock.patch.dict(os.environ, {"EDGE_BROWSING_STREAK_MAX_MINUTES": value}):
+				with self.assertRaises(ValueError) as caught:
+					edge.maximum_minutes()
+				self.assertEqual(str(caught.exception), "EDGE_BROWSING_STREAK_MAX_MINUTES must be greater than 0")
+
 	def test_absent_tile_skip_has_titles_and_never_browses(self):
 		h = Harness(absent=True)
 		with self.assertRaises(edge.EdgeStreakUnavailable) as caught:

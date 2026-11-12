@@ -59,7 +59,7 @@ def maximum_minutes():
 	except ValueError:
 		raise ValueError("EDGE_BROWSING_STREAK_MAX_MINUTES must be a finite positive number") from None
 	if not math.isfinite(value) or value <= 0:
-		raise ValueError("EDGE_BROWSING_STREAK_MAX_MINUTES must be greater than0")
+		raise ValueError("EDGE_BROWSING_STREAK_MAX_MINUTES must be greater than 0")
 	return value
 
 
@@ -129,7 +129,7 @@ def _complete(tasks, limit):
 		# Rendered absence is definitive; an empty row may still hydrate.
 		try:
 			find_tile(tasks.driver)
-		except __import__("element_selectors").ElementNotReady:
+		except ElementNotReady:
 			tasks.wait_for_element(lambda: find_tile(tasks.driver), timeout=min(10, max(0, deadline-clock())))
 		return tasks.wait_for_element(lambda: read_minutes(tasks.driver), timeout=min(10, max(0, deadline-clock())))
 	# This constructor previously enabled Rewards-only emulation headers. The
