@@ -141,7 +141,7 @@ class MainRecordTests(unittest.TestCase):
 		self.addCleanup(self.stack.close)
 		self.stack.enter_context(mock.patch.dict(os.environ, {"USER_DATA_DIR": str(self.home / "profiles")}, clear=True))
 		self.stack.enter_context(mock.patch.object(constants, "RUNS_DIR", str(self.home / "runs")))
-		self.stack.enter_context(mock.patch.object(main, "HEADLESS", True))
+		self.stack.enter_context(mock.patch.dict(os.environ, {"REWARDS_HEADLESS": "true"}))
 		self.stack.enter_context(mock.patch.object(main.log_utils, "setup_logging", lambda: None))
 		self.cleanup_desktop = self.stack.enter_context(mock.patch.object(main.desktop_utils, "cleanup_virtual_desktop"))
 		for name, value in (("reset_virtual_desktop_state", None), ("switch_back_after_launch", None), ("prepare_desktop_before_launch", True), ("is_virtual_desktop_enabled", False)):
@@ -274,7 +274,7 @@ class MainRecordTests(unittest.TestCase):
 		self.assertEqual([event["phase"] for event in self.events() if event["type"] == "state"], ["before", "after"])
 
 	def test_unattended_skips_enter_but_no_flag_keeps_the_original_prompt(self):
-		with mock.patch.object(main, "HEADLESS", False), mock.patch("builtins.input", return_value="") as prompt:
+		with mock.patch.dict(os.environ, {"REWARDS_HEADLESS": "false"}), mock.patch("builtins.input", return_value="") as prompt:
 			self.assertEqual(main.main(), 0)
 			prompt.assert_called_once_with("Press Enter to exit...")
 			prompt.reset_mock()
@@ -334,7 +334,7 @@ class ConditionalRunIntegration(unittest.TestCase):
 			stack.enter_context(mock.patch.object(constants, "REPO_ROOT", folder))
 			stack.enter_context(mock.patch.object(constants, "RUNS_DIR", str(Path(folder, "runs"))))
 			stack.enter_context(mock.patch.object(main.browser, "start_driver", side_effect=[first, later]))
-			stack.enter_context(mock.patch.object(main, "HEADLESS", True))
+			stack.enter_context(mock.patch.dict(os.environ, {"REWARDS_HEADLESS": "true"}))
 			stack.enter_context(mock.patch.object(main.desktop_utils, "prepare_desktop_before_launch", return_value=True))
 			for name in ("reset_virtual_desktop_state", "switch_back_after_launch", "cleanup_virtual_desktop"):
 				stack.enter_context(mock.patch.object(main.desktop_utils, name))
