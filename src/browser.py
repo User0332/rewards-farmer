@@ -6,6 +6,10 @@ explain a failure instead of dumping a traceback.
 
 import logging
 import os
+import plistlib
+import sys
+from pathlib import Path
+from xml.parsers.expat import ExpatError
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchDriverException, WebDriverException
@@ -43,6 +47,21 @@ EXPLANATIONS = [
 ]
 
 
+def _macos_app_executable(bundle: Path) -> Path | None:
+	try:
+		with (bundle / "Contents" / "Info.plist").open("rb") as file:
+			info = plistlib.load(file)
+
+		executable = info.get("CFBundleExecutable") if isinstance(info, dict) else None
+		if not isinstance(executable, str) or not executable or Path(executable).name != executable:
+			return None
+
+		path = bundle / "Contents" / "MacOS" / executable
+		return path if path.is_file() else None
+	except (AttributeError, IndexError, OSError, TypeError, ValueError, ExpatError):
+		return None
+
+
 def build_options(account: accounts.Account) -> webdriver.EdgeOptions:
 	options = webdriver.EdgeOptions()
 
@@ -58,8 +77,11 @@ def build_options(account: accounts.Account) -> webdriver.EdgeOptions:
 	# in the profile, which is what the README tells users to expect.
 	options.add_argument("--accept-lang=en-US")
 
-	if os.environ.get("EDGE_BINARY"):
-		options.binary_location = os.environ["EDGE_BINARY"]
+	if binary := os.environ.get("EDGE_BINARY"):
+		if sys.platform == "darwin" and (bundle := Path(binary)).suffix.lower() == ".app":
+			if executable := _macos_app_executable(bundle):
+				binary = str(executable)
+		options.binary_location = binary
 
 	if HEADLESS:
 		# A container has no display. The window size is set explicitly because
