@@ -80,6 +80,7 @@ class StateDriver(FakeDriver):
 			)]})
 			self.children = {
 				(By.TAG_NAME, "button"): buttons,
+				(By.ID, "streaks"): [FakeElement(children={(By.TAG_NAME, "button"): [self.daily_opener]})],
 				(By.TAG_NAME, "header"): [header],
 				(By.TAG_NAME, "body"): [FakeElement(text="Earn rewards " * 50)],
 				(By.ID, "moreactivities"): [FakeElement(children={(By.TAG_NAME, "a"): self.cards})],

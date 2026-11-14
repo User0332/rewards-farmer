@@ -84,6 +84,8 @@ def task_failure_report(exc: BaseException, progress: str | None = None) -> tupl
 
 	if progress is None:
 		if cause is None:
+			if isinstance(exc, element_selectors.VisualSearchUnavailable):
+				return "SKIP", f"not available in this UI variant: {exc.reason}"
 			return "SKIP", f"not available in this UI variant ({name})"
 
 		return "FAIL", cause
@@ -197,6 +199,9 @@ class RewardsTaskUtils:
 
 			try:
 				element_or_elements = element_getter()
+			except (element_selectors.UnexpectedVisualSearchPanel, element_selectors.VisualSearchUnavailable):
+				# Identified absence/wrong panel is not a late-arriving control.
+				raise
 			except Exception as exc:
 				# Exception rather than a bare except, so Ctrl+C during a
 				# getter ends the run instead of being retried away.
@@ -369,12 +374,15 @@ class RewardsTaskUtils:
 	def complete_visual_search(self):
 		self.switch_to_earn_page()
 
-		if not os.path.exists(VISUAL_SEARCH_IMAGE_PATH):
-			logger.info("visual_search.jpg not found. Generating visual search image...")
-			import random_image_for_visual_search
-			random_image_for_visual_search.get_random_image()
-
-		self.wait_for_then_click(self.elements.get_open_visual_search_sidebar)
+		try:
+			self.elements.get_open_visual_search_sidebar()
+		except (element_selectors.ElementNotReady, StaleElementReferenceException):
+			# An absent tile in a rendered row is definitive; an empty row is not.
+			self.wait_for_element(self.elements.get_open_visual_search_sidebar)
+		if self.elements.visual_search_tile_done_today():
+			logger.info("Visual search is already done for today")
+			return
+		self.move_to_and_click(self.elements.get_open_visual_search_sidebar)
 		self.progress = "opened the sidebar"
 
 		# Once today's visual search is done the panel has no link left to
@@ -401,6 +409,12 @@ class RewardsTaskUtils:
 			logger.info("Visual search is already done for today")
 
 			return
+
+		# Do not download an image for an unavailable or already completed task.
+		if not os.path.exists(VISUAL_SEARCH_IMAGE_PATH):
+			logger.info("visual_search.jpg not found. Generating visual search image...")
+			import random_image_for_visual_search
+			random_image_for_visual_search.get_random_image()
 
 		self.move_to_and_click(self.elements.get_search_now_link_from_visual_search_sidebar)
 

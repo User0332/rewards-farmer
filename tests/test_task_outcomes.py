@@ -28,6 +28,7 @@ from selenium.common.exceptions import (
 from selenium.webdriver.common.by import By
 
 import rewards_tasks
+import element_selectors
 from element_selectors import ElementNotReady, ElementSelectionUtils
 from fakes import FakeDriver, FakeElement
 from rewards_tasks import ElementNeverAppeared, task_failure_report
@@ -70,8 +71,10 @@ class VisualSearchDiagnostics(unittest.TestCase):
 		tasks = make_tasks()
 		tasks.driver = FakeDriver(children={(By.TAG_NAME, "section"): sections})
 		tasks.elements = ElementSelectionUtils(tasks.driver)
+		tasks.elements.get_open_visual_search_sidebar = lambda: "opener"
+		tasks.elements.visual_search_tile_done_today = lambda: False
 		tasks.switch_to_earn_page = lambda: None
-		tasks.wait_for_then_click = lambda getter: None
+		tasks.move_to_and_click = lambda getter: None
 		error = error or ElementNeverAppeared("original wait failure")
 		tasks.wait_for_element = mock.Mock(side_effect=error)
 		with mock.patch.object(rewards_tasks, "VISUAL_SEARCH_IMAGE_PATH", __file__):
@@ -682,6 +685,7 @@ class ProgressInsideTasks(unittest.TestCase):
 
 		tasks = self._tasks(
 			get_open_visual_search_sidebar=lambda: "opener",
+			visual_search_tile_done_today=lambda: False,
 			get_search_now_link_from_visual_search_sidebar=search_now,
 			visual_search_done_today=lambda: done_today,
 			get_visual_search_button=no_camera_button,
@@ -740,7 +744,9 @@ class ProgressInsideTasks(unittest.TestCase):
 		)
 
 	def test_visual_search_without_its_sidebar_is_still_skipped(self):
-		tasks = self._tasks(get_open_visual_search_sidebar=object())
+		def missing():
+			raise element_selectors.VisualSearchUnavailable("shown tiles: Bing App Streak")
+		tasks = self._tasks(get_open_visual_search_sidebar=missing)
 
 		def wait_for_then_click(getter, timeout=10):
 			raise ElementNeverAppeared("nothing matched")
