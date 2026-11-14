@@ -105,6 +105,14 @@ If the configuration options are not provided, they default to `LLM_PROVIDER=loc
 
 You must also provide an image for the script to upload to complete the visual search task. A helper script is included at `src/random_image_for_visual_search.py` that will download an image from Wikipedia named `visual_search.jpg` into the project root for you. You may also provide an image of your own, just ensure that the absolute path of the image is placed in the `VISUAL_SEARCH_IMAGE_PATH` constant at the top of `rewards_tasks.py`.
 
+### Optional Edge Browsing Streak
+
+`EDGE_BROWSING_STREAK=true` adds a final task for accounts that actually have the **Edge Browsing Streak** tile. It is off by default. `EDGE_BROWSING_STREAK_MAX_MINUTES` limits each attempt to 35 minutes by default (set a smaller positive value to shorten it)
+
+The offer is limited to selected members and markets and requires a personal Microsoft account signed into Edge. A Rewards website session alone does not prove Edge is signed in. The task finds the tile by title, reads its minute counter, and clicks **Activate streak** or **Get started** once if offered. It then uses the same Edge on ordinary Bing/MSN pages with light scrolling and checks the real counter every three minutes. A completed counter returns immediately; an absent tile skips; an unchanged or incomplete counter at the limit reports a failure rather than claiming credit
+
+This keeps Edge open and the run lock held during the configured browsing limit, plus a final counter read and cleanup. Page-load and transport commands are bounded to 15 seconds and the caller's settings are restored afterwards. It sends no Rewards API requests or simulated client/minute reports and clears the farmer's existing Rewards-only emulation headers before any browsing. Whether normal WebDriver browsing is credited is not established by the unit tests. See [Microsoft's offer](https://rewards.bing.com/promo/edge-browsing-streak) for eligibility and current terms
+
 ### Single Profile Setup
 
 > [!TIP]

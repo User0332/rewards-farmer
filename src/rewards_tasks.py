@@ -803,7 +803,9 @@ class RewardsTaskUtils:
 		# Each task is run independently. The Rewards UI differs by market and
 		# changes between deploys, so a task the current variant does not ship
 		# must not take the remaining ones down with it.
-		for task_id, name, method in TASKS:
+		import edge_browsing_streak
+		tasks = TASKS + (("edge_browsing", "Edge browsing streak", "complete_edge_browsing_streak"),) if edge_browsing_streak.enabled() else TASKS
+		for task_id, name, method in tasks:
 			if only is not None and task_id not in only:
 				continue
 			began = time.monotonic()
@@ -824,6 +826,8 @@ class RewardsTaskUtils:
 				completed = True
 			except Exception as exc:
 				tag, reason = task_failure_report(exc, self.progress)
+				if isinstance(exc, edge_browsing_streak.EdgeStreakUnavailable) and self.progress is None:
+					tag, reason = "SKIP", exc.reason
 				outcome = "skip" if tag == "SKIP" else "fail"
 
 				logger.log(
@@ -841,3 +845,7 @@ class RewardsTaskUtils:
 				self.return_to_rewards_home()
 			run_record.emit("task_end", task=task_id, name=name, outcome=outcome, detail=reason,
 				progress=self.progress, duration_ms=round((time.monotonic() - began) * 1000))
+
+	def complete_edge_browsing_streak(self):
+		import edge_browsing_streak
+		return edge_browsing_streak.complete(self)
