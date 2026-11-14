@@ -47,7 +47,12 @@ KNOWN_TASKS = {
 	"search on bing to check your credit report and raise your score": "how to check and improve credit score",
 	"search on bing for a health condition to learn about the symptoms": "type 2 diabetes symptoms",
 	"search on bing for new recipes": "dessert recipes", # needs manual testing
-	"search on bing to explore videogames": "latest video games" # needs manual testing
+	"search on bing to explore videogames": "latest video games", # needs manual testing
+	"search on bing for the meaning of a word you don't understand": "define serendipity",
+	"search on bing to see what time it is in a different time zone": "current time in new york",
+	"search on bing for the latest price of a specific stock": "current price of MSFT",
+	"search on bing to find top-rated mattresses at great prices": "best mattresses",
+	"search on bing for the latest coupon codes and discounts": "latest coupon codes", # needs manual testing
 }
 
 
