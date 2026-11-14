@@ -760,15 +760,13 @@ class ProgressInsideTasks(unittest.TestCase):
 
 	def test_required_searches_count_every_search_across_rounds(self):
 		# 0/30 asks for ten searches, 15/30 after them for five more. The
-		# clear button goes missing after the second search of that round.
+		# input goes missing before the third search of that round.
 		tasks = self._tasks(
-			get_bing_search_bar=lambda: "search bar",
-			get_clear_bing_search_query_button=lambda: "clear",
+			get_bing_search_bar=failing_on(15, ElementNeverAppeared("nothing matched"), value=types.SimpleNamespace(send_keys=lambda *keys: None)),
 		)
 		readings = iter([(0, 30), (15, 30)])
 		tasks.read_search_points = lambda: next(readings)
-		tasks.wait_for_element = lambda getter, timeout=10: "search bar"
-		tasks.wait_for_then_click = failing_on(12, ElementNeverAppeared("nothing matched"))
+		tasks.wait_for_element = lambda getter, timeout=10: getter()
 
 		with mock.patch.object(rewards_tasks.queries, "related_queries", lambda count: ["query"] * count):
 			output = self._report(tasks, "complete_required_searches")
@@ -781,16 +779,14 @@ class ProgressInsideTasks(unittest.TestCase):
 	def test_a_source_that_comes_back_short_is_counted_as_it_was(self):
 		# The trends source can return fewer queries than a round asks for.
 		# 0/30 asks for ten and gets three, 9/30 then asks for seven and gets
-		# three again. The clear button goes missing after the second search of
+		# three again. The input goes missing before the third search of
 		# that round, which is the fifth search sent, not the twelfth.
 		tasks = self._tasks(
-			get_bing_search_bar=lambda: "search bar",
-			get_clear_bing_search_query_button=lambda: "clear",
+			get_bing_search_bar=failing_on(8, ElementNeverAppeared("nothing matched"), value=types.SimpleNamespace(send_keys=lambda *keys: None)),
 		)
 		readings = iter([(0, 30), (9, 30)])
 		tasks.read_search_points = lambda: next(readings)
-		tasks.wait_for_element = lambda getter, timeout=10: "search bar"
-		tasks.wait_for_then_click = failing_on(5, ElementNeverAppeared("nothing matched"))
+		tasks.wait_for_element = lambda getter, timeout=10: getter()
 
 		with mock.patch.object(rewards_tasks.queries, "related_queries", lambda count: ["query"] * min(count, 3)):
 			output = self._report(tasks, "complete_required_searches")

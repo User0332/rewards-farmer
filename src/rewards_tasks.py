@@ -718,13 +718,15 @@ class RewardsTaskUtils:
 
 		self.wait_for_element(self.elements.get_bing_search_bar)
 
-		# search bar should be auto-focused
-
 		sent_here = 0
 
 		for i, query in enumerate(
 			queries.related_queries(count)
 		):
+			# Re-find and focus the input after each navigation. Bing can omit its
+			# clear button, and results pages do not keep the input auto-focused.
+			search_box = self.wait_for_element(self.elements.get_bing_search_bar)
+			search_box.send_keys(Keys.CONTROL, "a", Keys.NULL)
 			self.keyboard.send_keys(f"{query} -noai{Keys.ENTER}")
 			sent_here = i + 1
 			sent = already_sent + sent_here
@@ -732,14 +734,6 @@ class RewardsTaskUtils:
 			self.progress = f"sent {sent} {'search' if sent == 1 else 'searches'}"
 
 			time.sleep(random.uniform(5.5, 7.5))
-
-			try: self.wait_for_then_click(self.elements.get_clear_bing_search_query_button)
-			except StaleElementReferenceException:
-				logger.warning(
-					"StaleElementReferenceException when trying to click the clear button for query %s. Trying again...",
-					i + 1
-				)
-				self.wait_for_then_click(self.elements.get_clear_bing_search_query_button)
 
 		self.driver.get(REWARDS_HOME_URL)
 		self.tab_utils.ensure_focus()
