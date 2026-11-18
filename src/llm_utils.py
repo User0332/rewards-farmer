@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from typing import Generator
 import logging
 import random
@@ -40,10 +41,34 @@ USER_PROMPT_FOR_SEARCH_QUERY_CONTINUATION = """Generate the next search query.""
 
 MAX_EMPTY_RETRIES = 5
 
+# A local model server that is still booting refuses connections for a while
+# after Windows starts. Wait for it instead of silently using fallback queries.
+MAX_LOCAL_STARTUP_RETRIES = 12
+DEFAULT_LOCAL_STARTUP_RETRY_SECONDS = 5.0
+
+_startup_wait_pending = True
+
 DEFAULT_LLM_PROVIDER = "local"
 
 def _get_llm_provider() -> str:
 	return os.getenv("LLM_PROVIDER", DEFAULT_LLM_PROVIDER).strip().lower()
+
+def _is_local_provider() -> bool:
+	return _get_llm_provider() in ("local", "ollama")
+
+def _get_startup_retry_settings() -> tuple[int, float]:
+	"""Read per call so .env edits apply without reimporting the module."""
+	try:
+		retries = int(os.getenv("LLM_STARTUP_RETRIES", str(MAX_LOCAL_STARTUP_RETRIES)))
+	except ValueError:
+		retries = MAX_LOCAL_STARTUP_RETRIES
+
+	try:
+		delay = float(os.getenv("LLM_STARTUP_RETRY_SECONDS", str(DEFAULT_LOCAL_STARTUP_RETRY_SECONDS)))
+	except ValueError:
+		delay = DEFAULT_LOCAL_STARTUP_RETRY_SECONDS
+
+	return max(0, retries), max(0.0, delay)
 
 def _get_llm_base_url() -> str:
 	provider = _get_llm_provider()
@@ -94,16 +119,48 @@ def _get_llm_headers() -> dict[str, str]:
 
 	return headers
 
+def _post_chat_completion(messages: list[dict[str, str]]) -> requests.Response:
+	global _startup_wait_pending
+
+	url = f"{_get_llm_base_url()}/chat/completions"
+	headers = _get_llm_headers()
+	payload = {
+		"model": _get_llm_model(),
+		"messages": messages,
+	}
+	timeout = float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "60"))
+
+	if not _is_local_provider() or not _startup_wait_pending:
+		return requests.post(url, headers=headers, json=payload, timeout=timeout)
+
+	retries, delay = _get_startup_retry_settings()
+
+	# One wait window per run: a server that is really absent falls back on every
+	# later query instead of paying the wait again.
+	_startup_wait_pending = False
+
+	for attempt in range(retries + 1):
+		try:
+			return requests.post(url, headers=headers, json=payload, timeout=timeout)
+		except requests.exceptions.ConnectionError:
+			if attempt >= retries:
+				raise
+
+			if attempt == 0:
+				logger.warning(
+					"Local LLM endpoint %s is not accepting connections yet; waiting up to %.0fs for it to start.",
+					url,
+					retries * delay,
+				)
+			else:
+				logger.debug("Local LLM endpoint still unreachable, retry %s/%s", attempt + 1, retries)
+
+			time.sleep(delay)
+
+	raise RuntimeError("Local LLM request retry loop exited without a response")
+
 def get_llm_response(messages: list[dict[str, str]]) -> str:
-	response = requests.post(
-		f"{_get_llm_base_url()}/chat/completions",
-		headers=_get_llm_headers(),
-		json={
-			"model": _get_llm_model(),
-			"messages": messages,
-		},
-		timeout=float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "60")),
-	)
+	response = _post_chat_completion(messages)
 	response.raise_for_status()
 
 	content = response.json()["choices"][0]["message"]["content"]

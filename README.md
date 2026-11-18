@@ -103,6 +103,8 @@ For OpenRouter, the code uses the OpenAI-compatible chat completions API at `htt
 
 If the configuration options are not provided, they default to `LLM_PROVIDER=local`, `LOCAL_LLM_BASE_URL=http://localhost:11434/v1`, `LOCAL_LLM_MODEL=gemma4:cloud`, and `OPENROUTER_MODEL=openrouter/free`.
 
+With `LLM_PROVIDER=local`, if the first request finds the endpoint refusing connections, the script waits for it to come up instead of falling back to the built-in query generator straight away. That covers a run started before Ollama has finished booting. The wait is `LLM_STARTUP_RETRIES` × `LLM_STARTUP_RETRY_SECONDS` at most (default 12 × 5 seconds), it is paid at most once per run, and `LLM_STARTUP_RETRIES=0` restores the immediate fallback.
+
 You must also provide an image for the script to upload to complete the visual search task. A helper script is included at `src/random_image_for_visual_search.py` that will download an image from Wikipedia named `visual_search.jpg` into the project root for you. You may also provide an image of your own, just ensure that the absolute path of the image is placed in the `VISUAL_SEARCH_IMAGE_PATH` constant at the top of `rewards_tasks.py`.
 
 ### Single Profile Setup
