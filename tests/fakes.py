@@ -19,6 +19,9 @@ class FakeElement:
 	def get_dom_attribute(self, name):
 		return self.attributes.get(name)
 
+	def get_property(self, name):
+		return self.attributes.get(name)
+
 	def is_displayed(self):
 		return self.displayed
 

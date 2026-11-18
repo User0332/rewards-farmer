@@ -72,16 +72,64 @@ def worth_running(state: RewardsState, threshold: int) -> bool | None:
 	return False
 
 
+_BALANCE_NUMBER = r"(?:\d+|\d{1,3}(?:,\d{3})+|\d{1,3}(?:\.\d{3})+|\d{1,3}(?:[ \u00a0\u202f]\d{3})+)"
+_BALANCE_PATTERNS = (
+	rf"\s*({_BALANCE_NUMBER})(?:\s+points)?\s*",
+	rf"\s*(?:available points|points balance)\s*:?\s*({_BALANCE_NUMBER})\s*",
+)
+
+
+def _balance_value(text, excluded=()):
+	values = set()
+	for line in text.splitlines():
+		for pattern in _BALANCE_PATTERNS:
+			match = re.fullmatch(pattern, line, re.I)
+			if match:
+				value = int(re.sub(r"[, .\u00a0\u202f]", "", match[1]))
+				if value not in excluded:
+					values.add(value)
+	return values.pop() if len(values) == 1 else None
+
+
 def read_balance(driver, elements) -> int | None:
-	"""Read the current document once, without navigating or waiting."""
+	"""Read the current header once, without navigating, waiting or clicking."""
 	try:
-		values = set()
+		figures, profiles, labelled = [], [], set()
 		for header in driver.find_elements(By.TAG_NAME, "header"):
+			for match in re.finditer(rf"(?:^|\n)\s*(?:available points|points balance)\s*:?\s*({_BALANCE_NUMBER})(?:\s+points)?\s*(?=\n|$)", header.text or "", re.I):
+				labelled.add(_balance_value(match[1]))
 			for button in header.find_elements(By.TAG_NAME, "button"):
-				if button.is_displayed() and (button.get_dom_attribute("aria-label") or "").lower() == "view profile":
-					text = (button.text or "").strip()
-					if re.fullmatch(r"(?:\d+|\d{1,3}(?:,\d{3})+)", text):
-						values.add(int(text.replace(",", "")))
+				label = (button.get_dom_attribute("aria-label") or "").strip().casefold()
+				displayed = button.is_displayed()
+				if label and displayed:
+					# Read the header's points paragraph beside its image, not the
+					# name or level badge elsewhere in this account control.
+					parts = [part for row in button.find_elements(By.CSS_SELECTOR, ":scope > span > div > div")
+						if row.find_elements(By.CSS_SELECTOR, ":scope > img")
+						for part in row.find_elements(By.CSS_SELECTOR, ":scope > p") if part.is_displayed()]
+					if parts:
+						figures.append(_balance_value(parts[0].text or parts[0].get_property("textContent") or "") if len(parts) == 1 else None)
+				if label != "view profile":
+					continue
+				text = button.text or ""
+				content = button.get_property("textContent") or ""
+				excluded = {int(value) for value in re.findall(r"\blevel\s*(\d+)\b", text + "\n" + content, re.I)}
+				value = _balance_value(text, excluded)
+				if value is None:
+					value = _balance_value(content, excluded)
+				if value is None:
+					parts = {_balance_value(part.text or part.get_property("textContent") or "", excluded)
+						for part in button.find_elements(By.TAG_NAME, "span")}
+					parts.discard(None)
+					value = parts.pop() if len(parts) == 1 else None
+				profiles.append((displayed, value))
+		if figures:
+			# A loading or conflicting new figure must not borrow an old total.
+			return figures[0] if None not in figures and len(set(figures)) == 1 else None
+		visible = any(displayed for displayed, _ in profiles)
+		values = {value for displayed, value in profiles if displayed == visible and value is not None}
+		if not values:
+			values = labelled - {None}
 		return values.pop() if len(values) == 1 else None
 	except Exception:
 		return None
