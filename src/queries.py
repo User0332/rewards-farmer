@@ -53,6 +53,11 @@ KNOWN_TASKS = {
 	"search on bing for the latest price of a specific stock": "current price of MSFT",
 	"search on bing to find top-rated mattresses at great prices": "best mattresses",
 	"search on bing for the latest coupon codes and discounts": "latest coupon codes", # needs manual testing
+	"search on bing to book all-inclusive resorts for a getaway": "all-inclusive resorts",
+	"search on bing to compare checking and savings account options": "best checking and savings accounts",
+	"search on bing to explore cruise deals and destinations": "cruise deals",
+	"search on bing to explore deals on new and used cars": "new and used cars for sale", # needs manual testing
+	"search on bing for tools, tips, and deals on home upgrades": "home improvement tools and tips", # needs manual testing
 }
 
 
