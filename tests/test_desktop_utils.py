@@ -398,6 +398,71 @@ class PlatformSafetyTests(unittest.TestCase):
 		mock_close.assert_not_called()
 		self.assertTrue(desktop_utils._desktop_created)
 
+	@mock.patch("desktop_utils.time.sleep")
+	@mock.patch("desktop_utils.is_windows", return_value=True)
+	@mock.patch("desktop_utils.switch_to_left_desktop", return_value=True)
+	@mock.patch("desktop_utils.switch_to_right_desktop", return_value=True)
+	def test_guid_navigation_reordered_desktops_moves_correct_direction(
+		self, mock_right, mock_left, mock_is_win, mock_sleep
+	):
+		id_a = b"\x01" * 16
+		id_b = b"\x02" * 16
+		id_c = b"\x03" * 16
+
+		# Target is id_a, current is id_c in [id_a, id_b, id_c] -> delta = -2 (left 2)
+		with mock.patch("desktop_utils.get_desktop_registry_data", return_value=([id_a, id_b, id_c], id_c)):
+			self.assertTrue(desktop_utils._navigate_to_guid(id_a))
+			self.assertEqual(mock_left.call_count, 2)
+			mock_right.assert_not_called()
+
+		mock_left.reset_mock()
+		mock_right.reset_mock()
+
+		# Target is id_c, current is id_a in [id_a, id_b, id_c] -> delta = +2 (right 2)
+		with mock.patch("desktop_utils.get_desktop_registry_data", return_value=([id_a, id_b, id_c], id_a)):
+			self.assertTrue(desktop_utils._navigate_to_guid(id_c))
+			self.assertEqual(mock_right.call_count, 2)
+			mock_left.assert_not_called()
+
+		mock_left.reset_mock()
+		mock_right.reset_mock()
+
+		# User reordered desktops such that worker (id_c) is now to the LEFT of main desktop (id_a):
+		# Desktops: [id_c, id_b, id_a], current is id_a -> to reach id_c, delta = -2 (left 2)
+		with mock.patch("desktop_utils.get_desktop_registry_data", return_value=([id_c, id_b, id_a], id_a)):
+			self.assertTrue(desktop_utils._navigate_to_guid(id_c))
+			self.assertEqual(mock_left.call_count, 2)
+			mock_right.assert_not_called()
+
+	@mock.patch("desktop_utils.time.sleep")
+	@mock.patch("desktop_utils.is_windows", return_value=True)
+	@mock.patch("desktop_utils.close_current_virtual_desktop", return_value=True)
+	@mock.patch("desktop_utils.switch_to_left_desktop", return_value=True)
+	@mock.patch("desktop_utils.switch_to_right_desktop", return_value=True)
+	def test_cleanup_with_guid_tracking_navigates_to_start_desktop(
+		self, mock_right, mock_left, mock_close, mock_is_win, mock_sleep
+	):
+		id_main = b"\x11" * 16
+		id_worker = b"\x22" * 16
+		desktop_utils._desktop_created = True
+		desktop_utils._on_worker_desktop = False
+		desktop_utils._start_desktop_id = id_main
+		desktop_utils._worker_desktop_id = id_worker
+
+		reg_states = [
+			([id_main, id_worker], id_main),  # initial check in cleanup
+			([id_main, id_worker], id_main),  # switch_to_worker_desktop -> _navigate_to_guid(id_worker)
+			([id_main], id_main),             # return to start desktop -> _navigate_to_guid(id_main)
+		]
+		with mock.patch("desktop_utils.get_desktop_registry_data", side_effect=reg_states):
+			with mock.patch.dict(os.environ, {"USE_VIRTUAL_DESKTOP": "true", "CLEANUP_VIRTUAL_DESKTOP": "true"}):
+				self.assertTrue(desktop_utils.cleanup_virtual_desktop())
+
+		self.assertEqual(mock_right.call_count, 1)
+		mock_close.assert_called_once()
+		self.assertFalse(desktop_utils._desktop_created)
+		self.assertFalse(desktop_utils._on_worker_desktop)
+
 
 if __name__ == "__main__":
 	unittest.main()
