@@ -80,6 +80,7 @@ class StateDriver(FakeDriver):
 			)]})
 			self.children = {
 				(By.TAG_NAME, "button"): buttons,
+				(By.ID, "streaks"): [FakeElement(children={(By.TAG_NAME, "button"): [self.daily_opener]})],
 				(By.TAG_NAME, "header"): [header],
 				(By.TAG_NAME, "body"): [FakeElement(text="Earn rewards " * 50)],
 				(By.ID, "moreactivities"): [FakeElement(children={(By.TAG_NAME, "a"): self.cards})],
@@ -410,7 +411,122 @@ class ThresholdDecision(unittest.TestCase):
 			worth_running(RewardsState(), -1)
 
 
+def header_figure(value="12,345", *, label="Synthetic account control", image=True, extra=False, displayed=True):
+	# The new header control: span > div > div > p beside img, plus a badge.
+	row = FakeElement(children={(By.CSS_SELECTOR, ":scope > p"): [FakeElement(text=value)],
+		(By.CSS_SELECTOR, ":scope > img"): [FakeElement()] if image else []})
+	rows = [row, FakeElement(text="Lv")]
+	if extra:
+		rows.append(FakeElement(children={(By.CSS_SELECTOR, ":scope > p"): [FakeElement(text="98,765")],
+			(By.CSS_SELECTOR, ":scope > img"): [FakeElement()]}))
+	return FakeElement(text=value + "\nLv", attributes={"aria-label": label}, displayed=displayed,
+		children={(By.CSS_SELECTOR, ":scope > span > div > div"): rows})
+
+
+def header_driver(buttons=(), text="", *, outside=()):
+	return FakeDriver(children={(By.TAG_NAME, "header"): [FakeElement(text=text,
+		children={(By.TAG_NAME, "button"): list(buttons)})], (By.TAG_NAME, "button"): list(outside)})
+
+
 class ReadCurrentBalance(unittest.TestCase):
+	def test_new_structured_figure_does_not_require_view_profile_label(self):
+		for text, expected in (("12,345", 12345), ("12.345", 12345), ("12\u202f345", 12345), ("0", 0)):
+			with self.subTest(text=text):
+				driver = header_driver([header_figure(text, label="Synthetisches Konto")])
+				self.assertEqual(read_balance(driver, ElementSelectionUtils(driver)), expected)
+
+	def test_new_header_reaches_full_state_without_losing_search_reading(self):
+		class NewHeaderDriver(StateDriver):
+			def get(self, url):
+				super().get(url)
+				if url == rewards_state.EARN_URL:
+					self.children[(By.TAG_NAME, "header")] = header_driver([header_figure()]).find_elements(By.TAG_NAME, "header")
+		driver = NewHeaderDriver(searches="15/15")
+		with mock.patch.object(rewards_state.time, "sleep", return_value=None):
+			state = read_state(driver, ElementSelectionUtils(driver), timeout=0)
+		self.assertEqual((state.balance, state.searches_earned, state.searches_max, state.unreadable), (12345, 15, 15, None))
+
+	def test_structured_figure_wins_over_separate_profile_badge(self):
+		driver = header_driver([header_figure(), FakeElement(text="Level 2", attributes={"aria-label": "View profile"})])
+		self.assertEqual(read_balance(driver, ElementSelectionUtils(driver)), 12345)
+
+	def test_empty_webdriver_text_uses_profile_text_content(self):
+		for displayed in (True, False):
+			with self.subTest(displayed=displayed):
+				button = FakeElement(attributes={"aria-label": "View profile", "textContent": "12,345"}, displayed=displayed)
+				driver = header_driver([button])
+				self.assertEqual(read_balance(driver, ElementSelectionUtils(driver)), 12345)
+
+	def test_profile_name_and_level_badge_do_not_hide_or_replace_balance(self):
+		for button in (
+			FakeElement(text="Synthetic Name\nLevel 2\n12,345", attributes={"aria-label": "View profile"}),
+			FakeElement(text="Synthetic Name 42 Level 2", attributes={"aria-label": "View profile"},
+				children={(By.TAG_NAME, "span"): [FakeElement(text="2"), FakeElement(text="12,345")]}),
+		):
+			with self.subTest(text=button.text):
+				driver = header_driver([button])
+				self.assertEqual(read_balance(driver, ElementSelectionUtils(driver)), 12345)
+
+	def test_explicit_available_balance_label_is_header_only(self):
+		for text in ("Available points: 12,345", "Points balance\n12,345 points"):
+			with self.subTest(text=text):
+				driver = header_driver(text=text)
+				self.assertEqual(read_balance(driver, ElementSelectionUtils(driver)), 12345)
+		for text in ("12,345", "Today's points\n12,345", "Level 2", "Synthetic Name 42"):
+			with self.subTest(text=text):
+				outside = FakeElement(text="98,765", attributes={"aria-label": "View profile"})
+				driver = header_driver(text=text, outside=[outside])
+				self.assertIsNone(read_balance(driver, ElementSelectionUtils(driver)))
+
+	def test_new_figure_excludes_unidentified_hidden_or_unstructured_numbers(self):
+		for button in (header_figure(label=""), header_figure(displayed=False), header_figure(image=False),
+			FakeElement(text="Synthetic Name 42", attributes={"aria-label": "Account"})):
+			with self.subTest(button=button.text):
+				driver = header_driver([button])
+				self.assertIsNone(read_balance(driver, ElementSelectionUtils(driver)))
+
+	def test_hidden_figure_paragraph_is_not_a_readable_balance(self):
+		button = header_figure()
+		button.find_elements(By.CSS_SELECTOR, ":scope > span > div > div")[0].find_elements(By.CSS_SELECTOR, ":scope > p")[0].displayed = False
+		driver = header_driver([button])
+		self.assertIsNone(read_balance(driver, ElementSelectionUtils(driver)))
+
+	def test_loading_or_conflicting_figure_does_not_borrow_profile_or_header_total(self):
+		profile = FakeElement(text="98,765", attributes={"aria-label": "View profile"})
+		for figures in ([header_figure("Loading...")], [header_figure(extra=True)],
+			[header_figure(), header_figure("98,765")], [header_figure("+10")], [header_figure("5/60")]):
+			with self.subTest(figures=len(figures)):
+				driver = header_driver([*figures, profile], "Available points: 98,765")
+				self.assertIsNone(read_balance(driver, ElementSelectionUtils(driver)))
+
+	def test_profile_zero_and_duplicate_responsive_values_are_valid(self):
+		for text, expected in (("0", 0), ("12,345", 12345)):
+			with self.subTest(text=text):
+				driver = header_driver([FakeElement(text=text, attributes={"aria-label": "View profile"}) for _ in range(2)])
+				self.assertEqual(read_balance(driver, ElementSelectionUtils(driver)), expected)
+
+	def test_visible_loading_profile_does_not_borrow_hidden_responsive_total(self):
+		driver = header_driver([FakeElement(text="Loading...", attributes={"aria-label": "View profile"}),
+			FakeElement(text="12,345", attributes={"aria-label": "View profile"}, displayed=False)])
+		self.assertIsNone(read_balance(driver, ElementSelectionUtils(driver)))
+
+	def test_profile_with_only_name_or_level_or_ambiguous_spans_is_unknown(self):
+		for text, spans in (("Synthetic Name 42", []), ("Level 2", ["2"]), ("Synthetic Name", ["12,345", "98,765"])):
+			with self.subTest(text=text):
+				driver = header_driver([FakeElement(text=text, attributes={"aria-label": "View profile"},
+					children={(By.TAG_NAME, "span"): [FakeElement(text=value) for value in spans]})])
+				self.assertIsNone(read_balance(driver, ElementSelectionUtils(driver)))
+
+	def test_new_shapes_still_read_only_one_document_without_wait_navigation_or_click(self):
+		driver = header_driver([header_figure()])
+		driver.get = mock.Mock(side_effect=AssertionError("must not navigate"))
+		driver.execute_script = mock.Mock(side_effect=AssertionError("must not execute a page action"))
+		with mock.patch.object(driver, "find_elements", wraps=driver.find_elements) as lookup, mock.patch.object(rewards_state.time, "sleep", side_effect=AssertionError("must not wait")):
+			self.assertEqual(read_balance(driver, ElementSelectionUtils(driver)), 12345)
+		lookup.assert_called_once_with(By.TAG_NAME, "header")
+		driver.get.assert_not_called()
+		driver.execute_script.assert_not_called()
+
 	def test_does_not_navigate_wait_or_quit_the_driver(self):
 		driver = StateDriver()
 		driver.get(rewards_state.EARN_URL)

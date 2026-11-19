@@ -80,10 +80,10 @@ python src/gui.py
 
 On Windows you can use `pythonw src/gui.py` to open it without a console
 window behind it. The `run-gui.bat` launcher in the project root does the
-same without needing a terminal: double-click it, or create a shortcut to it.
-from outside the folder. A companion `run-cli.bat` runs the normal
-command-line `main.py` in a console instead, for when you want to watch its
-output, which is what `python src/main.py` does.
+same without needing a terminal: run it from the project root, or create a
+shortcut to it. A companion `run-cli.bat` runs the normal command-line
+`main.py` in a console instead, for when you want to watch its output,
+which is what `python src/main.py` does.
 
 - **Run** starts `main.py` for the accounts in `.env` and shows its log while
   it works, with a Stop button to end a run early. It farms every account on
@@ -107,7 +107,7 @@ output, which is what `python src/main.py` does.
   in the file are left as they were.
 
 The window follows Windows' light or dark setting on first run, and the
-**Light mode / Dark mode** button in the header switches it either way. The
+**Dark mode** switch in **Settings > Appearance** changes it either way. The
 choice is remembered in `.env` under `GUI_THEME`, a key the bot itself never
 reads.
 

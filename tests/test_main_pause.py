@@ -75,7 +75,7 @@ class TestPauseForEnter(unittest.TestCase):
 		prompted.assert_not_called()
 
 	def test_headless_is_never_prompted(self):
-		with mock.patch.object(main, "HEADLESS", True), \
+		with mock.patch.object(main.browser, "headless_enabled", return_value=True), \
 			mock.patch.object(main, "stdin_is_interactive", return_value=True), \
 			mock.patch.object(builtins, "input") as prompted:
 			main.pause_for_enter()

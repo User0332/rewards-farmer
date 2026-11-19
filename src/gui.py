@@ -1247,6 +1247,7 @@ class ManagerApp:
 		self._build_chrome()
 		self._install_log_handler()
 
+		self.reload_environment()
 		self.load_settings()
 		self.refresh_accounts()
 
@@ -2138,11 +2139,20 @@ class ManagerApp:
 			getter, _setter, spec = self.fields[field.key]
 			value = getter()
 
-			if value and spec.kind in ("int", "float"):
+			if value and spec.kind == "int":
 				try:
-					int(value) if spec.kind == "int" else float(value)
+					parsed = int(value)
+					if parsed <= 0:
+						raise ValueError
 				except ValueError:
-					problems.append(f"{spec.label} must be a number.")
+					problems.append(f"{spec.label} must be a positive whole number.")
+			elif value and spec.kind == "float":
+				try:
+					parsed = float(value)
+					if not math.isfinite(parsed) or parsed <= 0:
+						raise ValueError
+				except ValueError:
+					problems.append(f"{spec.label} must be a positive number.")
 
 			updates[field.key] = value
 
@@ -2163,8 +2173,18 @@ class ManagerApp:
 		messagebox.showinfo("Saved", "Settings saved to .env.", parent=self.root)
 
 	def reload_environment(self) -> None:
-		"""Make the just-saved file the values this process hands to a browser."""
+		"""Make the just-saved file the values this process hands to a browser.
+
+		`load_dotenv(..., override=True)` sets keys present in the file but does
+		not remove keys deleted from it. Clear managed keys that are no longer in
+		the file so child runs don't inherit stale values.
+		"""
 		dotenv.load_dotenv(self.env.path, override=True)
+		managed = {field.key for field in ALL_FIELDS}
+		managed.update({THEME_ENV_KEY, EXCLUDE_ENV_KEY, "GUI_SCHEDULE_TIME", accounts.ACCOUNTS_ENV_VAR})
+		for key in managed:
+			if key not in self.env.values:
+				os.environ.pop(key, None)
 
 	# endregion
 
@@ -2538,7 +2558,7 @@ class ManagerApp:
 		self.set_status("idle", "Idle")
 
 	def _account_object(self, name: str) -> accounts.Account:
-		root = os.environ.get(accounts.DATA_DIR_ENV_VAR, DEFAULT_ROOT_DATA_DIR)
+		root = self.env.get(accounts.DATA_DIR_ENV_VAR, DEFAULT_ROOT_DATA_DIR)
 
 		return accounts.Account(
 			name=name,
@@ -2558,6 +2578,7 @@ class ManagerApp:
 		no named accounts the variable is not set, so the default profile runs.
 		"""
 		environment = os.environ.copy()
+		environment.pop(accounts.ACCOUNTS_ENV_VAR, None)
 
 		if self.accounts:
 			environment[accounts.ACCOUNTS_ENV_VAR] = ",".join(self.farming)
@@ -2662,6 +2683,23 @@ class ManagerApp:
 
 	def _terminate(self, process: subprocess.Popen) -> None:
 		if os.name == "nt":
+			# Ask the tree to stop first so main.py can run its cleanup (e.g.
+			# virtual desktop teardown). Fall back to a forced kill if it lingers.
+			try:
+				subprocess.run(
+					["taskkill", "/T", "/PID", str(process.pid)],
+					stdout=subprocess.DEVNULL,
+					stderr=subprocess.DEVNULL,
+					creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+					timeout=10,
+				)
+				try:
+					process.wait(timeout=5)
+					return
+				except Exception:
+					pass
+			except Exception:
+				pass
 			subprocess.run(
 				["taskkill", "/F", "/T", "/PID", str(process.pid)],
 				stdout=subprocess.DEVNULL,
@@ -2670,6 +2708,13 @@ class ManagerApp:
 			)
 		else:
 			process.terminate()
+			try:
+				process.wait(timeout=5)
+			except Exception:
+				try:
+					process.kill()
+				except Exception:
+					pass
 
 	def _run_finished(self, code: int) -> None:
 		self.process = None
@@ -2830,7 +2875,7 @@ class ManagerApp:
 				with open(bat, "w", encoding="utf-8") as f:
 					f.write("@echo off\r\ncd /d \"%~dp0\"\r\ncall \"%~dp0run-gui.bat\" 2>&1 || python src\\main.py\r\n")
 			# Use schtasks to run daily
-			tr = bat
+			tr = f'"{bat}"'
 			cmd = ["schtasks", "/Create", "/TN", SCHED_TASK_NAME, "/TR", tr,
 				"/SC", "DAILY", "/ST", time_str, "/F", "/RL", "LIMITED"]
 			result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,

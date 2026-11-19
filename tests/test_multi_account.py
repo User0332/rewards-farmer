@@ -156,9 +156,7 @@ class RunLoopTestCase(EnvironmentTestCase):
 		self.stack.enter_context(mock.patch.object(constants, "RUNS_DIR", os.path.join(self.temp.name, "runs")))
 
 		# main() waits on input() when it is not headless, which would hang.
-		headless = main.HEADLESS
-		main.HEADLESS = True
-		self.addCleanup(setattr, main, "HEADLESS", headless)
+		self.stack.enter_context(mock.patch.dict(os.environ, {"REWARDS_HEADLESS": "true"}))
 
 		# main() reports per account at info, and the failure paths at error, by
 		# design. The assertions are what reports the outcome here, so keep the

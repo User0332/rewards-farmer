@@ -74,7 +74,7 @@ def capture_console():
 				stack.enter_context(mock.patch.object(log_utils, "_configured", False))
 				stack.enter_context(mock.patch.object(browser.webdriver, "Edge", Driver))
 				stack.enter_context(mock.patch.object(main.rewards_tasks, "RewardsTaskUtils", tasks_for))
-				stack.enter_context(mock.patch.object(main, "HEADLESS", True))
+				stack.enter_context(mock.patch.dict(os.environ, {"REWARDS_HEADLESS": "true"}))
 				for method in ("reset_virtual_desktop_state", "switch_back_after_launch", "cleanup_virtual_desktop"):
 					stack.enter_context(mock.patch.object(main.desktop_utils, method, lambda: None))
 				stack.enter_context(mock.patch.object(main.desktop_utils, "prepare_desktop_before_launch", lambda: True))

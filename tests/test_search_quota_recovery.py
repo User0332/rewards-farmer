@@ -12,16 +12,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait as RealWait
 from fakes import FakeElement
 import element_selectors
 import rewards_tasks
 
 
 class SearchPage:
-	def __init__(self, *, missing_earn=True, clear_after=None, credit=3, recovery_works=True):
+	def __init__(self, *, missing_earn=True, input_after=None, credit=3, recovery_works=True):
 		self.earned, self.maximum = 3, 60
 		self.missing_after_batch = missing_earn
-		self.fail_clear_after = clear_after
+		self.fail_input_after = input_after
 		self.credit, self.recovery_works = credit, recovery_works
 		self.sent, self.clear_clicks = 0, 0
 		self.visited = []
@@ -55,18 +56,13 @@ class SearchPage:
 			if self.missing_earn:
 				raise self.recovery_error if self.recovering else self.original_error
 			return self.node("earn")
-		if (by, selector) == (By.TAG_NAME, "textarea"):
-			return self.node("search")
-		if (by, selector) == (By.ID, "sw_clx"):
-			if self.sent == self.fail_clear_after:
-				self.fail_clear_after = None
-				self.pending_clear_failure = True
-				return self.node("clear")
-			if getattr(self, "pending_clear_failure", False):
-				self.pending_clear_failure = False
-				self.original_error = NoSuchElementException("synthetic last clear button disappeared")
+		if (by, selector) == (By.ID, "sb_form_q"):
+			if self.sent == self.fail_input_after:
+				self.original_error = NoSuchElementException("synthetic search input disappeared")
 				raise self.original_error
-			return self.node("clear")
+			element = self.node("search")
+			element.send_keys = lambda *keys: None
+			return element
 		raise AssertionError((by, selector))
 
 	def find_elements(self, by, selector):
@@ -97,6 +93,7 @@ class SearchQuotaRecoveryTests(unittest.TestCase):
 		self.stack = contextlib.ExitStack()
 		self.addCleanup(self.stack.close)
 		self.stack.enter_context(mock.patch.object(rewards_tasks.time, "sleep", lambda _: None))
+		self.stack.enter_context(mock.patch.object(rewards_tasks, "WebDriverWait", lambda driver, timeout: RealWait(driver, 0)))
 		self.stack.enter_context(mock.patch.object(rewards_tasks.queries, "related_queries", lambda count: (f"synthetic query {index}" for index in range(count))))
 
 	def tasks(self, **kwargs):
@@ -122,36 +119,36 @@ class SearchQuotaRecoveryTests(unittest.TestCase):
 		tasks = self.tasks()
 		error, logs = self.run_searches(tasks)
 		self.assertIsNone(error)
-		self.assertEqual((tasks.driver.sent, tasks.driver.clear_clicks, tasks.driver.earned), (19, 19, 60))
+		self.assertEqual((tasks.driver.sent, tasks.driver.clear_clicks, tasks.driver.earned), (19, 0, 60))
 		self.assertEqual(tasks.driver.visited, ["https://www.bing.com/", rewards_tasks.REWARDS_HOME_URL, "https://rewards.bing.com/earn"])
 		warning = "WARNING:rewards_tasks:Search result could not be verified after 19 searches (NoSuchElementException), reloading once"
 		self.assertIn(warning, logs.output)
 		print(warning)
 		self.assertIn("INFO:rewards_tasks:Search quota complete: 60/60", logs.output)
 
-	def test_last_query_credited_before_clear_button_disappears(self):
-		tasks = self.tasks(clear_after=19)
+	def test_last_query_needs_no_clear_button_before_measuring_credit(self):
+		tasks = self.tasks()
 		error, logs = self.run_searches(tasks)
 		self.assertIsNone(error)
-		self.assertEqual((tasks.driver.sent, tasks.driver.clear_clicks, tasks.driver.earned), (19, 18, 60))
-		self.assertEqual(tasks.driver.visited, ["https://www.bing.com/", "https://rewards.bing.com/earn"])
+		self.assertEqual((tasks.driver.sent, tasks.driver.clear_clicks, tasks.driver.earned), (19, 0, 60))
+		self.assertEqual(tasks.driver.visited, ["https://www.bing.com/", rewards_tasks.REWARDS_HOME_URL, "https://rewards.bing.com/earn"])
 		self.assertIn("INFO:rewards_tasks:Round 1: 19 searches -> 60/60", logs.output)
 
 	def test_short_recovery_preserves_original_error_without_guessing_credit(self):
-		for clear_after in (None, 18):
-			with self.subTest(clear_after=clear_after):
-				tasks = self.tasks(clear_after=clear_after, credit=0)
+		for input_after in (None, 18):
+			with self.subTest(input_after=input_after):
+				tasks = self.tasks(input_after=input_after, credit=0)
 				error, logs = self.run_searches(tasks)
-				self.assertIs(error, tasks.driver.original_error)
+				self.assertIs(error if input_after is None else error.__cause__, tasks.driver.original_error)
 				self.assertEqual(tasks.driver.visited.count("https://rewards.bing.com/earn"), 1)
 				self.assertFalse(any("Search quota complete" in line for line in logs.output))
 
 	def test_unreadable_recovery_preserves_original_error_not_the_recovery_error(self):
-		for clear_after in (None, 19):
-			with self.subTest(clear_after=clear_after):
-				tasks = self.tasks(clear_after=clear_after, recovery_works=False)
+		for input_after in (None, 18):
+			with self.subTest(input_after=input_after):
+				tasks = self.tasks(input_after=input_after, recovery_works=False)
 				error, _ = self.run_searches(tasks)
-				self.assertIs(error, tasks.driver.original_error)
+				self.assertIs(error if input_after is None else error.__cause__, tasks.driver.original_error)
 				self.assertEqual(tasks.driver.visited.count("https://rewards.bing.com/earn"), 1)
 
 	def test_timeout_after_batch_recovers_once_when_fresh_quota_is_full(self):

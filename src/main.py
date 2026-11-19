@@ -17,8 +17,6 @@ import element_selectors
 import run_record
 import run_lock
 
-HEADLESS = browser.HEADLESS
-
 logger = logging.getLogger(__name__)
 
 DEFAULT_MIN_POINTS = 15
@@ -185,7 +183,7 @@ def pause_for_enter() -> None:
 	EOFError catch is there in case a console goes away between the two.
 	"""
 
-	if HEADLESS or not stdin_is_interactive():
+	if browser.headless_enabled() or not stdin_is_interactive():
 		return
 
 	try:
@@ -256,7 +254,7 @@ def main(unattended: bool = False, plan: RunPlan | None = None) -> int:
 			logger.info("%s/%s accounts ran", started, len(configured))
 		# Nothing is watching a container, and stdin is not a terminal there.
 		# --unattended skips the prompt for scheduled runs on the host too.
-		if not HEADLESS and not unattended:
+		if not browser.headless_enabled() and not unattended:
 			pause_for_enter()
 		code = 0 if started else 1
 		stats = recorder.stats
