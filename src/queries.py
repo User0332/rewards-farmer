@@ -31,6 +31,35 @@ DEFAULT_SOURCE = LLM
 
 ENV_VAR = "QUERY_SOURCE"
 
+KNOWN_TASKS = {
+	"search on bing for hotels to stay at on your next adventure": "hotels in Paris",
+	"search on bing to find jewelry for any occasion": "jewelry",
+	"search on bing for real-estate available in your dream town": "real estate in San Francisco",
+	"search on bing to see if your team won their recent game or match": "recent sports scores",
+	"search on bing for a flight to your perfect vacation": "flights to Miami",
+	"search on bing for the best insurance plans for your needs": "car insurance plans",
+	"search on bing to compare personal and student loan options": "student loan options",
+	"search on bing to find items on your shopping list": "school supplies",
+	"search on bing to book affordable flights for your next trip": "affordable flights",
+	"search on bing to reserve airport parking at the best rates": "airport parking",
+	"search on bing for fast and fresh flower delivery options": "flower delivery",
+	"search on bing to find the best streaming platforms and bundles": "streaming bundles",
+	"search on bing to check your credit report and raise your score": "how to check and improve credit score",
+	"search on bing for a health condition to learn about the symptoms": "type 2 diabetes symptoms",
+	"search on bing for new recipes": "dessert recipes", # needs manual testing
+	"search on bing to explore videogames": "latest video games", # needs manual testing
+	"search on bing for the meaning of a word you don't understand": "define serendipity",
+	"search on bing to see what time it is in a different time zone": "current time in new york",
+	"search on bing for the latest price of a specific stock": "current price of MSFT",
+	"search on bing to find top-rated mattresses at great prices": "best mattresses",
+	"search on bing for the latest coupon codes and discounts": "latest coupon codes", # needs manual testing
+	"search on bing to book all-inclusive resorts for a getaway": "all-inclusive resorts",
+	"search on bing to compare checking and savings account options": "best checking and savings accounts",
+	"search on bing to explore cruise deals and destinations": "cruise deals",
+	"search on bing to explore deals on new and used cars": "new and used cars for sale", # needs manual testing
+	"search on bing for tools, tips, and deals on home upgrades": "home improvement tools and tips", # needs manual testing
+}
+
 
 def selected_source() -> str:
 	"""Read on each call so a test can change it without reimporting."""
@@ -41,6 +70,13 @@ def selected_source() -> str:
 
 def search_query_for_task(task_description: str) -> str:
 	"""A query for one "Search on Bing for X" card."""
+
+	# we use .removesuffix('.') because sometimes the descriptions end with a period
+	# some descriptions also contain the zero-width space character \u200b
+	normalized_task_description = task_description.replace("\u200b", "").strip().removesuffix(".").lower()
+
+	if (short_path := KNOWN_TASKS.get(normalized_task_description)): return short_path
+
 	if selected_source() == TRENDS:
 		query = query_sources.query_from_task_description(task_description)
 
