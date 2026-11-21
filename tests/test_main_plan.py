@@ -274,7 +274,9 @@ class MainRecordTests(unittest.TestCase):
 		self.assertEqual([event["phase"] for event in self.events() if event["type"] == "state"], ["before", "after"])
 
 	def test_unattended_skips_enter_but_no_flag_keeps_the_original_prompt(self):
-		with mock.patch.dict(os.environ, {"REWARDS_HEADLESS": "false"}), mock.patch("builtins.input", return_value="") as prompt:
+		with mock.patch.dict(os.environ, {"REWARDS_HEADLESS": "false"}), \
+			mock.patch.object(main, "stdin_is_interactive", return_value=True), \
+			mock.patch("builtins.input", return_value="") as prompt:
 			self.assertEqual(main.main(), 0)
 			prompt.assert_called_once_with("Press Enter to exit...")
 			prompt.reset_mock()
